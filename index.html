@@ -87,7 +87,40 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: white; padding: 30px; border-radius: var(--radius); max-width: 500px; width: 100%; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-    </style>
+    	/* --- MOBILE OPTIMIZATIONS --- */
+@media (max-width: 768px) {
+    /* Stack grids on mobile */
+    .grid { grid-template-columns: 1fr; } 
+    .stats-grid { grid-template-columns: 1fr; }
+    
+    /* Make Nav scrollable on small screens */
+    .nav { padding: 10px; }
+    .nav-brand { font-size: 18px; }
+    
+    /* Fix Admin Nav on mobile */
+    #admin-nav { 
+        display: none; /* Hidden by default */
+        position: absolute; 
+        top: 60px; 
+        left: 0; 
+        width: 100%; 
+        background: white; 
+        padding: 10px; 
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap; 
+    }
+    #admin-nav.mobile-active { display: flex; }
+    
+    /* Tables need horizontal scroll on mobile */
+    .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    
+    /* Adjust Card Padding */
+    .card { padding: 15px; }
+    
+    /* Toast adjustments */
+    .toast { left: 20px; right: 20px; width: auto; min-width: 200px; font-size: 13px; }
+}
+</style>
 </head>
 <body>
 
@@ -134,8 +167,8 @@
     <!-- Login -->
     <div id="page-login" class="card" style="max-width: 400px; margin: 60px auto; text-align: center; border-top: 4px solid var(--primary);">
         <h2>Вход в систему</h2>
-        <p style="color: #64748b; margin-bottom: 20px;">Введите ваше имя</p>
-        <input type="text" id="login-input" placeholder="Например: Admin или Ogabek" onkeypress="if(event.key==='Enter') handleLogin()">
+        <p style="color: #64748b; margin-bottom: 20px;">Login ismingizni yoki kodingizni kiriting</p>
+        <input type="text" id="login-input" placeholder="Login ismingiz" onkeypress="if(event.key==='Enter') handleLogin()">
         <button class="btn-blue" style="width: 100%; padding: 14px;" onclick="handleLogin()">Войти</button>
     </div>
 
@@ -147,7 +180,6 @@
                     <h2 id="worker-title" style="margin:0; font-size: 22px;">Работник</h2>
                     <p style="opacity: 0.9; font-size: 14px; margin-top: 5px;">Ваше рабочее место</p>
                 </div>
-                <button onclick="location.reload()" style="background: rgba(255,255,255,0.2); color: white; border: none;">Сменить</button>
             </div>
         </div>
 
@@ -164,10 +196,9 @@
         </div>
 
         <div id="worker-action-card" class="card hidden">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="active-proc-name" style="margin:0; color:var(--primary)">Процесс</h3>
-                <button class="btn-ghost" onclick="resetWorkerFlow()">← К задачам</button>
-            </div>
+            <div style="margin-bottom:20px;">
+   		 <h3 id="active-proc-name" style="margin:0; color:var(--primary); text-align:center;">Процесс: </h3>
+	</div>
             
             <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed var(--border); margin-bottom: 20px;">
                 <label style="font-size: 12px; font-weight: 700; color: #64748b; display:block; margin-bottom:8px; text-transform:uppercase;">Номер заказа</label>
@@ -346,20 +377,23 @@ async function loadAllData() {
 
 // --- AUTH ---
 // --- AUTH (FIXED: Saves & Loads Correct Page) ---
+// --- AUTH (UPDATED: Mobile & Admin Password) ---
 function handleLogin(forceLogin = false) {
     const input = document.getElementById('login-input');
     const val = input.value.trim();
     if(!val) return showToast("Введите имя", "error");
     
-    // Hide tabs temporarily
+    // Hide tabs initially
     document.getElementById('admin-nav').style.display = 'none';
+    document.getElementById('admin-nav').classList.remove('mobile-active');
 
-    if(val.toLowerCase() === 'admin') {
-        // ADMIN LOGIC
-        curUser = { name: 'admin' }; // Set admin as current user
+    // 1. ADMIN PASSWORD CHECK (Updated to 'admin939291')
+    if(val.toLowerCase() === 'admin939291') {
+        curUser = { name: 'admin939291' }; // Set admin as user
         
         document.getElementById('page-login').classList.add('hidden');
         document.getElementById('admin-nav').style.display = 'flex';
+        document.getElementById('admin-nav').classList.add('mobile-active');
         document.getElementById('logout-btn').classList.remove('hidden');
         showPage('page-dashboard');
         
@@ -367,34 +401,34 @@ function handleLogin(forceLogin = false) {
         localStorage.setItem('erp_user', 'admin');
         showToast("Добро пожаловать, Администратор");
     } else {
-        // WORKER LOGIC
-        // If this is an automatic login (after refresh), ensure data is loaded
+        // 2. WORKER LOGIC
         if(!forceLogin && workers.length === 0) {
-            // Wait 200ms and try again (Data is loading)
+            // Wait and try again if data isn't loaded yet
             setTimeout(() => handleLogin(true), 200);
             return;
         }
 
         const worker = workers.find(w => w.name.toLowerCase() === val.toLowerCase());
         if(worker) {
-            curUser = worker; // Set global user
+            curUser = worker;
             
             document.getElementById('page-login').classList.add('hidden');
-            document.getElementById('admin-nav').style.display = 'none';
+            document.getElementById('admin-nav').style.display = 'none'; // Ensure admin tabs are hidden
             document.getElementById('page-worker-terminal').classList.remove('hidden');
             document.getElementById('logout-btn').classList.remove('hidden');
             document.getElementById('worker-title').innerText = worker.name;
-            renderWorkerTasks();
             
             // SAVE SESSION
             localStorage.setItem('erp_user', worker.name);
+            
+            renderWorkerTasks();
             showToast(`Здравствуйте, ${worker.name}`);
         } else {
             if(forceLogin) {
-                 // If auto-login failed (e.g. worker deleted), clear session and show login
+                 // Login failed (e.g., worker deleted). Clear session.
                  handleLogout();
             } else {
-                showToast("Сотрудник не найден", "error");
+                showToast("Неверный логин или пароль", "error");
             }
         }
     }
@@ -456,13 +490,45 @@ function renderWorkerTasks() {
     });
 }
 
+// --- WORKER LOGIC: Smart Process Selection ---
 function selectWorkerProc(p) {
     curProc = p;
+    
+    // 1. Update UI
     document.getElementById('active-proc-name').innerText = p;
     document.getElementById('worker-action-card').classList.remove('hidden');
-    document.getElementById('worker-controls').classList.add('hidden');
-    document.getElementById('worker-order-input').value = '';
-    document.getElementById('worker-order-input').focus();
+    
+    // 2. SMART SWITCH: If there is currently an order open in the input field, 
+    // assume we want to switch to the new process immediately.
+    const currentInput = document.getElementById('worker-order-input').value.trim();
+    
+    if(currentInput) {
+        // We have an order ID. Let's try to check it for the NEW process.
+        const o = orders.find(x => x.id === currentInput);
+        
+        if(o && o.path.includes(p)) {
+            // Order found and fits new process! Start the flow immediately.
+            document.getElementById('worker-controls').classList.remove('hidden');
+            
+            // Update buttons based on history for THIS new process
+            const h = o.history && o.history[p];
+            const isStarted = !!h;
+            const isFinished = isStarted && !!h.end;
+
+            document.getElementById('btn-start').classList.toggle('hidden', isStarted);
+            document.getElementById('btn-finish').classList.toggle('hidden', !isStarted || isFinished);
+            document.getElementById('done-msg').classList.toggle('hidden', !isFinished);
+        } else {
+            // Order doesn't match new process, or invalid. Clear controls.
+            document.getElementById('worker-controls').classList.add('hidden');
+            showToast(`Заказ #${currentInput} не проходит этап "${p}"`, "error");
+        }
+    } else {
+        // No order in input. Just clear controls and wait.
+        document.getElementById('worker-controls').classList.add('hidden');
+        document.getElementById('worker-order-input').value = '';
+        document.getElementById('worker-order-input').focus();
+    }
 }
 
 function workerFindOrder() {

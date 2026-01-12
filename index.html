@@ -282,17 +282,34 @@
     </div>
 
     <!-- Admin: Production -->
-    <div id="page-orders" class="page hidden">
-        <div class="card">
-            <h3>Запуск в производство</h3>
-            <div style="margin-bottom: 15px; padding: 12px; background: #fffbeb; border-radius: 8px; border: 1px solid #fcd34d; font-size: 13px; color: #92400e;">
-                ⚠️ Выберите маршрут производства. Если заказ существует, маршрут обновится, история сохранится.
+<!-- Admin: Production -->
+<div id="page-orders" class="page hidden">
+    <div class="card">
+        <h3>Запуск в производство</h3>
+        
+        <!-- CRM LOOKUP BOX (New Feature) -->
+        <div id="crm-lookup-card" class="card hidden" style="border-color: var(--primary); background: #f0fdf4; margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="margin:0; color:var(--primary)">📋 Данные из CRM</h4>
+                <button class="btn-ghost" onclick="closeCRMLookup()" style="padding:4px 8px; font-size:12px;">✖</button>
             </div>
-            <input type="text" id="adm-o-id" placeholder="№ заказа (из CRM)">
-            <div id="adm-o-grid" class="grid"></div>
-            <button class="btn-green" style="width: 100%; padding: 16px;" onclick="saveOrder()">🚀 Запустить в цех</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                <div><span style="color:#64748b;">Клиент:</span> <b id="lookup-client">-</b></div>
+                <div><span style="color:#64748b;">Товар:</span> <b id="lookup-item">-</b></div>
+                <div><span style="color:#64748b;">Сумма:</span> <b id="lookup-price">-</b></div>
+                <div><span style="color:#64748b;">Дата:</span> <b id="lookup-date">-</b></div>
+            </div>
         </div>
+
+        <div style="margin-bottom: 15px; padding: 12px; background: #fffbeb; border-radius: 8px; border: 1px solid #fcd34d; font-size: 13px; color: #92400e;">
+            ℹ️ Введите номер заказа из CRM для автозаполнения маршрута.
+        </div>
+
+        <input type="text" id="adm-o-id" placeholder="№ заказа (из CRM)" oninput="lookupCRMOrder(this.value)">
+        <div id="adm-o-grid" class="grid"></div>
+        <button class="btn-green" style="width: 100%; padding: 16px;" onclick="saveOrder()">🚀 Запустить в цех</button>
     </div>
+</div>
 
     <!-- Admin: Monitor -->
     <div id="page-monitor" class="page hidden">
@@ -592,6 +609,39 @@ function renderDashboard() {
     document.getElementById('stat-finished').innerText = finished;
 }
 
+// --- ADMIN LOGIC: CRM LOOKUP ---
+function lookupCRMOrder(orderId) {
+    const inputVal = orderId.trim();
+    const resultCard = document.getElementById('crm-lookup-card');
+    
+    // 1. Clear input if empty
+    if(!inputVal) {
+        resultCard.classList.add('hidden');
+        return;
+    }
+
+    // 2. Search in CRM Data
+    const orderData = crm_orders.find(c => c.oid === inputVal);
+
+    if(orderData) {
+        // 3. Fill Data and Show Card
+        document.getElementById('lookup-client').innerText = orderData.client || '-';
+        document.getElementById('lookup-item').innerText = orderData.item || '-';
+        document.getElementById('lookup-price').innerText = (orderData.price || 0) + ' ₸';
+        document.getElementById('lookup-date').innerText = orderData.date || 'Нет даты';
+        
+        resultCard.classList.remove('hidden');
+    } else {
+        // 4. Hide card if not found (or keep showing old? usually better to hide to avoid confusion)
+        resultCard.classList.add('hidden');
+    }
+}
+
+function closeCRMLookup() {
+    document.getElementById('crm-lookup-card').classList.add('hidden');
+    document.getElementById('adm-o-id').value = '';
+}
+
 function isOrderFinished(o) {
     if(!o.path || !o.history) return false;
     const lastStep = o.path[o.path.length-1];
@@ -775,8 +825,27 @@ async function renderHistory() {
 
 function renderCRM() {
     document.getElementById('crm-table-body').innerHTML = crm_orders.map(c => `
-        <tr><td>#${c.oid}</td><td>${c.client || '-'}</td><td>${c.item || '-'}</td><td>${c.price || 0}</td>
-        <td><button class="btn-red" onclick="delCRM('${c.oid}')">✖</button></td></tr>`).join('');
+        <tr style="cursor:pointer;" onclick="copyToProduction('${c.oid}')">
+            <td>#${c.oid}</td>
+            <td>${c.client || '-'}</td>
+            <td>${c.item || '-'}</td>
+            <td>${c.price || 0}</td>
+            <td>
+                <button class="btn-red" onclick="event.stopPropagation(); delCRM('${c.oid}')">✖</button>
+            </td>
+        </tr>`).join('');
+}
+
+// Helper: Click CRM row -> Copy ID to Production Tab
+function copyToProduction(oid) {
+    // 1. Switch Tab
+    showPage('page-orders');
+    
+    // 2. Fill Input
+    document.getElementById('adm-o-id').value = oid;
+    
+    // 3. Trigger Lookup Logic (This will show the client info)
+    lookupCRMOrder(oid);
 }
 
 async function saveCRM() {

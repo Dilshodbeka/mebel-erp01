@@ -75,6 +75,114 @@
         .task-item:hover { border-color: var(--primary); background: #f8fafc; }
         .task-item.priority { border-left: 4px solid var(--warning); }
 
+        /* НОВЫЙ UI ДЛЯ РАБОТНИКОВ - КРУПНЫЕ КАРТОЧКИ ПРОЦЕССОВ */
+        .worker-process-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin: 20px 0; }
+        .worker-process-card { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px; 
+            border-radius: 16px; 
+            cursor: pointer; 
+            transition: all 0.3s;
+            border: 3px solid transparent;
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        .worker-process-card:hover { 
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            border-color: #fbbf24;
+        }
+        .worker-process-card.has-tasks { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(251, 191, 36, 0.6); }
+        }
+        .worker-process-name {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .worker-process-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+        }
+        .worker-process-count.has-new {
+            background: #fbbf24;
+            color: #78350f;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .worker-order-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
+        .worker-order-item {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .worker-order-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        .worker-order-item.active {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        .worker-order-id {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        .worker-order-client {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .worker-order-item-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+        .worker-order-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .worker-order-status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .worker-order-status.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        @media (max-width: 768px) {
+            .worker-process-name { font-size: 20px; }
+            .worker-process-count { font-size: 16px; padding: 6px 12px; }
+            .worker-order-id { font-size: 20px; }
+            .worker-order-item-name { font-size: 16px; }
+            .worker-order-client { font-size: 14px; }
+        }
+
         /* State Machine Badges */
         .state-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
         .state-badge.pending { background: #fff3cd; color: #b45309; border: 1px solid #f59e0b; }
@@ -1182,6 +1290,98 @@ const SUPABASE_URL = 'https://xknypljgfgkzgokogexz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_96Ews89Vjt4la_07SQhf6A_WOmDGSSN'; 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ==========================================
+// PUSH-УВЕДОМЛЕНИЯ ДЛЯ РАБОТНИКОВ
+// ==========================================
+
+let lastOrderCount = 0;
+let notificationPermission = 'default';
+
+// Запрос разрешения на уведомления
+async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+        console.log('Браузер не поддерживает уведомления');
+        return false;
+    }
+    
+    if (Notification.permission === 'granted') {
+        notificationPermission = 'granted';
+        return true;
+    }
+    
+    if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        notificationPermission = permission;
+        return permission === 'granted';
+    }
+    
+    return false;
+}
+
+// Показать push-уведомление
+function showPushNotification(title, body, icon = '🔔') {
+    if (notificationPermission !== 'granted') return;
+    
+    try {
+        const notification = new Notification(title, {
+            body: body,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">' + icon + '</text></svg>',
+            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">📋</text></svg>',
+            vibrate: [200, 100, 200],
+            requireInteraction: false,
+            tag: 'worker-notification'
+        });
+        
+        setTimeout(() => notification.close(), 5000);
+        
+        notification.onclick = () => {
+            window.focus();
+            notification.close();
+        };
+    } catch (err) {
+        console.error('Ошибка уведомления:', err);
+    }
+}
+
+// Проверка новых заказов для работника
+function checkForNewOrdersForWorker() {
+    if (!curUser || curUser.role !== 'worker') return;
+    
+    let myProcs = curUser.procs || [];
+    let currentOrderCount = 0;
+    
+    myProcs.forEach(proc => {
+        orders.forEach(o => {
+            if(o.path && o.path.includes(proc)) {
+                const h = o.history && o.history[proc];
+                if(!h || (!h.end && h.start)) {
+                    currentOrderCount++;
+                }
+            }
+        });
+    });
+    
+    if (currentOrderCount > lastOrderCount && lastOrderCount > 0) {
+        const newOrdersCount = currentOrderCount - lastOrderCount;
+        showPushNotification(
+            '🎉 Новые заказы!',
+            `У вас ${newOrdersCount} ${newOrdersCount === 1 ? 'новый заказ' : 'новых заказа'}. Проверьте список задач!`,
+            '📋'
+        );
+        
+        showToast(`✨ Новые заказы! +${newOrdersCount}`, 'success');
+    }
+    
+    lastOrderCount = currentOrderCount;
+}
+
+setInterval(() => {
+    if (curUser && curUser.role === 'worker') {
+        checkForNewOrdersForWorker();
+    }
+}, 30000);
+
+
 // ОБНОВЛЕНО: 11 процессов без "Установка"
 const PROCS = ["Раскрой NESTING", "2 пильный", "кромка", "Присадка", "ФАСАД NESTING", "Ровер", "Фигурный кромка", "Пленка PVC", "краска", "OTK", "Упаковка", "Сборка"];
 
@@ -1230,7 +1430,7 @@ async function loadTelegramData() {
         renderNotificationHistory();
         updateClientDropdown();
     } catch (err) {
-        console.error('Ошибка загрузки Telegram данных:', err);
+        console.error('Ошибка загрузки Telegram данных:', err.message || err);
     }
 }
 
@@ -1251,7 +1451,7 @@ async function saveBotToken() {
         showToast('Токен бота сохранен');
         await logActivity(curUser.name, 'Обновил Telegram Bot токен', '', 'telegram');
     } catch (err) {
-        console.error('Ошибка сохранения токена:', err);
+        console.error('Ошибка сохранения токена:', err.message || err);
         showToast('Ошибка сохранения токена', 'error');
     }
 }
@@ -1271,7 +1471,7 @@ async function testBotConnection() {
             showToast('❌ Ошибка подключения к боту', 'error');
         }
     } catch (err) {
-        console.error('Ошибка проверки бота:', err);
+        console.error('Ошибка проверки бота:', err.message || err);
         showToast('Ошибка проверки подключения', 'error');
     }
 }
@@ -1317,7 +1517,7 @@ async function saveTelegramClient() {
         resetTelegramForm();
         await loadTelegramData();
     } catch (err) {
-        console.error('Ошибка сохранения клиента:', err);
+        console.error('Ошибка сохранения клиента:', err.message || err);
         showToast('Ошибка сохранения', 'error');
     }
 }
@@ -1363,7 +1563,7 @@ async function deleteTelegramClient(id) {
         await loadTelegramData();
         showToast('Клиент удален');
     } catch (err) {
-        console.error('Ошибка удаления клиента:', err);
+        console.error('Ошибка удаления клиента:', err.message || err);
         showToast('Ошибка удаления', 'error');
     }
 }
@@ -1448,7 +1648,7 @@ async function sendTelegramNotification(clientName, orderId, processName, itemNa
             return false;
         }
     } catch (err) {
-        console.error('Ошибка отправки Telegram уведомления:', err);
+        console.error('Ошибка отправки Telegram уведомления:', err.message || err);
         
         // Сохраняем ошибку
         try {
@@ -1610,13 +1810,13 @@ async function logActivity(userName, action, details = '', type = 'system') {
             });
             
         if (error) {
-            console.error('Ошибка записи активности в Supabase:', error);
+            console.error('Ошибка записи активности в Supabase:', error.message || error);
         }
         
         renderActivityLog();
         
     } catch (err) {
-        console.error('Ошибка записи активности:', err);
+        console.error('Ошибка записи активности:', err.message || err);
     }
 }
 
@@ -1987,7 +2187,7 @@ async function loadAllData() {
         if(curUser && curUser.name !== 'admin939291' && curUser.name !== 'kanban') renderWorkerTasks();
         
     } catch (e) { 
-        console.error("CRASH:", e); 
+        console.error("CRASH:", e.message || e); 
         showToast("Ошибка загрузки данных", "error"); 
     }
 }
@@ -2019,17 +2219,24 @@ async function renderActivityLog(filters = {}) {
             const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
             
             if (error) {
-                console.warn('Не удалось загрузить логи из Supabase:', error);
-                const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
-                logs = localLogs.filter(log => 
-                    log.user_name !== 'admin939291' && 
-                    log.user_name !== 'Администратор'
-                );
+                console.warn('Не удалось загрузить логи из Supabase:', error.message || error);
+                // Если таблица не существует - показываем пустой список
+                if (error.code === '42P01' || error.message?.includes('does not exist')) {
+                    logs = [];
+                    console.info('Таблица activity_logs не найдена. Логи будут сохраняться локально.');
+                } else {
+                    // Пробуем загрузить из localStorage
+                    const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
+                    logs = localLogs.filter(log => 
+                        log.user_name !== 'admin939291' && 
+                        log.user_name !== 'Администратор'
+                    );
+                }
             } else {
                 logs = data || [];
             }
         } catch (err) {
-            console.warn('Ошибка подключения к Supabase:', err);
+            console.warn('Ошибка подключения к Supabase:', err.message || err);
             const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
             logs = localLogs.filter(log => 
                 log.user_name !== 'admin939291' && 
@@ -2113,7 +2320,7 @@ async function renderActivityLog(filters = {}) {
         }
         
     } catch (err) {
-        console.error("Activity Log Error:", err);
+        console.error("Activity Log Error:", err.message || err);
     }
 }
 
@@ -2189,6 +2396,17 @@ async function handleLogin(forceLogin = false) {
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('admin-nav').style.display = 'none';
             document.getElementById('page-worker-terminal').classList.remove('hidden');
+            
+            // Запрашиваем разрешение на уведомления для работников
+            setTimeout(() => {
+                requestNotificationPermission().then(granted => {
+                    if (granted) {
+                        showToast('✅ Уведомления включены!', 'success');
+                        lastOrderCount = 0;
+                        checkForNewOrdersForWorker();
+                    }
+                });
+            }, 1000);
             document.getElementById('logout-btn').classList.remove('hidden');
             document.getElementById('worker-title').innerText = worker.name;
             
@@ -2229,50 +2447,96 @@ function resetWorkerFlow() {
 
 function renderWorkerTasks() {
     const list = document.getElementById('worker-tasks-list');
-    if(!list) return; list.innerHTML = '';
+    if(!list) return; 
+    list.innerHTML = '';
     
     let myProcs = curUser.procs || [];
-    let myTasks = [];
-
+    
+    // Группируем задачи по процессам
+    let processGroups = {};
+    
     myProcs.forEach(proc => {
+        processGroups[proc] = [];
         orders.forEach(o => {
             if(o.path && o.path.includes(proc)) {
                 const h = o.history && o.history[proc];
                 if(!h || (!h.end && h.start)) {
-                    myTasks.push({ order: o, proc: proc, status: h ? 'active' : 'pending' });
+                    const crmOrder = crm_orders.find(c => c.oid === o.id);
+                    processGroups[proc].push({ 
+                        order: o, 
+                        proc: proc, 
+                        status: h ? 'active' : 'pending',
+                        client: crmOrder ? crmOrder.client : 'Неизвестный',
+                        item: crmOrder ? crmOrder.item : 'Изделие'
+                    });
                 }
             }
         });
     });
 
+    // Подсчитываем общее количество задач
+    let totalTasks = 0;
+    Object.values(processGroups).forEach(tasks => totalTasks += tasks.length);
+    
     const countBadge = document.getElementById('task-count-badge');
-    if(countBadge) countBadge.innerText = myTasks.length;
+    if(countBadge) countBadge.innerText = totalTasks;
 
-    if(myTasks.length === 0) {
-        list.innerHTML = '<div style="text-align:center; color: #94a3b8; padding: 20px;">Нет активных задач</div>';
+    if(totalTasks === 0) {
+        list.innerHTML = '<div style="text-align:center; color: #94a3b8; padding: 40px; font-size: 18px;">✨ Нет активных задач</div>';
         return;
     }
 
-    myTasks.forEach(task => {
-        const el = document.createElement('div');
-        el.className = 'task-item';
-        const statusColor = task.status === 'active' ? 'background:#eef2ff; border-color:var(--primary)' : '';
-        const statusText = task.status === 'active' ? 'В работе' : 'Ожидает';
-        el.style.cssText = statusColor;
-        el.innerHTML = `
-            <div>
-                <div>
-                    <div style="font-weight:700; font-size: 16px;">#${task.order.id}</div>
-                <div style="font-size: 12px; color:#64748b;">${task.proc}</div>
+    // Создаем карточки процессов
+    Object.entries(processGroups).forEach(([procName, tasks]) => {
+        if(tasks.length === 0) return;
+        
+        const procCard = document.createElement('div');
+        procCard.className = 'worker-process-card' + (tasks.length > 0 ? ' has-tasks' : '');
+        
+        // Заголовок процесса с количеством
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div class="worker-process-name">${procName}</div>
+            <div class="worker-process-count ${tasks.length > 0 ? 'has-new' : ''}">
+                📋 ${tasks.length} заказ${tasks.length === 1 ? '' : tasks.length < 5 ? 'а' : 'ов'}
             </div>
-            <div class="proc-badge ${task.status}">${statusText}</div>
         `;
-        el.onclick = () => {
-            selectWorkerProc(task.proc);
-            document.getElementById('worker-order-input').value = task.order.id;
-            workerFindOrder();
-        };
-        list.appendChild(el);
+        procCard.appendChild(header);
+        
+        // Список заказов
+        const orderList = document.createElement('div');
+        orderList.className = 'worker-order-list';
+        
+        tasks.forEach(task => {
+            const orderItem = document.createElement('div');
+            orderItem.className = 'worker-order-item' + (task.status === 'active' ? ' active' : '');
+            
+            const statusIcon = task.status === 'active' ? '🟢' : '⏳';
+            const statusText = task.status === 'active' ? 'В работе' : 'Ожидает';
+            const statusClass = task.status === 'active' ? 'active' : 'pending';
+            
+            orderItem.innerHTML = `
+                <div class="worker-order-id">#${task.order.id}</div>
+                <div class="worker-order-client">${task.client}</div>
+                <div class="worker-order-item-name">${task.item}</div>
+                <div class="worker-order-status ${statusClass}">
+                    ${statusIcon} ${statusText}
+                </div>
+            `;
+            
+            orderItem.onclick = () => {
+                selectWorkerProc(task.proc);
+                document.getElementById('worker-order-input').value = task.order.id;
+                workerFindOrder();
+                // Прокрутка к форме действий
+                document.getElementById('worker-action-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+            
+            orderList.appendChild(orderItem);
+        });
+        
+        procCard.appendChild(orderList);
+        list.appendChild(procCard);
     });
 }
 
@@ -2740,7 +3004,7 @@ async function loadKanbanData() {
             .select('*');
         
         if (ordersError) {
-            console.error('Ошибка загрузки заказов:', ordersError);
+            console.error('Ошибка загрузки заказов:', ordersError.message || ordersError);
             showToast('Ошибка загрузки заказов', 'error');
             return;
         }
@@ -2750,7 +3014,7 @@ async function loadKanbanData() {
             .select('*');
         
         if (crmError) {
-            console.error('Ошибка загрузки CRM данных:', crmError);
+            console.error('Ошибка загрузки CRM данных:', crmError.message || crmError);
         }
         
         kanbanOrders = (ordersData || []).map(order => {

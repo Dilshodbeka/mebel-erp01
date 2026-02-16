@@ -443,9 +443,9 @@
     }
 }
 
-/* TV MODE STYLES FOR 4K - КОМПАКТНЫЙ ВАРИАНТ 230px */
+/* TV MODE STYLES FOR 4K - 6 ПРОЦЕССОВ НА ВЕСЬ ЭКРАН */
 .tv-mode-4k {
-    font-size: 14px !important;
+    font-size: 16px !important;
     overflow-x: hidden !important;
 }
 
@@ -456,120 +456,117 @@
     width: 100vw !important;
 }
 
-/* КАНБАН ДОСКА - ПОЛНАЯ ШИРИНА БЕЗ ОТСТУПОВ */
+/* КАНБАН ДОСКА - 6 КОЛОНОК НА ВЕСЬ ЭКРАН */
 .tv-mode-4k .kanban-board {
-    display: flex;
-    gap: 6px !important;
-    padding: 0 5px !important;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px !important;
+    padding: 10px 15px !important;
     margin: 0 !important;
-    min-height: 85vh;
+    min-height: 90vh;
     width: 100vw !important;
-    overflow-x: visible !important;
+    overflow-x: hidden !important;
     box-sizing: border-box;
-    justify-content: flex-start;
-    align-items: stretch;
 }
 
-/* КОЛОНКИ ПРОЦЕССОВ - УЛЬТРАКОМПАКТНЫЕ 230px */
+/* КОЛОНКИ ПРОЦЕССОВ - ШИРОКИЕ ДЛЯ 6 ПРОЦЕССОВ */
 .tv-mode-4k .kanban-column {
-    min-width: 230px !important;
-    max-width: 230px !important;
-    width: 230px !important;
+    min-width: auto !important;
+    max-width: none !important;
+    width: 100% !important;
     background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-    padding: 8px !important;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px !important;
     flex-shrink: 0;
     margin: 0 !important;
-    max-height: 85vh !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    max-height: 90vh !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
 }
 
-/* ЗАГОЛОВКИ КОЛОНОК - СУПЕР КОМПАКТНЫЕ */
+/* ЗАГОЛОВКИ КОЛОНОК - КРУПНЫЕ */
 .tv-mode-4k .kanban-column-header {
-    font-size: 12px !important;
-    font-weight: 800 !important;
-    padding: 8px 6px !important;
-    border-radius: 4px !important;
-    margin-bottom: 8px !important;
-    min-height: 50px !important;
+    font-size: 16px !important;
+    font-weight: 900 !important;
+    padding: 15px 10px !important;
+    border-radius: 8px !important;
+    margin-bottom: 12px !important;
+    min-height: 70px !important;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    line-height: 1.1 !important;
+    line-height: 1.2 !important;
     word-break: break-word;
 }
 
 /* Текст названия процесса */
 .tv-mode-4k .kanban-column-header .process-name {
-    font-size: 11px !important;
-    line-height: 1.1;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-height: 28px;
+    font-size: 15px !important;
+    line-height: 1.2;
+    font-weight: 900;
 }
 
-/* СЧЕТЧИК В ЗАГОЛОВКЕ - МИНИМАЛЬНЫЙ */
+/* СЧЕТЧИК В ЗАГОЛОВКЕ */
 .tv-mode-4k .kanban-column-header .column-count {
     background: rgba(255,255,255,0.3);
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 10px;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 14px;
     font-weight: 900;
-    margin-top: 3px;
-    min-width: 20px;
+    margin-top: 5px;
+    min-width: 30px;
 }
 
 /* КОНТЕНТ КОЛОНКИ */
 .tv-mode-4k .kanban-column-content {
-    max-height: calc(85vh - 60px) !important;
-    padding-right: 1px;
+    max-height: calc(90vh - 100px) !important;
+    padding-right: 5px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 3px !important;
+    gap: 8px !important;
+    flex: 1;
 }
 
-/* КАРТОЧКИ ЗАКАЗОВ - УЛЬТРАКОМПАКТНЫЕ */
+/* КАРТОЧКИ ЗАКАЗОВ - КРУПНЕЕ ДЛЯ TV */
 .tv-mode-4k .kanban-card {
-    padding: 6px !important;
-    margin-bottom: 3px !important;
-    border-radius: 4px !important;
-    border: 1px solid #e2e8f0 !important;
-    min-height: 50px !important;
-    max-height: 55px !important;
+    padding: 12px !important;
+    margin-bottom: 0 !important;
+    border-radius: 8px !important;
+    border: 2px solid #e2e8f0 !important;
+    min-height: 80px !important;
+    max-height: none !important;
     overflow: hidden;
     font-size: 10px !important;
 }
 
 .tv-mode-4k .kanban-card:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     border-color: var(--primary) !important;
 }
 
 /* ID ЗАКАЗА */
 .tv-mode-4k .kanban-card-id {
-    font-size: 11px !important;
+    font-size: 16px !important;
     font-weight: 900 !important;
-    margin-bottom: 1px !important;
+    margin-bottom: 4px !important;
     color: var(--primary) !important;
-    line-height: 1.1;
+    line-height: 1.2;
 }
 
 /* НАЗВАНИЕ ИЗДЕЛИЯ */
 .tv-mode-4k .kanban-card-item {
-    font-size: 10px !important;
+    font-size: 14px !important;
     font-weight: 600 !important;
-    margin-bottom: 1px !important;
-    line-height: 1.1;
+    margin-bottom: 4px !important;
+    line-height: 1.3;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -577,8 +574,8 @@
 
 /* КЛИЕНТ */
 .tv-mode-4k .kanban-card-client {
-    font-size: 9px !important;
-    margin-bottom: 1px !important;
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
     color: #64748b !important;
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -594,8 +591,8 @@
 
 /* БЛОК С ДЛИТЕЛЬНОСТЯМИ */
 .tv-mode-4k .kanban-card > div:nth-child(6) {
-    font-size: 8px !important;
-    margin-bottom: 1px !important;
+    font-size: 11px !important;
+    margin-bottom: 4px !important;
     padding: 0 !important;
     display: flex;
     justify-content: space-between;
@@ -603,28 +600,28 @@
 
 /* ПРОГРЕСС БАР */
 .tv-mode-4k .kanban-progress-bar {
-    height: 3px !important;
-    margin: 2px 0 !important;
-    border-radius: 1px !important;
+    height: 6px !important;
+    margin: 4px 0 !important;
+    border-radius: 3px !important;
 }
 
 .tv-mode-4k .kanban-progress-text {
-    font-size: 8px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
-    min-width: 25px;
+    min-width: 35px;
 }
 
 /* РАБОТНИК */
 .tv-mode-4k .kanban-card-worker {
-    font-size: 8px !important;
-    padding-top: 2px !important;
-    margin-top: 2px !important;
+    font-size: 11px !important;
+    padding-top: 6px !important;
+    margin-top: 6px !important;
     border-top: 1px dashed #e2e8f0 !important;
 }
 
 /* ДЛИТЕЛЬНОСТЬ */
 .tv-mode-4k .kanban-card-duration {
-    font-size: 8px !important;
+    font-size: 11px !important;
     padding: 1px 4px !important;
     border-radius: 6px !important;
     top: 3px !important;
@@ -639,56 +636,56 @@
 
 /* ЗАГОЛОВОЧНАЯ КАРТОЧКА */
 .tv-mode-4k #page-kanban .card:first-child {
-    padding: 8px 12px !important;
-    margin-bottom: 6px !important;
-    border-radius: 6px !important;
+    padding: 15px 20px !important;
+    margin-bottom: 10px !important;
+    border-radius: 12px !important;
 }
 
 .tv-mode-4k #page-kanban .card:first-child h2 {
-    font-size: 16px !important;
-    margin-bottom: 3px !important;
+    font-size: 24px !important;
+    margin-bottom: 5px !important;
 }
 
 .tv-mode-4k #page-kanban .card:first-child p {
-    font-size: 11px !important;
+    font-size: 14px !important;
 }
 
 /* НАВИГАЦИЯ */
 .tv-mode-4k .nav {
-    padding: 6px 12px !important;
-    min-height: 50px !important;
+    padding: 10px 20px !important;
+    min-height: 60px !important;
 }
 
 .tv-mode-4k .nav-brand {
-    font-size: 16px !important;
+    font-size: 20px !important;
 }
 
 .tv-mode-4k .container {
-    padding-top: 60px !important;
+    padding-top: 70px !important;
 }
 
 /* КНОПКА TV РЕЖИМА */
 .tv-mode-4k .btn-blue {
-    padding: 6px 10px !important;
-    font-size: 11px !important;
-    border-radius: 6px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    border-radius: 8px !important;
 }
 
 /* ПУСТОЕ СОСТОЯНИЕ */
 .tv-mode-4k .kanban-empty-state {
-    padding: 10px !important;
-    font-size: 10px !important;
+    padding: 20px !important;
+    font-size: 14px !important;
 }
 
 .tv-mode-4k .kanban-empty-state i {
-    font-size: 16px !important;
-    margin-bottom: 3px !important;
+    font-size: 24px !important;
+    margin-bottom: 8px !important;
 }
 
 /* АНИМАЦИИ */
 .tv-mode-4k .kanban-card.in-progress {
     animation: pulse-4k 3s infinite !important;
-    border-width: 1px !important;
+    border-width: 2px !important;
 }
 
 @keyframes pulse-4k {
@@ -696,7 +693,7 @@
         box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); 
     }
     70% { 
-        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0); 
+        box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); 
     }
     100% { 
         box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); 
@@ -711,13 +708,13 @@
 
 /* ЛЕГЕНДА ВНИЗУ */
 .tv-mode-4k .card:last-child {
-    padding: 8px !important;
-    font-size: 10px !important;
-    margin-top: 6px !important;
+    padding: 12px 15px !important;
+    font-size: 13px !important;
+    margin-top: 10px !important;
 }
 
 .tv-mode-4k .card:last-child > div {
-    gap: 10px !important;
+    gap: 15px !important;
 }
 
 /* Telegram notification styles */
@@ -3034,13 +3031,13 @@ async function loadKanbanData() {
             };
         })
         .filter(order => order && order.id)
-        .filter(order => {
-            if (order.current_process === "Ровер") {
-                console.log(`Заказ #${order.id} скрыт из Kanban (процесс "Ровер")`);
-                return false;
-            }
-            return true;
-        })
+.filter(order => {
+    // Скрываем заказы с процессами, которых нет в KANBAN_PROCS
+    if (!KANBAN_PROCS.includes(order.current_process)) {
+        return false;
+    }
+    return true;
+})
         .filter(order => order.progress < 100);
         
         console.log(`Загружено ${kanbanOrders.length} активных заказов для Kanban (без "Ровер")`);
@@ -3062,7 +3059,12 @@ function getCurrentProcess(order) {
     
     try {
         for (const process of order.path) {
-            if (!process || process === "Ровер") {
+            if (!process) {
+                continue;
+            }
+            
+            // Пропускаем процессы, которых нет в KANBAN_PROCS
+            if (!KANBAN_PROCS.includes(process)) {
                 continue;
             }
             
@@ -3082,7 +3084,7 @@ function getCurrentProcess(order) {
         }
         
         const lastProcess = order.path
-            .filter(p => p !== "Ровер")
+            .filter(p => KANBAN_PROCS.includes(p))
             .slice(-1)[0];
             
         return { process: lastProcess || 'Завершен', status: 'completed' };
@@ -3096,7 +3098,8 @@ function getCurrentProcess(order) {
 function calculateProgress(order) {
     if (!order || !order.path || order.path.length === 0) return 0;
     
-    const filteredPath = order.path.filter(p => p !== "Ровер");
+    // Считаем прогресс только по процессам из KANBAN_PROCS
+    const filteredPath = order.path.filter(p => KANBAN_PROCS.includes(p));
     if (filteredPath.length === 0) return 100;
     
     let completed = 0;

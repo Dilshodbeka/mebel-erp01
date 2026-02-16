@@ -1386,7 +1386,8 @@ setInterval(() => {
 const PROCS = ["Раскрой NESTING", "2 пильный", "кромка", "Присадка", "ФАСАД NESTING", "Ровер", "Фигурный кромка", "Пленка PVC", "краска", "OTK", "Упаковка", "Сборка"];
 
 // ОБНОВЛЕНО: Kanban показывает все кроме "Ровер" и "Установка" (11 процессов)
-const KANBAN_PROCS = PROCS.filter(p => p !== "Ровер");
+const KANBAN_PROCS = PROCS.filter(p => !["краска", "Упаковка", "Сборка", "Пленка PVC", "ФАСАД NESTING", "Ровер"].includes(p));
+// Показывает 7 процессов
 
 let workers = [], orders = [], crm_orders = [], telegram_clients = [], notification_history = [];
 let curUser = null, curProc = null, editWId = null, editTgId = null;

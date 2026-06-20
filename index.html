@@ -744,6 +744,32 @@
         z-index: 500;
     }
     #page-worker-terminal { padding-bottom: 100px; }
+
+    /* Admin tables -> stacked cards on mobile (CRM, Monitoring) */
+    table.mobile-cards thead { display: none; }
+    table.mobile-cards, table.mobile-cards tbody, table.mobile-cards tr, table.mobile-cards td { display: block; width: 100%; }
+    table.mobile-cards tr {
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(15,23,42,0.05);
+    }
+    table.mobile-cards td {
+        border: none;
+        padding: 6px 0;
+    }
+    table.mobile-cards td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: #94a3b8;
+        margin-bottom: 3px;
+    }
 }
     </style>
 </head>
@@ -1026,8 +1052,9 @@
             <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
         </div>
         <div class="card">
+            <input type="text" id="crm-search" placeholder="🔍 Поиск: клиент, телефон, № заказа, изделие" oninput="renderCRM()">
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead><tr><th>№</th><th>Клиент</th><th>Изделие</th><th>Сумма</th><th>Дата</th><th>📱</th><th>Действия</th></tr></thead>
                     <tbody id="crm-table-body"></tbody>
                 </table>
@@ -1075,8 +1102,9 @@
 <div id="page-monitor" class="page hidden">
     <div class="card">
         <h3>Мониторинг в реальном времени</h3>
+        <input type="text" id="monitor-search" placeholder="🔍 Поиск: № заказа, клиент, процесс или код" oninput="renderMonitor()">
         <div class="table-wrapper">
-            <table class="modern-table">
+            <table class="modern-table mobile-cards">
                 <thead><tr><th>Заказ</th><th>Прогресс</th><th>Упр.</th></tr></thead>
                 <tbody id="m-table"></tbody>
             </table>
@@ -1300,6 +1328,14 @@ let botToken = '';
 // а не позиция в общем списке PROCS. Если в заказе выбраны только 3 из 12 процессов,
 // они получат коды 01, 02, 03 - именно в том порядке, в котором идут в order.path.
 function pad2(n) { return String(n).padStart(2, '0'); }
+
+// Форматирует сумму с разделителями тысяч: 975111335 -> "975 111 335 ₸"
+function formatMoney(amount) {
+    if (amount === undefined || amount === null || amount === '') return '-';
+    const num = Number(amount);
+    if (isNaN(num)) return '-';
+    return num.toLocaleString('ru-RU') + ' ₸';
+}
 
 function getProcessCode(order, processName) {
     if (!order || !Array.isArray(order.path)) return '';
@@ -2586,7 +2622,7 @@ function lookupCRMOrder(orderId) {
         document.getElementById('lookup-client').innerText = orderData.client || '-';
         document.getElementById('lookup-phone').innerText = orderData.phone || '-';
         document.getElementById('lookup-item').innerText = orderData.item || '-';
-        document.getElementById('lookup-price').innerText = (orderData.price || 0) + ' ₸';
+        document.getElementById('lookup-price').innerText = formatMoney(orderData.price);
         document.getElementById('lookup-loc').innerText = orderData.loc || '-';
         document.getElementById('lookup-date').innerText = orderData.date || 'Нет даты';
         
@@ -2698,8 +2734,29 @@ function renderWorkers() {
 function renderMonitor() {
     const tableBody = document.getElementById('m-table');
     if (!tableBody) return;
+
+    const search = document.getElementById('monitor-search')?.value.trim().toLowerCase() || '';
+
+    let filtered = orders;
+    if (search) {
+        filtered = orders.filter(o => {
+            const crmData = crm_orders.find(c => c.oid === o.id) || {};
+            const matchesId = (o.id || '').toLowerCase().includes(search);
+            const matchesClient = (crmData.client || '').toLowerCase().includes(search);
+            const matchesProcess = (o.path || []).some(p => p.toLowerCase().includes(search));
+            const matchesCode = (o.path || []).some((p, i) => `${o.id}-${pad2(i + 1)}`.toLowerCase().includes(search));
+            return matchesId || matchesClient || matchesProcess || matchesCode;
+        });
+    }
+
+    if (filtered.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:30px; color:#94a3b8;">
+            ${orders.length === 0 ? 'Пока нет заказов в производстве' : `Ничего не найдено по запросу «${search}»`}
+        </td></tr>`;
+        return;
+    }
     
-    let rows = orders.map(o => {
+    let rows = filtered.map(o => {
         const totalSteps = (o.path || []).length;
         const finishedSteps = totalSteps > 0 ?
             (o.path || []).filter(p => o.history && o.history[p] && o.history[p].end).length : 0;
@@ -2717,11 +2774,11 @@ function renderMonitor() {
 
         return `
         <tr>
-            <td>
+            <td data-label="Заказ">
                 <b>#${o.id}</b><br>
                 <button class="btn-blue" style="padding: 2px 8px; font-size: 10px; margin-top: 5px;" onclick="openOrderDetails('${o.id}')">ℹ️ Инфо</button>
             </td>
-            <td>
+            <td data-label="Прогресс">
                 <div style="display:flex; flex-direction:column; gap:8px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <div style="flex:1; min-width:100px; height:6px; background:#e2e8f0; border-radius: 3px; overflow:hidden;">
@@ -2734,7 +2791,7 @@ function renderMonitor() {
                     </div>
                 </div>
             </td>
-            <td>
+            <td data-label="Управление">
                 <div style="display:flex; flex-direction:column; gap:6px;">
                     ${allDone ? '' : `<button class="btn-admin-complete" onclick="adminCompleteOrder('${o.id}')">✔ Завершить заказ</button>`}
                     <button class="btn-red" onclick="delO('${o.id}')">✖ Удалить</button>
@@ -2747,29 +2804,49 @@ function renderMonitor() {
 }
 
 function renderCRM() {
+    const tbody = document.getElementById('crm-table-body');
+    const search = document.getElementById('crm-search')?.value.trim().toLowerCase() || '';
+
+    let filtered = crm_orders;
+    if (search) {
+        filtered = crm_orders.filter(c =>
+            (c.oid || '').toLowerCase().includes(search) ||
+            (c.client || '').toLowerCase().includes(search) ||
+            (c.phone || '').toLowerCase().includes(search) ||
+            (c.item || '').toLowerCase().includes(search)
+        );
+    }
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">
+            ${crm_orders.length === 0 ? 'Пока нет заказов' : `Ничего не найдено по запросу «${search}»`}
+        </td></tr>`;
+        return;
+    }
+
     // Последние созданные заказы - сверху
-    const sorted = [...crm_orders].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
         const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
         const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
         return tB - tA;
     });
 
-    document.getElementById('crm-table-body').innerHTML = sorted.map(c => {
+    tbody.innerHTML = sorted.map(c => {
         const hasTelegram = telegram_clients.some(tc => tc.name === c.client && tc.active);
         const telegramBadge = hasTelegram ? '<span class="telegram-badge">📱</span>' : '';
         
         return `
         <tr style="cursor:pointer;" onclick="copyToProduction('${c.oid}')">
-            <td>#${c.oid}</td>
-            <td>
+            <td data-label="№">#${c.oid}</td>
+            <td data-label="Клиент">
                 <div style="font-weight:600;">${c.client || '-'} ${telegramBadge}</div>
                 ${c.phone ? `<div style="font-size:12px; color:#64748b;">${c.phone}</div>` : ''}
             </td>
-            <td>${c.item || '-'}</td>
-            <td>${c.price || 0} ₸</td>
-            <td style="font-size:12px; white-space:nowrap;">${c.date || '-'}</td>
-            <td>${hasTelegram ? '✅' : '—'}</td>
-            <td>
+            <td data-label="Изделие">${c.item || '-'}</td>
+            <td data-label="Сумма">${formatMoney(c.price)}</td>
+            <td data-label="Дата" style="font-size:12px; white-space:nowrap;">${c.date || '-'}</td>
+            <td data-label="Telegram">${hasTelegram ? '✅' : '—'}</td>
+            <td data-label="Действия">
                 <button class="btn-red" onclick="event.stopPropagation(); delCRM('${c.oid}')">✖</button>
             </td>
         </tr>`;
@@ -2939,7 +3016,7 @@ function openOrderDetails(orderId) {
                     <span>Клиент:</span> <b>${crmData.client || '-'} ${hasTelegram ? '📱' : ''}</b>
                     <span>Телефон:</span> <b>${crmData.phone || '-'}</b>
                     <span>Товар:</span> <b>${crmData.item || '-'}</b>
-                    <span>Сумма:</span> <b>${crmData.price || '-'} ₸</b>
+                    <span>Сумма:</span> <b>${formatMoney(crmData.price)}</b>
                     <span>Адрес:</span> <b>${crmData.loc || '-'}</b>
                     <span>Дата:</span> <b>${crmData.date || '-'}</b>
                 </div>

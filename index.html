@@ -44,6 +44,7 @@
         /* Inputs & Buttons */
         input, select, textarea { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; box-sizing: border-box; font-size: 15px; margin-bottom: 12px; transition: 0.2s; background: #fff; font-family: 'Inter', sans-serif; }
         input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
+        .field-label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
         
         button { padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; }
         button:active { transform: scale(0.98); }
@@ -75,113 +76,52 @@
         .task-item:hover { border-color: var(--primary); background: #f8fafc; }
         .task-item.priority { border-left: 4px solid var(--warning); }
 
-        /* НОВЫЙ UI ДЛЯ РАБОТНИКОВ - КРУПНЫЕ КАРТОЧКИ ПРОЦЕССОВ */
-        .worker-process-grid { display: grid; grid-template-columns: 1fr; gap: 15px; margin: 20px 0; }
-        .worker-process-card { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px; 
-            border-radius: 16px; 
-            cursor: pointer; 
-            transition: all 0.3s;
-            border: 3px solid transparent;
-            color: white;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        .worker-process-card:hover { 
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
-            border-color: #fbbf24;
-        }
-        .worker-process-card.has-tasks { animation: pulse 2s infinite; }
-        @keyframes pulse {
-            0%, 100% { box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
-            50% { box-shadow: 0 4px 20px rgba(251, 191, 36, 0.6); }
-        }
-        .worker-process-name {
-            font-size: 22px;
-            font-weight: 800;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .worker-process-count {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(255, 255, 255, 0.25);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 18px;
-            font-weight: 700;
-            backdrop-filter: blur(10px);
-        }
-        .worker-process-count.has-new {
-            background: #fbbf24;
-            color: #78350f;
-            animation: bounce 1s infinite;
-        }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
-        }
-        .worker-order-list { display: flex; flex-direction: column; gap: 12px; margin-top: 15px; }
-        .worker-order-item {
-            background: white;
-            padding: 18px;
-            border-radius: 12px;
-            border-left: 5px solid var(--primary);
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .worker-order-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-        }
-        .worker-order-item.active {
-            border-left-color: var(--success);
-            background: #f0fdf4;
-        }
-        .worker-order-id {
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 5px;
-        }
-        .worker-order-client {
-            font-size: 16px;
-            color: #64748b;
-            margin-bottom: 8px;
-        }
-        .worker-order-item-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 10px;
-        }
-        .worker-order-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: 700;
-        }
-        .worker-order-status.pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        .worker-order-status.active {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        @media (max-width: 768px) {
-            .worker-process-name { font-size: 20px; }
-            .worker-process-count { font-size: 16px; padding: 6px 12px; }
-            .worker-order-id { font-size: 20px; }
-            .worker-order-item-name { font-size: 16px; }
-            .worker-order-client { font-size: 14px; }
-        }
+        /* ============ WORKER TERMINAL v2 (mobile-first) ============ */
+        .wt-header { background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: #fff; border-radius: var(--radius); padding: 18px 20px; margin-bottom: 16px; }
+        .wt-header-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .wt-greeting { font-size: 19px; font-weight: 800; }
+        .wt-subtitle { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+        .wt-count-pill { background: rgba(255,255,255,0.18); border-radius: 14px; padding: 8px 14px; text-align: center; min-width: 56px; flex-shrink: 0; }
+        .wt-count-pill span:first-child { display: block; font-size: 20px; font-weight: 800; line-height: 1; }
+        .wt-count-pill span:last-child { display: block; font-size: 10px; opacity: 0.85; text-transform: uppercase; margin-top: 2px; }
+
+        .wt-section-label { font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 10px; }
+        .wt-task-list { display: flex; flex-direction: column; gap: 10px; }
+        .wt-task-card { background: #fff; border: 1px solid var(--border); border-left: 4px solid #cbd5e1; border-radius: 14px; padding: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; cursor: pointer; transition: 0.15s; }
+        .wt-task-card:active { transform: scale(0.98); }
+        .wt-task-card.active { border-left-color: var(--primary); background: #f8fafc; }
+        .wt-task-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+        .wt-order-num { font-weight: 800; font-size: 15px; color: var(--text); }
+        .wt-task-proc { font-size: 14px; font-weight: 600; color: var(--text); }
+        .wt-task-item { font-size: 12px; color: #64748b; margin-top: 2px; }
+        .wt-task-status { font-size: 11px; font-weight: 700; color: #94a3b8; white-space: nowrap; flex-shrink: 0; }
+        .wt-task-status.active { color: var(--primary); }
+        .wt-empty { text-align: center; color: #94a3b8; padding: 40px 20px; font-size: 14px; }
+
+        .wt-code-chip { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 11px; font-weight: 700; background: #eef2ff; color: var(--primary); padding: 3px 8px; border-radius: 8px; letter-spacing: 0.3px; display: inline-block; }
+
+        .wt-back-btn { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 14px; padding: 4px 0 16px; margin: 0; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        .wt-active-info { text-align: center; background: #f8fafc; border: 1px dashed var(--border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+        .wt-active-order { font-size: 22px; font-weight: 800; color: var(--text); }
+        .wt-active-code { margin: 8px 0; }
+        .wt-active-proc { font-size: 16px; font-weight: 700; color: var(--primary); margin: 4px 0 0; }
+        .wt-active-item { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+        .wt-manual-toggle { font-size: 13px; color: #64748b; text-align: center; cursor: pointer; padding: 6px 0; text-decoration: underline; text-decoration-style: dotted; }
+        .wt-manual-box { margin-top: 10px; margin-bottom: 6px; }
+
+        .wt-controls { text-align: center; }
+        .wt-big-btn { width: 100%; height: 64px; font-size: 18px; margin-bottom: 10px; border-radius: 14px; }
+        .wt-done-msg { background: #ecfdf5; color: #065f46; font-weight: 800; padding: 20px; border-radius: 14px; border: 1px solid #10b981; text-align: center; }
+
+        .wt-code-preview-list { display: flex; flex-direction: column; gap: 6px; }
+        .wt-code-preview-item { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+
+        /* Admin: complete process/order actions (Monitoring) */
+        .btn-admin-complete { background: #ecfdf5; color: #065f46; border: 1px solid #10b981; padding: 6px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; white-space: nowrap; }
+        .btn-admin-complete:hover { background: #10b981; color: #fff; }
+        .wt-done-check { color: var(--success); font-weight: 800; font-size: 16px; }
 
         /* State Machine Badges */
         .state-badge { padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
@@ -443,9 +383,9 @@
     }
 }
 
-/* TV MODE STYLES FOR 4K - 6 ПРОЦЕССОВ НА ВЕСЬ ЭКРАН */
+/* TV MODE STYLES FOR 4K - КОМПАКТНЫЙ ВАРИАНТ 230px */
 .tv-mode-4k {
-    font-size: 16px !important;
+    font-size: 14px !important;
     overflow-x: hidden !important;
 }
 
@@ -456,117 +396,120 @@
     width: 100vw !important;
 }
 
-/* КАНБАН ДОСКА - 6 КОЛОНОК НА ВЕСЬ ЭКРАН */
+/* КАНБАН ДОСКА - ПОЛНАЯ ШИРИНА БЕЗ ОТСТУПОВ */
 .tv-mode-4k .kanban-board {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 12px !important;
-    padding: 10px 15px !important;
+    display: flex;
+    gap: 6px !important;
+    padding: 0 5px !important;
     margin: 0 !important;
-    min-height: 90vh;
+    min-height: 85vh;
     width: 100vw !important;
-    overflow-x: hidden !important;
+    overflow-x: visible !important;
     box-sizing: border-box;
+    justify-content: flex-start;
+    align-items: stretch;
 }
 
-/* КОЛОНКИ ПРОЦЕССОВ - ШИРОКИЕ ДЛЯ 6 ПРОЦЕССОВ */
+/* КОЛОНКИ ПРОЦЕССОВ - УЛЬТРАКОМПАКТНЫЕ 230px */
 .tv-mode-4k .kanban-column {
-    min-width: auto !important;
-    max-width: none !important;
-    width: 100% !important;
+    min-width: 230px !important;
+    max-width: 230px !important;
+    width: 230px !important;
     background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 12px !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px !important;
     flex-shrink: 0;
     margin: 0 !important;
-    max-height: 90vh !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
+    max-height: 85vh !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-/* ЗАГОЛОВКИ КОЛОНОК - КРУПНЫЕ */
+/* ЗАГОЛОВКИ КОЛОНОК - СУПЕР КОМПАКТНЫЕ */
 .tv-mode-4k .kanban-column-header {
-    font-size: 16px !important;
-    font-weight: 900 !important;
-    padding: 15px 10px !important;
-    border-radius: 8px !important;
-    margin-bottom: 12px !important;
-    min-height: 70px !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    padding: 8px 6px !important;
+    border-radius: 4px !important;
+    margin-bottom: 8px !important;
+    min-height: 50px !important;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    line-height: 1.2 !important;
+    line-height: 1.1 !important;
     word-break: break-word;
 }
 
 /* Текст названия процесса */
 .tv-mode-4k .kanban-column-header .process-name {
-    font-size: 15px !important;
-    line-height: 1.2;
-    font-weight: 900;
+    font-size: 11px !important;
+    line-height: 1.1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 28px;
 }
 
-/* СЧЕТЧИК В ЗАГОЛОВКЕ */
+/* СЧЕТЧИК В ЗАГОЛОВКЕ - МИНИМАЛЬНЫЙ */
 .tv-mode-4k .kanban-column-header .column-count {
     background: rgba(255,255,255,0.3);
-    padding: 4px 12px;
-    border-radius: 15px;
-    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
     font-weight: 900;
-    margin-top: 5px;
-    min-width: 30px;
+    margin-top: 3px;
+    min-width: 20px;
 }
 
 /* КОНТЕНТ КОЛОНКИ */
 .tv-mode-4k .kanban-column-content {
-    max-height: calc(90vh - 100px) !important;
-    padding-right: 5px;
+    max-height: calc(85vh - 60px) !important;
+    padding-right: 1px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 8px !important;
-    flex: 1;
+    gap: 3px !important;
 }
 
-/* КАРТОЧКИ ЗАКАЗОВ - КРУПНЕЕ ДЛЯ TV */
+/* КАРТОЧКИ ЗАКАЗОВ - УЛЬТРАКОМПАКТНЫЕ */
 .tv-mode-4k .kanban-card {
-    padding: 12px !important;
-    margin-bottom: 0 !important;
-    border-radius: 8px !important;
-    border: 2px solid #e2e8f0 !important;
-    min-height: 80px !important;
-    max-height: none !important;
+    padding: 6px !important;
+    margin-bottom: 3px !important;
+    border-radius: 4px !important;
+    border: 1px solid #e2e8f0 !important;
+    min-height: 50px !important;
+    max-height: 55px !important;
     overflow: hidden;
     font-size: 10px !important;
 }
 
 .tv-mode-4k .kanban-card:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
     border-color: var(--primary) !important;
 }
 
 /* ID ЗАКАЗА */
 .tv-mode-4k .kanban-card-id {
-    font-size: 30px !important;
+    font-size: 11px !important;
     font-weight: 900 !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 1px !important;
     color: var(--primary) !important;
-    line-height: 1.2;
+    line-height: 1.1;
 }
 
 /* НАЗВАНИЕ ИЗДЕЛИЯ */
 .tv-mode-4k .kanban-card-item {
-    font-size: 14px !important;
+    font-size: 10px !important;
     font-weight: 600 !important;
-    margin-bottom: 4px !important;
-    line-height: 1.3;
+    margin-bottom: 1px !important;
+    line-height: 1.1;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -574,8 +517,8 @@
 
 /* КЛИЕНТ */
 .tv-mode-4k .kanban-card-client {
-    font-size: 12px !important;
-    margin-bottom: 4px !important;
+    font-size: 9px !important;
+    margin-bottom: 1px !important;
     color: #64748b !important;
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -591,8 +534,8 @@
 
 /* БЛОК С ДЛИТЕЛЬНОСТЯМИ */
 .tv-mode-4k .kanban-card > div:nth-child(6) {
-    font-size: 11px !important;
-    margin-bottom: 4px !important;
+    font-size: 8px !important;
+    margin-bottom: 1px !important;
     padding: 0 !important;
     display: flex;
     justify-content: space-between;
@@ -600,28 +543,28 @@
 
 /* ПРОГРЕСС БАР */
 .tv-mode-4k .kanban-progress-bar {
-    height: 6px !important;
-    margin: 4px 0 !important;
-    border-radius: 3px !important;
+    height: 3px !important;
+    margin: 2px 0 !important;
+    border-radius: 1px !important;
 }
 
 .tv-mode-4k .kanban-progress-text {
-    font-size: 11px !important;
+    font-size: 8px !important;
     font-weight: 700 !important;
-    min-width: 35px;
+    min-width: 25px;
 }
 
 /* РАБОТНИК */
 .tv-mode-4k .kanban-card-worker {
-    font-size: 11px !important;
-    padding-top: 6px !important;
-    margin-top: 6px !important;
+    font-size: 8px !important;
+    padding-top: 2px !important;
+    margin-top: 2px !important;
     border-top: 1px dashed #e2e8f0 !important;
 }
 
 /* ДЛИТЕЛЬНОСТЬ */
 .tv-mode-4k .kanban-card-duration {
-    font-size: 11px !important;
+    font-size: 8px !important;
     padding: 1px 4px !important;
     border-radius: 6px !important;
     top: 3px !important;
@@ -636,56 +579,56 @@
 
 /* ЗАГОЛОВОЧНАЯ КАРТОЧКА */
 .tv-mode-4k #page-kanban .card:first-child {
-    padding: 15px 20px !important;
-    margin-bottom: 10px !important;
-    border-radius: 12px !important;
+    padding: 8px 12px !important;
+    margin-bottom: 6px !important;
+    border-radius: 6px !important;
 }
 
 .tv-mode-4k #page-kanban .card:first-child h2 {
-    font-size: 24px !important;
-    margin-bottom: 5px !important;
+    font-size: 16px !important;
+    margin-bottom: 3px !important;
 }
 
 .tv-mode-4k #page-kanban .card:first-child p {
-    font-size: 14px !important;
+    font-size: 11px !important;
 }
 
 /* НАВИГАЦИЯ */
 .tv-mode-4k .nav {
-    padding: 10px 20px !important;
-    min-height: 60px !important;
+    padding: 6px 12px !important;
+    min-height: 50px !important;
 }
 
 .tv-mode-4k .nav-brand {
-    font-size: 20px !important;
+    font-size: 16px !important;
 }
 
 .tv-mode-4k .container {
-    padding-top: 70px !important;
+    padding-top: 60px !important;
 }
 
 /* КНОПКА TV РЕЖИМА */
 .tv-mode-4k .btn-blue {
-    padding: 10px 16px !important;
-    font-size: 14px !important;
-    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    border-radius: 6px !important;
 }
 
 /* ПУСТОЕ СОСТОЯНИЕ */
 .tv-mode-4k .kanban-empty-state {
-    padding: 20px !important;
-    font-size: 14px !important;
+    padding: 10px !important;
+    font-size: 10px !important;
 }
 
 .tv-mode-4k .kanban-empty-state i {
-    font-size: 24px !important;
-    margin-bottom: 8px !important;
+    font-size: 16px !important;
+    margin-bottom: 3px !important;
 }
 
 /* АНИМАЦИИ */
 .tv-mode-4k .kanban-card.in-progress {
     animation: pulse-4k 3s infinite !important;
-    border-width: 2px !important;
+    border-width: 1px !important;
 }
 
 @keyframes pulse-4k {
@@ -693,7 +636,7 @@
         box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4); 
     }
     70% { 
-        box-shadow: 0 0 0 8px rgba(79, 70, 229, 0); 
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0); 
     }
     100% { 
         box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); 
@@ -708,13 +651,13 @@
 
 /* ЛЕГЕНДА ВНИЗУ */
 .tv-mode-4k .card:last-child {
-    padding: 12px 15px !important;
-    font-size: 13px !important;
-    margin-top: 10px !important;
+    padding: 8px !important;
+    font-size: 10px !important;
+    margin-top: 6px !important;
 }
 
 .tv-mode-4k .card:last-child > div {
-    gap: 15px !important;
+    gap: 10px !important;
 }
 
 /* Telegram notification styles */
@@ -788,6 +731,19 @@
     .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .card { padding: 15px; }
     .toast { left: 20px; right: 20px; width: auto; min-width: 200px; font-size: 13px; }
+
+    /* Worker terminal: pin the action buttons to the bottom of the screen */
+    #worker-controls:not(.hidden) {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        background: #fff;
+        margin: 0;
+        padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+        box-shadow: 0 -8px 20px rgba(15,23,42,0.10);
+        border-top: 1px solid var(--border);
+        z-index: 500;
+    }
+    #page-worker-terminal { padding-bottom: 100px; }
 }
     </style>
 </head>
@@ -803,7 +759,7 @@
     
     <!-- Global Search -->
     <div style="display:flex; gap:8px; background: #f8fafc; padding: 4px; border-radius: 12px; border: 1px solid var(--border);">
-        <input type="text" id="global-search-input" placeholder="Поиск заказа..." style="width: 120px; margin:0; padding: 8px 12px; border:none; background:transparent;" onkeypress="if(event.key==='Enter') openGlobalSearch()">
+        <input type="text" id="global-search-input" placeholder="№ заказа или код 1001-02" style="width: 150px; margin:0; padding: 8px 12px; border:none; background:transparent;" onkeypress="if(event.key==='Enter') openGlobalSearch()">
         <button class="btn-blue" style="padding: 6px 12px; border-radius: 8px;" onclick="openGlobalSearch()">🔍</button>
     </div>
 
@@ -844,44 +800,48 @@
 
     <!-- WORKER TERMINAL -->
     <div id="page-worker-terminal" class="hidden">
-        <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%); color: white; border: none;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div class="wt-header">
+            <div class="wt-header-row">
                 <div>
-                    <h2 id="worker-title" style="margin:0; font-size: 22px;">Работник</h2>
-                    <p style="opacity: 0.9; font-size: 14px; margin-top: 5px;">Ваше рабочее место</p>
+                    <div class="wt-greeting">👋 <span id="worker-title">Работник</span></div>
+                    <div class="wt-subtitle">Ваши задачи на сегодня</div>
+                </div>
+                <div class="wt-count-pill">
+                    <span id="task-count-badge">0</span>
+                    <span>задач</span>
                 </div>
             </div>
         </div>
 
         <div class="card" id="worker-tasks-card">
-            <h3 style="margin-top:0; display:flex; justify-content:space-between;">
-                Доступные задачи
-                <span class="proc-badge" id="task-count-badge">0</span>
-            </h3>
-            <p style="font-size: 13px; color: #64748b; margin-bottom: 15px;">Заказы, которые ожидают ваших участков:</p>
-            <div id="worker-tasks-list" class="task-list"></div>
+            <div class="wt-section-label">Нажмите на задачу, чтобы открыть</div>
+            <div id="worker-tasks-list" class="wt-task-list"></div>
         </div>
 
         <div id="worker-action-card" class="card hidden">
-            <div style="margin-bottom:20px;">
-                <h3 id="active-proc-name" style="margin:0; color:var(--primary); text-align:center;">Процесс: </h3>
-            </div>
-            
-            <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px dashed var(--border); margin-bottom: 20px;">
-                <label style="font-size: 12px; font-weight: 700; color: #64748b; display:block; margin-bottom: 8px; text-transform:uppercase;">Номер заказа</label>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="worker-order-input" placeholder="Или выберите из списка выше" style="margin:0;">
-                    <button class="btn-blue" onclick="workerFindOrder()">Проверить</button>
-                </div>
+            <button class="wt-back-btn" onclick="resetWorkerFlow()">← К списку задач</button>
+
+            <div class="wt-active-info">
+                <div class="wt-active-order" id="active-order-num">№ —</div>
+                <div class="wt-active-code"><span class="wt-code-chip" id="active-proc-code">—</span></div>
+                <h3 id="active-proc-name" class="wt-active-proc">Процесс</h3>
+                <div class="wt-active-item" id="active-item-name"></div>
             </div>
 
-            <div id="worker-controls" class="hidden" style="text-align: center;">
-                <button id="btn-start" class="btn-blue" style="width:100%; height: 70px; font-size: 20px; margin-bottom: 10px;" onclick="processAction('start')">▶ НАЧАТЬ РАБОТУ</button>
-                <button id="btn-finish" class="btn-green hidden" style="width:100%; height: 70px; font-size: 20px; margin-bottom: 10px;" onclick="processAction('finish')">✔ ЗАВЕРШИТЬ</button>
-                <div id="done-msg" style="background: #ecfdf5; color: #065f46; font-weight: 800; padding: 20px; border-radius: 12px; border: 1px solid #10b981;" class="hidden">ГОТОВО</div>
+            <div class="wt-manual-toggle" onclick="toggleManualEntry()">Не нашли заказ в списке? Ввести номер вручную</div>
+            <div id="wt-manual-box" class="wt-manual-box hidden">
+                <input type="text" id="worker-order-input" placeholder="Например: 1001" onkeypress="if(event.key==='Enter') workerFindOrder()">
+                <button class="btn-ghost" style="width:100%;" onclick="workerFindOrder()">Проверить заказ</button>
+            </div>
+
+            <div id="worker-controls" class="hidden wt-controls">
+                <button id="btn-start" class="btn-blue wt-big-btn" onclick="processAction('start')">▶ НАЧАТЬ РАБОТУ</button>
+                <button id="btn-finish" class="btn-green hidden wt-big-btn" onclick="processAction('finish')">✔ ЗАВЕРШИТЬ</button>
+                <div id="done-msg" class="hidden wt-done-msg">✅ Готово! Процесс завершён</div>
             </div>
         </div>
     </div>
+
 
     <!-- Admin: Dashboard -->
     <div id="page-dashboard" class="page hidden">
@@ -1027,20 +987,48 @@
     <div id="page-crm" class="page hidden">
         <div class="card">
             <h3>Новый заказ</h3>
-            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
-                <input type="text" id="crm-oid" placeholder="№ Заказа (ID)">
-                <select id="crm-client-select">
-                    <option value="">Выберите клиента...</option>
-                </select>
-                <input type="text" id="crm-item" placeholder="Изделие">
-                <input type="number" id="crm-price" placeholder="Сумма">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                <div>
+                    <label class="field-label">№ заказа</label>
+                    <input type="text" id="crm-oid" placeholder="Например: 1001">
+                </div>
+                <div>
+                    <label class="field-label">Клиент из списка</label>
+                    <select id="crm-client-select">
+                        <option value="">Выберите клиента...</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label">Или новый клиент</label>
+                    <input type="text" id="crm-client" placeholder="Имя клиента">
+                </div>
+                <div>
+                    <label class="field-label">Телефон</label>
+                    <input type="tel" id="crm-phone" placeholder="+998 90 123 45 67">
+                </div>
+                <div>
+                    <label class="field-label">Изделие</label>
+                    <input type="text" id="crm-item" placeholder="Например: Кухня угловая">
+                </div>
+                <div>
+                    <label class="field-label">Сумма</label>
+                    <input type="number" id="crm-price" placeholder="0">
+                </div>
+                <div>
+                    <label class="field-label">Адрес / Локация</label>
+                    <input type="text" id="crm-loc" placeholder="Адрес или район">
+                </div>
+                <div>
+                    <label class="field-label">Дата заказа</label>
+                    <input type="date" id="crm-date">
+                </div>
             </div>
-            <button class="btn-blue" onclick="saveCRM()">Создать заказ</button>
+            <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
         </div>
         <div class="card">
             <div class="table-wrapper">
                 <table class="modern-table">
-                    <thead><tr><th>№</th><th>Клиент</th><th>Описание</th><th>Сумма</th><th>📱</th><th>Действия</th></tr></thead>
+                    <thead><tr><th>№</th><th>Клиент</th><th>Изделие</th><th>Сумма</th><th>Дата</th><th>📱</th><th>Действия</th></tr></thead>
                     <tbody id="crm-table-body"></tbody>
                 </table>
             </div>
@@ -1059,8 +1047,10 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
                 <div><span style="color:#64748b;">Клиент:</span> <b id="lookup-client">-</b></div>
+                <div><span style="color:#64748b;">Телефон:</span> <b id="lookup-phone">-</b></div>
                 <div><span style="color:#64748b;">Товар:</span> <b id="lookup-item">-</b></div>
                 <div><span style="color:#64748b;">Сумма:</span> <b id="lookup-price">-</b></div>
+                <div><span style="color:#64748b;">Адрес:</span> <b id="lookup-loc">-</b></div>
                 <div><span style="color:#64748b;">Дата:</span> <b id="lookup-date">-</b></div>
             </div>
         </div>
@@ -1069,8 +1059,14 @@
             ℹ️ Введите номер заказа из CRM для автозаполнения маршрута.
         </div>
 
-        <input type="text" id="adm-o-id" placeholder="№ заказа (из CRM)" oninput="lookupCRMOrder(this.value)">
+        <input type="text" id="adm-o-id" placeholder="№ заказа (из CRM)" oninput="lookupCRMOrder(this.value); updateOrderCodePreview();">
         <div id="adm-o-grid" class="grid"></div>
+
+        <div id="order-code-preview" class="hidden" style="margin: 16px 0;">
+            <label style="font-size: 12px; font-weight: 700; color: #64748b; display:block; margin-bottom: 8px; text-transform:uppercase;">Коды процессов этого заказа</label>
+            <div id="order-code-preview-list" class="wt-code-preview-list"></div>
+        </div>
+
         <button class="btn-green" style="width: 100%; padding: 16px;" onclick="saveOrder()">🚀 Запустить в цех</button>
     </div>
 </div>
@@ -1091,7 +1087,7 @@
     <div class="card">
         <h3>Детализация процессов по заказам</h3>
         <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="process-filter-order" placeholder="Фильтр по № заказа" 
+            <input type="text" id="process-filter-order" placeholder="№ заказа, код процесса (1001-02) или название" 
                    style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px;"
                    oninput="renderProcessesTable()">
             <select id="process-filter-status" style="padding: 10px; border: 1px solid var(--border); border-radius: 8px;"
@@ -1110,7 +1106,7 @@
                     <tr>
                         <th>№ Заказа</th>
                         <th>Клиент</th>
-                        <th>Процесс</th>
+                        <th>Процесс / Код</th>
                         <th>Статус</th>
                         <th>Кто начал</th>
                         <th>Кто завершил</th>
@@ -1118,6 +1114,7 @@
                         <th>Время конца</th>
                         <th>Длительность</th>
                         <th>Прогресс заказа</th>
+                        <th>Упр.</th>
                     </tr>
                 </thead>
                 <tbody id="processes-table"></tbody>
@@ -1287,98 +1284,6 @@ const SUPABASE_URL = 'https://xknypljgfgkzgokogexz.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_96Ews89Vjt4la_07SQhf6A_WOmDGSSN'; 
 const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ==========================================
-// PUSH-УВЕДОМЛЕНИЯ ДЛЯ РАБОТНИКОВ
-// ==========================================
-
-let lastOrderCount = 0;
-let notificationPermission = 'default';
-
-// Запрос разрешения на уведомления
-async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-        console.log('Браузер не поддерживает уведомления');
-        return false;
-    }
-    
-    if (Notification.permission === 'granted') {
-        notificationPermission = 'granted';
-        return true;
-    }
-    
-    if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        notificationPermission = permission;
-        return permission === 'granted';
-    }
-    
-    return false;
-}
-
-// Показать push-уведомление
-function showPushNotification(title, body, icon = '🔔') {
-    if (notificationPermission !== 'granted') return;
-    
-    try {
-        const notification = new Notification(title, {
-            body: body,
-            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">' + icon + '</text></svg>',
-            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y="0.9em" font-size="90">📋</text></svg>',
-            vibrate: [200, 100, 200],
-            requireInteraction: false,
-            tag: 'worker-notification'
-        });
-        
-        setTimeout(() => notification.close(), 5000);
-        
-        notification.onclick = () => {
-            window.focus();
-            notification.close();
-        };
-    } catch (err) {
-        console.error('Ошибка уведомления:', err);
-    }
-}
-
-// Проверка новых заказов для работника
-function checkForNewOrdersForWorker() {
-    if (!curUser || curUser.role !== 'worker') return;
-    
-    let myProcs = curUser.procs || [];
-    let currentOrderCount = 0;
-    
-    myProcs.forEach(proc => {
-        orders.forEach(o => {
-            if(o.path && o.path.includes(proc)) {
-                const h = o.history && o.history[proc];
-                if(!h || (!h.end && h.start)) {
-                    currentOrderCount++;
-                }
-            }
-        });
-    });
-    
-    if (currentOrderCount > lastOrderCount && lastOrderCount > 0) {
-        const newOrdersCount = currentOrderCount - lastOrderCount;
-        showPushNotification(
-            '🎉 Новые заказы!',
-            `У вас ${newOrdersCount} ${newOrdersCount === 1 ? 'новый заказ' : 'новых заказа'}. Проверьте список задач!`,
-            '📋'
-        );
-        
-        showToast(`✨ Новые заказы! +${newOrdersCount}`, 'success');
-    }
-    
-    lastOrderCount = currentOrderCount;
-}
-
-setInterval(() => {
-    if (curUser && curUser.role === 'worker') {
-        checkForNewOrdersForWorker();
-    }
-}, 30000);
-
-
 // ОБНОВЛЕНО: 11 процессов без "Установка"
 const PROCS = ["Раскрой NESTING", "2 пильный", "кромка", "Присадка", "ФАСАД NESTING", "Ровер", "Фигурный кромка", "Пленка PVC", "краска", "OTK", "Упаковка", "Сборка"];
 
@@ -1389,6 +1294,34 @@ const KANBAN_PROCS = PROCS.filter(p => !["краска", "Упаковка", "С
 let workers = [], orders = [], crm_orders = [], telegram_clients = [], notification_history = [];
 let curUser = null, curProc = null, editWId = null, editTgId = null;
 let botToken = '';
+
+// --- PROCESS CODES (Заказ 1001 -> процессы 1001-01, 1001-02, ...) ---
+// Код процесса = № заказа + порядковый номер процесса В ЭТОМ ЗАКАЗЕ (по составу маршрута order.path),
+// а не позиция в общем списке PROCS. Если в заказе выбраны только 3 из 12 процессов,
+// они получат коды 01, 02, 03 - именно в том порядке, в котором идут в order.path.
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function getProcessCode(order, processName) {
+    if (!order || !Array.isArray(order.path)) return '';
+    const idx = order.path.indexOf(processName);
+    if (idx === -1) return '';
+    return `${order.id}-${pad2(idx + 1)}`;
+}
+
+// Находит заказ и процесс по коду вида "1001-02"
+function findProcessByCode(code) {
+    const trimmed = (code || '').trim();
+    const lastDash = trimmed.lastIndexOf('-');
+    if (lastDash === -1) return null;
+    const orderId = trimmed.slice(0, lastDash);
+    const num = parseInt(trimmed.slice(lastDash + 1), 10);
+    if (!orderId || isNaN(num)) return null;
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !Array.isArray(order.path)) return null;
+    const process = order.path[num - 1];
+    if (!process) return null;
+    return { order, process, code: `${orderId}-${pad2(num)}` };
+}
 
 // --- TELEGRAM FUNCTIONS ---
 async function loadTelegramData() {
@@ -1428,7 +1361,7 @@ async function loadTelegramData() {
         renderNotificationHistory();
         updateClientDropdown();
     } catch (err) {
-        console.error('Ошибка загрузки Telegram данных:', err.message || err);
+        console.error('Ошибка загрузки Telegram данных:', err);
     }
 }
 
@@ -1449,7 +1382,7 @@ async function saveBotToken() {
         showToast('Токен бота сохранен');
         await logActivity(curUser.name, 'Обновил Telegram Bot токен', '', 'telegram');
     } catch (err) {
-        console.error('Ошибка сохранения токена:', err.message || err);
+        console.error('Ошибка сохранения токена:', err);
         showToast('Ошибка сохранения токена', 'error');
     }
 }
@@ -1469,7 +1402,7 @@ async function testBotConnection() {
             showToast('❌ Ошибка подключения к боту', 'error');
         }
     } catch (err) {
-        console.error('Ошибка проверки бота:', err.message || err);
+        console.error('Ошибка проверки бота:', err);
         showToast('Ошибка проверки подключения', 'error');
     }
 }
@@ -1515,7 +1448,7 @@ async function saveTelegramClient() {
         resetTelegramForm();
         await loadTelegramData();
     } catch (err) {
-        console.error('Ошибка сохранения клиента:', err.message || err);
+        console.error('Ошибка сохранения клиента:', err);
         showToast('Ошибка сохранения', 'error');
     }
 }
@@ -1561,7 +1494,7 @@ async function deleteTelegramClient(id) {
         await loadTelegramData();
         showToast('Клиент удален');
     } catch (err) {
-        console.error('Ошибка удаления клиента:', err.message || err);
+        console.error('Ошибка удаления клиента:', err);
         showToast('Ошибка удаления', 'error');
     }
 }
@@ -1646,7 +1579,7 @@ async function sendTelegramNotification(clientName, orderId, processName, itemNa
             return false;
         }
     } catch (err) {
-        console.error('Ошибка отправки Telegram уведомления:', err.message || err);
+        console.error('Ошибка отправки Telegram уведомления:', err);
         
         // Сохраняем ошибку
         try {
@@ -1808,13 +1741,13 @@ async function logActivity(userName, action, details = '', type = 'system') {
             });
             
         if (error) {
-            console.error('Ошибка записи активности в Supabase:', error.message || error);
+            console.error('Ошибка записи активности в Supabase:', error);
         }
         
         renderActivityLog();
         
     } catch (err) {
-        console.error('Ошибка записи активности:', err.message || err);
+        console.error('Ошибка записи активности:', err);
     }
 }
 
@@ -1907,10 +1840,6 @@ function renderProcessesTable() {
     sortedOrders.forEach(order => {
         if (!order || !order.id) return;
         
-        if (orderFilter && !order.id.toLowerCase().includes(orderFilter)) {
-            return;
-        }
-        
         const crmData = crm_orders.find(c => c && c.oid === order.id) || {};
         const orderProgress = calculateOrderProgress(order);
         
@@ -1925,6 +1854,15 @@ function renderProcessesTable() {
             const durationInfo = calculateProcessDuration(history);
             const processNumber = index + 1;
             const totalProcesses = order.path.length;
+            const processCode = `${order.id}-${pad2(processNumber)}`;
+            
+            // Поиск: по № заказа, по коду процесса (1001-02) или по названию процесса
+            if (orderFilter) {
+                const matchesOrder = order.id.toLowerCase().includes(orderFilter);
+                const matchesCode = processCode.toLowerCase().includes(orderFilter);
+                const matchesProcess = process.toLowerCase().includes(orderFilter);
+                if (!matchesOrder && !matchesCode && !matchesProcess) return;
+            }
             
             let status = 'pending';
             let statusText = 'Ожидает';
@@ -1960,6 +1898,10 @@ function renderProcessesTable() {
                     minute: '2-digit'
                 }) : '-';
             
+            const actionCell = status === 'completed'
+                ? `<span class="wt-done-check" title="Завершено">✔</span>`
+                : `<button class="btn-admin-complete" onclick="adminCompleteProcess('${order.id}', '${process.replace(/'/g, "\\'")}')">✔ Завершить</button>`;
+            
             rowsHTML += `
                 <tr>
                     <td>
@@ -1972,9 +1914,7 @@ function renderProcessesTable() {
                     </td>
                     <td>
                         <div style="font-weight: 600;">${process}</div>
-                        <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
-                            ${processNumber} из ${totalProcesses}
-                        </div>
+                        <div class="wt-code-chip" style="margin-top: 4px;">${processCode}</div>
                     </td>
                     <td>
                         <span class="state-badge ${statusClass}" style="font-size: 11px; padding: 4px 8px;">
@@ -2003,6 +1943,7 @@ function renderProcessesTable() {
                             <span style="font-size: 12px; font-weight: 700;">${orderProgress}%</span>
                         </div>
                     </td>
+                    <td>${actionCell}</td>
                 </tr>
             `;
             
@@ -2013,7 +1954,7 @@ function renderProcessesTable() {
     if (processCount === 0) {
         rowsHTML = `
             <tr>
-                <td colspan="10" style="text-align: center; padding: 40px; color: #94a3b8;">
+                <td colspan="11" style="text-align: center; padding: 40px; color: #94a3b8;">
                     <div style="font-size: 24px; margin-bottom: 10px;">📭</div>
                     <div>Нет данных для отображения</div>
                     <div style="font-size: 12px; margin-top: 5px;">Измените фильтры или создайте заказы</div>
@@ -2034,7 +1975,7 @@ function resetProcessFilters() {
 
 function exportProcessesToCSV() {
     const headers = [
-        '№ Заказа', 'Клиент', 'Изделие', 'Процесс', 'Номер процесса', 'Всего процессов',
+        '№ Заказа', 'Код процесса', 'Клиент', 'Изделие', 'Процесс', 'Номер процесса', 'Всего процессов',
         'Статус', 'Кто начал', 'Кто завершил', 'Время начала', 'Время конца', 'Длительность', 'Прогресс заказа'
     ];
     
@@ -2059,6 +2000,7 @@ function exportProcessesToCSV() {
             
             const row = [
                 order.id,
+                `${order.id}-${pad2(index + 1)}`,
                 crmData.client || '',
                 crmData.item || '',
                 process,
@@ -2185,7 +2127,7 @@ async function loadAllData() {
         if(curUser && curUser.name !== 'admin939291' && curUser.name !== 'kanban') renderWorkerTasks();
         
     } catch (e) { 
-        console.error("CRASH:", e.message || e); 
+        console.error("CRASH:", e); 
         showToast("Ошибка загрузки данных", "error"); 
     }
 }
@@ -2217,24 +2159,17 @@ async function renderActivityLog(filters = {}) {
             const { data, error } = await query.order('created_at', { ascending: false }).limit(100);
             
             if (error) {
-                console.warn('Не удалось загрузить логи из Supabase:', error.message || error);
-                // Если таблица не существует - показываем пустой список
-                if (error.code === '42P01' || error.message?.includes('does not exist')) {
-                    logs = [];
-                    console.info('Таблица activity_logs не найдена. Логи будут сохраняться локально.');
-                } else {
-                    // Пробуем загрузить из localStorage
-                    const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
-                    logs = localLogs.filter(log => 
-                        log.user_name !== 'admin939291' && 
-                        log.user_name !== 'Администратор'
-                    );
-                }
+                console.warn('Не удалось загрузить логи из Supabase:', error);
+                const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
+                logs = localLogs.filter(log => 
+                    log.user_name !== 'admin939291' && 
+                    log.user_name !== 'Администратор'
+                );
             } else {
                 logs = data || [];
             }
         } catch (err) {
-            console.warn('Ошибка подключения к Supabase:', err.message || err);
+            console.warn('Ошибка подключения к Supabase:', err);
             const localLogs = JSON.parse(localStorage.getItem('erp_activity_logs') || '[]');
             logs = localLogs.filter(log => 
                 log.user_name !== 'admin939291' && 
@@ -2318,7 +2253,7 @@ async function renderActivityLog(filters = {}) {
         }
         
     } catch (err) {
-        console.error("Activity Log Error:", err.message || err);
+        console.error("Activity Log Error:", err);
     }
 }
 
@@ -2394,17 +2329,6 @@ async function handleLogin(forceLogin = false) {
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('admin-nav').style.display = 'none';
             document.getElementById('page-worker-terminal').classList.remove('hidden');
-            
-            // Запрашиваем разрешение на уведомления для работников
-            setTimeout(() => {
-                requestNotificationPermission().then(granted => {
-                    if (granted) {
-                        showToast('✅ Уведомления включены!', 'success');
-                        lastOrderCount = 0;
-                        checkForNewOrdersForWorker();
-                    }
-                });
-            }, 1000);
             document.getElementById('logout-btn').classList.remove('hidden');
             document.getElementById('worker-title').innerText = worker.name;
             
@@ -2439,110 +2363,91 @@ async function handleLogout() {
 function resetWorkerFlow() {
     curProc = null;
     document.getElementById('worker-action-card').classList.add('hidden');
+    document.getElementById('worker-tasks-card').classList.remove('hidden');
     document.getElementById('worker-order-input').value = '';
+    document.getElementById('wt-manual-box')?.classList.add('hidden');
     renderWorkerTasks();
+}
+
+function toggleManualEntry() {
+    document.getElementById('wt-manual-box')?.classList.toggle('hidden');
+}
+
+// Заполняет карточку активного процесса: № заказа, код (1001-02), изделие из CRM
+function updateActiveOrderInfo(order, processName) {
+    const crmData = crm_orders.find(c => c.oid === order.id);
+    const code = getProcessCode(order, processName);
+    const orderEl = document.getElementById('active-order-num');
+    const codeEl = document.getElementById('active-proc-code');
+    const itemEl = document.getElementById('active-item-name');
+    if (orderEl) orderEl.innerText = `№ ${order.id}`;
+    if (codeEl) codeEl.innerText = code || '—';
+    if (itemEl) itemEl.innerText = crmData?.item ? crmData.item : '';
 }
 
 function renderWorkerTasks() {
     const list = document.getElementById('worker-tasks-list');
-    if(!list) return; 
-    list.innerHTML = '';
+    if(!list) return; list.innerHTML = '';
     
     let myProcs = curUser.procs || [];
-    
-    // Группируем задачи по процессам
-    let processGroups = {};
-    
+    let myTasks = [];
+
     myProcs.forEach(proc => {
-        processGroups[proc] = [];
         orders.forEach(o => {
             if(o.path && o.path.includes(proc)) {
                 const h = o.history && o.history[proc];
                 if(!h || (!h.end && h.start)) {
-                    const crmOrder = crm_orders.find(c => c.oid === o.id);
-                    processGroups[proc].push({ 
-                        order: o, 
-                        proc: proc, 
-                        status: h ? 'active' : 'pending',
-                        client: crmOrder ? crmOrder.client : 'Неизвестный',
-                        item: crmOrder ? crmOrder.item : 'Изделие'
-                    });
+                    myTasks.push({ order: o, proc: proc, status: h ? 'active' : 'pending' });
                 }
             }
         });
     });
 
-    // Подсчитываем общее количество задач
-    let totalTasks = 0;
-    Object.values(processGroups).forEach(tasks => totalTasks += tasks.length);
-    
-    const countBadge = document.getElementById('task-count-badge');
-    if(countBadge) countBadge.innerText = totalTasks;
+    // Задачи "в работе" показываем первыми - их нужно закончить в первую очередь
+    myTasks.sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1));
 
-    if(totalTasks === 0) {
-        list.innerHTML = '<div style="text-align:center; color: #94a3b8; padding: 40px; font-size: 18px;">✨ Нет активных задач</div>';
+    const countBadge = document.getElementById('task-count-badge');
+    if(countBadge) countBadge.innerText = myTasks.length;
+
+    if(myTasks.length === 0) {
+        list.innerHTML = '<div class="wt-empty">🎉 Нет активных задач — всё сделано!</div>';
         return;
     }
 
-    // Создаем карточки процессов
-    Object.entries(processGroups).forEach(([procName, tasks]) => {
-        if(tasks.length === 0) return;
-        
-        const procCard = document.createElement('div');
-        procCard.className = 'worker-process-card' + (tasks.length > 0 ? ' has-tasks' : '');
-        
-        // Заголовок процесса с количеством
-        const header = document.createElement('div');
-        header.innerHTML = `
-            <div class="worker-process-name">${procName}</div>
-            <div class="worker-process-count ${tasks.length > 0 ? 'has-new' : ''}">
-                📋 ${tasks.length} заказ${tasks.length === 1 ? '' : tasks.length < 5 ? 'а' : 'ов'}
-            </div>
-        `;
-        procCard.appendChild(header);
-        
-        // Список заказов
-        const orderList = document.createElement('div');
-        orderList.className = 'worker-order-list';
-        
-        tasks.forEach(task => {
-            const orderItem = document.createElement('div');
-            orderItem.className = 'worker-order-item' + (task.status === 'active' ? ' active' : '');
-            
-            const statusIcon = task.status === 'active' ? '🟢' : '⏳';
-            const statusText = task.status === 'active' ? 'В работе' : 'Ожидает';
-            const statusClass = task.status === 'active' ? 'active' : 'pending';
-            
-            orderItem.innerHTML = `
-                <div class="worker-order-id">#${task.order.id}</div>
-                <div class="worker-order-client">${task.client}</div>
-                <div class="worker-order-item-name">${task.item}</div>
-                <div class="worker-order-status ${statusClass}">
-                    ${statusIcon} ${statusText}
+    myTasks.forEach(task => {
+        const crmData = crm_orders.find(c => c.oid === task.order.id);
+        const code = getProcessCode(task.order, task.proc);
+        const isActive = task.status === 'active';
+        const statusText = isActive ? '● В работе' : 'Ожидает';
+
+        const el = document.createElement('div');
+        el.className = 'wt-task-card' + (isActive ? ' active' : '');
+        el.innerHTML = `
+            <div class="wt-task-main">
+                <div class="wt-task-top">
+                    <span class="wt-order-num">№ ${task.order.id}</span>
+                    <span class="wt-code-chip">${code}</span>
                 </div>
-            `;
-            
-            orderItem.onclick = () => {
-                selectWorkerProc(task.proc);
-                document.getElementById('worker-order-input').value = task.order.id;
-                workerFindOrder();
-                // Прокрутка к форме действий
-                document.getElementById('worker-action-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            };
-            
-            orderList.appendChild(orderItem);
-        });
-        
-        procCard.appendChild(orderList);
-        list.appendChild(procCard);
+                <div class="wt-task-proc">${task.proc}</div>
+                ${crmData?.item ? `<div class="wt-task-item">${crmData.item}</div>` : ''}
+            </div>
+            <div class="wt-task-status ${task.status}">${statusText}</div>
+        `;
+        el.onclick = () => {
+            selectWorkerProc(task.proc);
+            document.getElementById('worker-order-input').value = task.order.id;
+            workerFindOrder();
+        };
+        list.appendChild(el);
     });
 }
 
 function selectWorkerProc(p) {
     curProc = p;
     
-    document.getElementById('active-proc-name').innerText = p;
+    document.getElementById('worker-tasks-card').classList.add('hidden');
     document.getElementById('worker-action-card').classList.remove('hidden');
+    document.getElementById('active-proc-name').innerText = p;
     
     const currentInput = document.getElementById('worker-order-input').value.trim();
     
@@ -2550,6 +2455,8 @@ function selectWorkerProc(p) {
         const o = orders.find(x => x.id === currentInput);
         
         if(o && o.path.includes(p)) {
+            updateActiveOrderInfo(o, p);
+            document.getElementById('wt-manual-box')?.classList.add('hidden');
             document.getElementById('worker-controls').classList.remove('hidden');
             
             const h = o.history && o.history[p];
@@ -2566,6 +2473,7 @@ function selectWorkerProc(p) {
     } else {
         document.getElementById('worker-controls').classList.add('hidden');
         document.getElementById('worker-order-input').value = '';
+        document.getElementById('wt-manual-box')?.classList.remove('hidden');
         document.getElementById('worker-order-input').focus();
     }
 }
@@ -2575,6 +2483,8 @@ function workerFindOrder() {
     const o = orders.find(x => x.id === oid);
     if(!o || !o.path.includes(curProc)) return showToast("Заказ не найден", "error");
 
+    updateActiveOrderInfo(o, curProc);
+    document.getElementById('wt-manual-box')?.classList.add('hidden');
     document.getElementById('worker-controls').classList.remove('hidden');
     const h = o.history && o.history[curProc];
     const isStarted = !!h;
@@ -2674,8 +2584,10 @@ function lookupCRMOrder(orderId) {
 
     if(orderData) {
         document.getElementById('lookup-client').innerText = orderData.client || '-';
+        document.getElementById('lookup-phone').innerText = orderData.phone || '-';
         document.getElementById('lookup-item').innerText = orderData.item || '-';
         document.getElementById('lookup-price').innerText = (orderData.price || 0) + ' ₸';
+        document.getElementById('lookup-loc').innerText = orderData.loc || '-';
         document.getElementById('lookup-date').innerText = orderData.date || 'Нет даты';
         
         resultCard.classList.remove('hidden');
@@ -2687,6 +2599,27 @@ function lookupCRMOrder(orderId) {
 function closeCRMLookup() {
     document.getElementById('crm-lookup-card').classList.add('hidden');
     document.getElementById('adm-o-id').value = '';
+    updateOrderCodePreview();
+}
+
+// Показывает живой предпросмотр кодов процессов (1001-01, 1001-02, ...) при создании заказа
+function updateOrderCodePreview() {
+    const id = document.getElementById('adm-o-id')?.value.trim() || '';
+    const checked = Array.from(document.querySelectorAll('#adm-o-grid input:checked')).map(cb => cb.value);
+    const box = document.getElementById('order-code-preview');
+    const list = document.getElementById('order-code-preview-list');
+    if (!box || !list) return;
+
+    if (!id || checked.length === 0) {
+        box.classList.add('hidden');
+        list.innerHTML = '';
+        return;
+    }
+
+    list.innerHTML = checked.map((p, i) =>
+        `<div class="wt-code-preview-item"><span class="wt-code-chip">${id}-${pad2(i + 1)}</span><span>${p}</span></div>`
+    ).join('');
+    box.classList.remove('hidden');
 }
 
 async function saveWorker() {
@@ -2771,10 +2704,15 @@ function renderMonitor() {
         const finishedSteps = totalSteps > 0 ?
             (o.path || []).filter(p => o.history && o.history[p] && o.history[p].end).length : 0;
         const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
+        const allDone = totalSteps > 0 && finishedSteps === totalSteps;
 
         const stepsHtml = (o.path || []).map(p => {
             const status = getOrderStatus(o, p);
-            return `<span class="state-badge ${status.status}">${status.text}</span>`;
+            const code = getProcessCode(o, p);
+            if (status.status === 'done') {
+                return `<span class="state-badge ${status.status}" title="${p}">${code} ✔</span>`;
+            }
+            return `<span class="state-badge ${status.status}" title="Нажмите, чтобы завершить: ${p}" style="cursor:pointer;" onclick="adminCompleteProcess('${o.id}', '${p.replace(/'/g, "\\'")}')">${code} ${p}</span>`;
         }).join(' ');
 
         return `
@@ -2791,12 +2729,17 @@ function renderMonitor() {
                         </div>
                         <span style="font-size:12px; font-weight:600;">${progress}%</span>
                     </div>
-                    <div style="font-size: 11px; color:#64748b; line-height: 1.4;">
+                    <div style="font-size: 11px; color:#64748b; line-height: 1.6;">
                         ${stepsHtml}
                     </div>
                 </div>
             </td>
-            <td><button class="btn-red" onclick="delO('${o.id}')">✖</button></td>
+            <td>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    ${allDone ? '' : `<button class="btn-admin-complete" onclick="adminCompleteOrder('${o.id}')">✔ Завершить заказ</button>`}
+                    <button class="btn-red" onclick="delO('${o.id}')">✖ Удалить</button>
+                </div>
+            </td>
         </tr>`;
     }).join('');
 
@@ -2804,16 +2747,27 @@ function renderMonitor() {
 }
 
 function renderCRM() {
-    document.getElementById('crm-table-body').innerHTML = crm_orders.map(c => {
+    // Последние созданные заказы - сверху
+    const sorted = [...crm_orders].sort((a, b) => {
+        const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return tB - tA;
+    });
+
+    document.getElementById('crm-table-body').innerHTML = sorted.map(c => {
         const hasTelegram = telegram_clients.some(tc => tc.name === c.client && tc.active);
         const telegramBadge = hasTelegram ? '<span class="telegram-badge">📱</span>' : '';
         
         return `
         <tr style="cursor:pointer;" onclick="copyToProduction('${c.oid}')">
             <td>#${c.oid}</td>
-            <td>${c.client || '-'} ${telegramBadge}</td>
+            <td>
+                <div style="font-weight:600;">${c.client || '-'} ${telegramBadge}</div>
+                ${c.phone ? `<div style="font-size:12px; color:#64748b;">${c.phone}</div>` : ''}
+            </td>
             <td>${c.item || '-'}</td>
-            <td>${c.price || 0}</td>
+            <td>${c.price || 0} ₸</td>
+            <td style="font-size:12px; white-space:nowrap;">${c.date || '-'}</td>
             <td>${hasTelegram ? '✅' : '—'}</td>
             <td>
                 <button class="btn-red" onclick="event.stopPropagation(); delCRM('${c.oid}')">✖</button>
@@ -2826,30 +2780,44 @@ function copyToProduction(oid) {
     showPage('page-orders');
     document.getElementById('adm-o-id').value = oid;
     lookupCRMOrder(oid);
+    updateOrderCodePreview();
     
     logActivity(curUser.name, 'Копировал в производство', 
         `Заказ CRM #${oid}`, 'crm');
 }
 
+// Подставляет сегодняшнюю дату в форму нового заказа CRM (если поле пустое)
+function setCRMDateDefault() {
+    const dateInput = document.getElementById('crm-date');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+}
+
 async function saveCRM() {
     const oid = document.getElementById('crm-oid').value.trim();
-    const client = document.getElementById('crm-client-select').value || document.getElementById('crm-client').value;
+    const client = document.getElementById('crm-client-select').value || document.getElementById('crm-client').value.trim();
     
     if(!oid) return showToast("Введите №", "error");
+    if(!client) return showToast("Укажите клиента", "error");
     
     try {
         await _supabase.from('crm_orders').upsert({ 
             oid, 
             client: client,
+            phone: document.getElementById('crm-phone').value.trim(),
             item: document.getElementById('crm-item').value, 
-            price: document.getElementById('crm-price').value 
+            price: document.getElementById('crm-price').value,
+            loc: document.getElementById('crm-loc').value.trim(),
+            date: document.getElementById('crm-date').value || null
         });
         
         await logActivity(curUser.name, 'Создал заказ CRM', 
             `Заказ #${oid}, клиент: ${client}`, 'crm');
             
-        ['crm-oid','crm-item','crm-price'].forEach(id => document.getElementById(id).value = '');
+        ['crm-oid','crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => document.getElementById(id).value = '');
         document.getElementById('crm-client-select').value = '';
+        setCRMDateDefault();
         
         await loadAllData();
         showToast("Заказ в CRM");
@@ -2876,9 +2844,79 @@ async function saveOrder() {
             
         document.getElementById('adm-o-id').value = '';
         document.querySelectorAll('#adm-o-grid input:checked').forEach(cb => cb.checked = false);
+        updateOrderCodePreview();
         await loadAllData();
         showToast("Заказ запущен");
     } catch (err) { showToast("Ошибка", "error"); }
+}
+
+// --- ADMIN: завершение процесса / заказа из Мониторинга ---
+async function adminCompleteProcess(orderId, processName) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const h = order.history && order.history[processName];
+    if (h && h.end) return showToast("Процесс уже завершён", "error");
+
+    const code = getProcessCode(order, processName);
+    if (!confirm(`Завершить процесс "${processName}" (${code}) заказа #${orderId}?`)) return;
+
+    if (!order.history) order.history = {};
+    if (!order.history[processName]) order.history[processName] = {};
+
+    const now = new Date().toISOString();
+    if (!order.history[processName].start) {
+        order.history[processName].start = now;
+        order.history[processName].worker = `${curUser.name} (админ)`;
+    }
+    order.history[processName].end = now;
+    order.history[processName].completed_by = `${curUser.name} (админ)`;
+
+    try {
+        const { error } = await _supabase.from('orders').upsert(order);
+        if (error) throw error;
+        await logActivity(curUser.name, 'Завершил процесс вручную', 
+            `Заказ #${orderId}, процесс: ${processName} (${code})`, 'process');
+        await loadAllData();
+        showToast(`Процесс ${code} завершён`);
+    } catch (err) {
+        showToast("Ошибка сети", "error");
+    }
+}
+
+async function adminCompleteOrder(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !Array.isArray(order.path)) return;
+
+    if (!confirm(`Завершить ВСЕ оставшиеся процессы заказа #${orderId}? Это действие нельзя отменить.`)) return;
+
+    if (!order.history) order.history = {};
+    const now = new Date().toISOString();
+    let changed = 0;
+
+    order.path.forEach(p => {
+        if (!order.history[p]) order.history[p] = {};
+        if (!order.history[p].start) {
+            order.history[p].start = now;
+            order.history[p].worker = `${curUser.name} (админ)`;
+        }
+        if (!order.history[p].end) {
+            order.history[p].end = now;
+            order.history[p].completed_by = `${curUser.name} (админ)`;
+            changed++;
+        }
+    });
+
+    try {
+        const { error } = await _supabase.from('orders').upsert(order);
+        if (error) throw error;
+        await logActivity(curUser.name, 'Завершил заказ целиком (админ)', 
+            `Заказ #${orderId}, процессов завершено: ${changed}`, 'order');
+        await loadAllData();
+        showToast(`Заказ #${orderId} завершён`);
+    } catch (err) {
+        showToast("Ошибка сети", "error");
+    }
 }
 
 function openOrderDetails(orderId) {
@@ -2899,8 +2937,10 @@ function openOrderDetails(orderId) {
                 <b>📋 Данные CRM:</b>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
                     <span>Клиент:</span> <b>${crmData.client || '-'} ${hasTelegram ? '📱' : ''}</b>
+                    <span>Телефон:</span> <b>${crmData.phone || '-'}</b>
                     <span>Товар:</span> <b>${crmData.item || '-'}</b>
                     <span>Сумма:</span> <b>${crmData.price || '-'} ₸</b>
+                    <span>Адрес:</span> <b>${crmData.loc || '-'}</b>
                     <span>Дата:</span> <b>${crmData.date || '-'}</b>
                 </div>
             </div>`;
@@ -2908,8 +2948,9 @@ function openOrderDetails(orderId) {
 
     let stepsHtml = (order.path || []).map(p => {
         const status = getOrderStatus(order, p);
-        return `<div style="display:flex; justify-content:space-between; border-bottom: 1px solid #f1f5f9; padding: 8px 0;">
-                    <span>${p}</span>
+        const code = getProcessCode(order, p);
+        return `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #f1f5f9; padding: 8px 0;">
+                    <span><span class="wt-code-chip" style="margin-right:8px;">${code}</span>${p}</span>
                     <span class="state-badge ${status.status}">${status.text}</span>
                 </div>`;
     }).join('');
@@ -2955,8 +2996,19 @@ function showPage(id) {
 
 function openGlobalSearch() {
     const query = document.getElementById('global-search-input').value.trim();
-    if(!query) return alert("Введите номер");
-    const order = orders.find(o => o.id === query);
+    if(!query) return alert("Введите номер заказа или код процесса");
+
+    let order = orders.find(o => o.id === query);
+    let highlightProcess = null;
+
+    if (!order) {
+        const found = findProcessByCode(query);
+        if (found) {
+            order = found.order;
+            highlightProcess = found.process;
+        }
+    }
+
     if(!order) return alert("Не найден");
     
     document.getElementById('modal-order-id').innerText = order.id;
@@ -2965,8 +3017,10 @@ function openGlobalSearch() {
     else {
         content.innerHTML = order.path.map(p => {
             const status = getOrderStatus(order, p);
-            return `<div style="display:flex; justify-content:space-between; border-bottom: 1px solid #f1f5f9; padding: 8px 0;">
-                        <span>${p}</span>
+            const code = getProcessCode(order, p);
+            const isHighlighted = highlightProcess && p === highlightProcess;
+            return `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 1px solid #f1f5f9; padding: 8px; ${isHighlighted ? 'background:#fffbeb; border-radius:8px;' : ''}">
+                        <span><span class="wt-code-chip" style="margin-right:8px;">${code}</span>${p}</span>
                         <span class="state-badge ${status.status}">${status.text}</span>
                     </div>`;
         }).join('');
@@ -2974,7 +3028,7 @@ function openGlobalSearch() {
     document.getElementById('search-modal').classList.remove('hidden');
     
     logActivity(curUser?.name || 'Гость', 'Поиск заказа', 
-        `Заказ #${query}`, 'system');
+        `Заказ #${order.id}${highlightProcess ? ', процесс: ' + highlightProcess : ''}`, 'system');
 }
 
 function closeGlobalSearch() { 
@@ -3002,7 +3056,7 @@ async function loadKanbanData() {
             .select('*');
         
         if (ordersError) {
-            console.error('Ошибка загрузки заказов:', ordersError.message || ordersError);
+            console.error('Ошибка загрузки заказов:', ordersError);
             showToast('Ошибка загрузки заказов', 'error');
             return;
         }
@@ -3012,7 +3066,7 @@ async function loadKanbanData() {
             .select('*');
         
         if (crmError) {
-            console.error('Ошибка загрузки CRM данных:', crmError.message || crmError);
+            console.error('Ошибка загрузки CRM данных:', crmError);
         }
         
         kanbanOrders = (ordersData || []).map(order => {
@@ -3031,13 +3085,13 @@ async function loadKanbanData() {
             };
         })
         .filter(order => order && order.id)
-.filter(order => {
-    // Скрываем заказы с процессами, которых нет в KANBAN_PROCS
-    if (!KANBAN_PROCS.includes(order.current_process)) {
-        return false;
-    }
-    return true;
-})
+        .filter(order => {
+            if (order.current_process === "Ровер") {
+                console.log(`Заказ #${order.id} скрыт из Kanban (процесс "Ровер")`);
+                return false;
+            }
+            return true;
+        })
         .filter(order => order.progress < 100);
         
         console.log(`Загружено ${kanbanOrders.length} активных заказов для Kanban (без "Ровер")`);
@@ -3059,12 +3113,7 @@ function getCurrentProcess(order) {
     
     try {
         for (const process of order.path) {
-            if (!process) {
-                continue;
-            }
-            
-            // Пропускаем процессы, которых нет в KANBAN_PROCS
-            if (!KANBAN_PROCS.includes(process)) {
+            if (!process || process === "Ровер") {
                 continue;
             }
             
@@ -3084,7 +3133,7 @@ function getCurrentProcess(order) {
         }
         
         const lastProcess = order.path
-            .filter(p => KANBAN_PROCS.includes(p))
+            .filter(p => p !== "Ровер")
             .slice(-1)[0];
             
         return { process: lastProcess || 'Завершен', status: 'completed' };
@@ -3098,8 +3147,7 @@ function getCurrentProcess(order) {
 function calculateProgress(order) {
     if (!order || !order.path || order.path.length === 0) return 0;
     
-    // Считаем прогресс только по процессам из KANBAN_PROCS
-    const filteredPath = order.path.filter(p => KANBAN_PROCS.includes(p));
+    const filteredPath = order.path.filter(p => p !== "Ровер");
     if (filteredPath.length === 0) return 100;
     
     let completed = 0;
@@ -3687,7 +3735,7 @@ function init() {
             PROCS.forEach(p => {
                 if (p) {
                     wg.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}"> ${p}</label>`;
-                    og.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}"> ${p}</label>`;
+                    og.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}" onchange="updateOrderCodePreview()"> ${p}</label>`;
                     tg.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}"> ${p}</label>`;
                 }
             });
@@ -3695,6 +3743,7 @@ function init() {
 
         loadAllData().then(() => {
             console.log('Данные загружены');
+            setCRMDateDefault();
             
             const savedUser = localStorage.getItem('erp_user');
             const savedUserType = localStorage.getItem('erp_user_type');

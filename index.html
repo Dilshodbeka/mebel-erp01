@@ -28,7 +28,7 @@
         
         /* Navigation */
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; padding-top: 90px; }
-        .nav { background: #fff; padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: var(--shadow); }
+        .nav { background: #fff; padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1600; box-shadow: var(--shadow); }
         .nav-brand { font-weight: 800; font-size: 24px; color: var(--primary); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
         
         .nav-links { display: none; gap: 8px; }
@@ -809,6 +809,19 @@
         .wv-stage-val { font-size:18px; font-weight:900; color:var(--text); }
         .wv-stage-label { font-size:10px; color:#94a3b8; margin-top:2px; text-transform:uppercase; }
 
+        /* ============ MONITOR — компактные карточки ============ */
+        .mon-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:0.15s; }
+        .mon-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(79,70,229,0.08); }
+        .mon-card-id { font-weight:900; font-size:16px; color:var(--text); min-width:70px; }
+        .mon-card-client { font-size:12px; color:#64748b; margin-top:2px; }
+        .mon-card-progress { flex:1; min-width:100px; }
+        .mon-card-bar { height:6px; background:#e2e8f0; border-radius:3px; overflow:hidden; margin-bottom:4px; }
+        .mon-card-pct { font-size:12px; font-weight:700; color:var(--primary); }
+        .mon-card-actions { display:flex; gap:4px; flex-shrink:0; }
+        .mon-status-tabs { display:flex; gap:6px; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:14px; flex-wrap:wrap; }
+        .mon-status-tab { flex:1; min-width:80px; padding:8px; border:none; border-radius:8px; background:transparent; color:#64748b; font-size:12px; font-weight:700; cursor:pointer; }
+        .mon-status-tab.active { background:#fff; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+
         /* ============ WAREHOUSE MODULE ============ */
         .wh-item-row { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#fff; border:1px solid var(--border); border-radius:14px; margin-bottom:8px; gap:12px; flex-wrap:wrap; }
         .wh-item-row.low-stock { border-color:#ef4444; background:#fef2f2; }
@@ -1241,7 +1254,7 @@
         </div>
         <div class="card">
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead><tr><th>Сотрудник</th><th>Доступы</th><th>Действия</th></tr></thead>
                     <tbody id="w-table"></tbody>
                 </table>
@@ -1263,6 +1276,74 @@
             </div>
             <div id="worker-volume-stats"></div>
         </div>
+
+        <!-- ── ДЕТАЛЬНАЯ АКТИВНОСТЬ ПО ДНЯМ ── -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
+                <h3 style="margin:0;">🕐 Детальная активность — кто когда что сделал</h3>
+                <button class="btn-ghost" onclick="renderDetailedActivity()">↻</button>
+            </div>
+            <p style="font-size:12px; color:#94a3b8; margin-top:0; margin-bottom:14px;">Вход/выход, завершённые процессы, покраска и работы из калькуляции заказов — всё по дням</p>
+            <div class="wv-period-tabs">
+                <button class="da-period-btn active" onclick="setDaPeriod('day')">Сегодня</button>
+                <button class="da-period-btn" onclick="setDaPeriod('week')">Неделя</button>
+                <button class="da-period-btn" onclick="setDaPeriod('month')">Месяц</button>
+                <button class="da-period-btn" onclick="setDaPeriod('all')">Всё время</button>
+            </div>
+            <div id="da-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
+            <div id="detailed-activity-list"></div>
+        </div>
+
+    <!-- Фильтры активности -->
+    <div class="card">
+        <h3>Фильтры активности работников</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Работник</label>
+                <input type="text" id="filter-user" placeholder="Имя работника" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Тип действия</label>
+                <select id="filter-type" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+                    <option value="all">Все действия</option>
+                    <option value="login">Вход в систему</option>
+                    <option value="logout">Выход из системы</option>
+                    <option value="process">Рабочие процессы</option>
+                    <option value="telegram">Telegram уведомления</option>
+                </select>
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Дата с</label>
+                <input type="date" id="filter-date-from" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+            </div>
+            <div>
+                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Дата по</label>
+                <input type="date" id="filter-date-to" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-blue" onclick="applyActivityFilters()">Применить фильтры</button>
+            <button class="btn-ghost" onclick="resetActivityFilters()">Сбросить фильтры</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Полная история активности</h3>
+        <div class="table-wrapper">
+            <table class="modern-table mobile-cards">
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>Пользователь</th>
+                        <th>Действие</th>
+                        <th>Детали</th>
+                        <th>Тип</th>
+                    </tr>
+                </thead>
+                <tbody id="history-log"></tbody>
+            </table>
+        </div>
+    </div>
     </div>
 
     <!-- Admin: Telegram Clients -->
@@ -1319,7 +1400,7 @@
         <div class="card">
             <h3>📋 Список клиентов с Telegram</h3>
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead>
                         <tr>
                             <th>Имя клиента</th>
@@ -1342,7 +1423,7 @@
                 <button class="btn-ghost" onclick="clearNotificationFilter()">✖ Сбросить</button>
             </div>
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead>
                         <tr>
                             <th>Дата/Время</th>
@@ -1559,12 +1640,7 @@
             <input type="date" id="monitor-date-filter" style="margin:0; width:auto;" onchange="renderMonitor()" title="Фильтр по дате создания заказа">
             <button class="btn-ghost" onclick="document.getElementById('monitor-search').value='';document.getElementById('monitor-date-filter').value='';renderMonitor()">Сбросить</button>
         </div>
-        <div class="table-wrapper">
-            <table class="modern-table mobile-cards">
-                <thead><tr><th>Заказ</th><th>Прогресс</th><th>Упр.</th></tr></thead>
-                <tbody id="m-table"></tbody>
-            </table>
-        </div>
+        <div id="m-table"></div>
     </div>
 
     <!-- ── ПОСЕЩАЕМОСТЬ / ТАБЕЛЬ ── -->
@@ -1605,7 +1681,7 @@
         </div>
         
         <div class="table-wrapper">
-            <table class="modern-table">
+            <table class="modern-table mobile-cards">
                 <thead>
                     <tr>
                         <th>№ Заказа</th>
@@ -1632,57 +1708,6 @@
                     📥 Экспорт в CSV
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Фильтры активности -->
-    <div class="card">
-        <h3>Фильтры активности работников</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Работник</label>
-                <input type="text" id="filter-user" placeholder="Имя работника" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Тип действия</label>
-                <select id="filter-type" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-                    <option value="all">Все действия</option>
-                    <option value="login">Вход в систему</option>
-                    <option value="logout">Выход из системы</option>
-                    <option value="process">Рабочие процессы</option>
-                    <option value="telegram">Telegram уведомления</option>
-                </select>
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Дата с</label>
-                <input type="date" id="filter-date-from" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:#64748b; margin-bottom:5px;">Дата по</label>
-                <input type="date" id="filter-date-to" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-blue" onclick="applyActivityFilters()">Применить фильтры</button>
-            <button class="btn-ghost" onclick="resetActivityFilters()">Сбросить фильтры</button>
-        </div>
-    </div>
-
-    <div class="card">
-        <h3>Полная история активности</h3>
-        <div class="table-wrapper">
-            <table class="modern-table">
-                <thead>
-                    <tr>
-                        <th>Время</th>
-                        <th>Пользователь</th>
-                        <th>Действие</th>
-                        <th>Детали</th>
-                        <th>Тип</th>
-                    </tr>
-                </thead>
-                <tbody id="history-log"></tbody>
-            </table>
         </div>
     </div>
 </div>
@@ -1807,7 +1832,7 @@ alter table paint_records disable row level security;</pre>
                 <input type="text" id="paint-log-filter" placeholder="№ заказа или изделие" style="margin:0; padding:8px 12px; font-size:13px; width:200px;" oninput="renderPaintLog()">
             </div>
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead><tr><th>Заказ</th><th>Этап</th><th>Категория</th><th>Изделие</th><th>Кол-во</th><th>М²</th><th>Работник</th><th>Время</th></tr></thead>
                     <tbody id="paint-log-table"></tbody>
                 </table>
@@ -2092,6 +2117,48 @@ alter table paint_records disable row level security;</pre>
     </div>
 </div>
 
+<!-- ── МОДАЛЬ: ДЕТАЛИ ЗАКАЗА (Мониторинг) ── -->
+<div id="monitor-order-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9000; overflow-y:auto; padding:20px;">
+    <div style="max-width:720px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+        <div style="background:linear-gradient(135deg,#4f46e5,#4338ca); color:#fff; padding:22px 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-size:11px; text-transform:uppercase; opacity:0.8; font-weight:700;">Заказ в производстве</div>
+                    <div style="font-size:26px; font-weight:900;">№ <span id="mon-modal-id"></span></div>
+                    <div style="font-size:13px; opacity:0.9; margin-top:4px;" id="mon-modal-client"></div>
+                    <div style="font-size:12px; opacity:0.8; margin-top:2px;" id="mon-modal-dates"></div>
+                </div>
+                <button onclick="closeMonitorOrderModal()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:700;">✕ Закрыть</button>
+            </div>
+            <div style="margin-top:16px; display:flex; align-items:center; gap:10px;">
+                <div style="flex:1; height:8px; background:rgba(255,255,255,0.25); border-radius:4px; overflow:hidden;">
+                    <div id="mon-modal-bar" style="height:100%; background:#fff; width:0%;"></div>
+                </div>
+                <span id="mon-modal-pct" style="font-weight:900; font-size:15px;">0%</span>
+            </div>
+        </div>
+        <div style="padding:20px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+                <button class="btn-blue" style="padding:8px 14px; font-size:12px;" onclick="openOrderDetails(_monModalOrderId)">ℹ️ Инфо</button>
+                <button class="btn-green" style="padding:8px 14px; font-size:12px;" onclick="openOrderCalc(_monModalOrderId)">🧮 Калькуляция</button>
+                <button class="btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="printProductionSheetFor(_monModalOrderId)">🖨 Лист</button>
+                <button class="btn-admin-complete" style="padding:8px 14px; font-size:12px;" id="mon-modal-finish-btn" onclick="adminCompleteOrder(_monModalOrderId); closeMonitorOrderModal();">✔ Завершить заказ</button>
+                <button class="btn-red" style="padding:8px 14px; font-size:12px;" onclick="delO(_monModalOrderId); closeMonitorOrderModal();">✖ Удалить</button>
+            </div>
+
+            <div class="mon-status-tabs">
+                <button class="mon-status-tab active" onclick="setMonModalFilter('all')">Все</button>
+                <button class="mon-status-tab" onclick="setMonModalFilter('pending')">Ожидают</button>
+                <button class="mon-status-tab" onclick="setMonModalFilter('active')">В работе</button>
+                <button class="mon-status-tab" onclick="setMonModalFilter('done')">Завершены</button>
+            </div>
+
+            <h3 style="margin:0 0 12px;">Ход выполнения</h3>
+            <div id="mon-modal-steps"></div>
+        </div>
+    </div>
+</div>
+
 <!-- ======== ORDER CALCULATION / КАЛЬКУЛЯЦИЯ ЗАКАЗА ======== -->
 <div id="page-order-calc" class="page hidden">
 
@@ -2174,7 +2241,7 @@ alter table paint_records disable row level security;</pre>
             <p style="font-size:13px; color:#64748b; margin-top:0;">Что сделано (сборка, монтаж, доставка и т.д.) и сколько это стоит</p>
             <div class="table-wrapper">
                 <table class="oc-mat-table">
-                    <thead><tr><th>Описание работы</th><th>Кол-во</th><th>Цена/ед.</th><th>Сумма</th><th></th></tr></thead>
+                    <thead><tr><th>Описание работы</th><th>Работник</th><th>Кол-во</th><th>Цена/ед.</th><th>Сумма</th><th></th></tr></thead>
                     <tbody id="oc-labor-rows"></tbody>
                 </table>
             </div>
@@ -2249,7 +2316,7 @@ alter table paint_records disable row level security;</pre>
         <div class="card">
             <h3>📅 Динамика по месяцам</h3>
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead><tr><th>Месяц</th><th>Выручка (заказы)</th><th>Выручка (услуги)</th><th>Себестоимость</th><th>Расходы</th><th>Чистая прибыль</th></tr></thead>
                     <tbody id="fin-monthly-table"></tbody>
                 </table>
@@ -2322,7 +2389,7 @@ alter table paint_records disable row level security;</pre>
                 <input type="text" id="wh-move-filter" placeholder="Поиск по товару" style="margin:0; padding:8px 12px; font-size:13px; width:200px;" oninput="renderWarehouseMovements()">
             </div>
             <div class="table-wrapper">
-                <table class="modern-table">
+                <table class="modern-table mobile-cards">
                     <thead><tr><th>Дата</th><th>Товар</th><th>Тип</th><th>Кол-во</th><th>Причина</th><th>Кто</th></tr></thead>
                     <tbody id="warehouse-movements-table"></tbody>
                 </table>
@@ -2334,9 +2401,10 @@ alter table paint_records disable row level security;</pre>
     <div id="wh-sec-blanks" class="wh-section">
         <div class="card">
             <h3>🧱 Добавить заготовку</h3>
-            <p style="font-size:13px; color:#64748b; margin-top:0;">Например: категория «Фасад», название «Дуб золотой», отделка «Крашеный»</p>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; align-items:end; margin-bottom:10px;">
+            <p style="font-size:13px; color:#64748b; margin-top:0;">Например: категория «Фасад», тип «Радиусный», название «Дуб золотой», отделка «Крашеный»</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr; gap:10px; align-items:end; margin-bottom:10px;">
                 <div><label class="field-label">Категория</label><input type="text" id="bl-category" placeholder="Фасад, Корпус..." style="margin:0;"></div>
+                <div><label class="field-label">Тип</label><input type="text" id="bl-type" placeholder="Прямой, Радиусный..." style="margin:0;"></div>
                 <div><label class="field-label">Название / Цвет</label><input type="text" id="bl-name" placeholder="Дуб золотой..." style="margin:0;"></div>
                 <div><label class="field-label">Отделка</label><input type="text" id="bl-finish" placeholder="Крашеный, ЛДСП..." style="margin:0;"></div>
                 <div><label class="field-label">Ед. изм.</label><input type="text" id="bl-unit" placeholder="шт" style="margin:0;"></div>
@@ -2358,16 +2426,18 @@ alter table paint_records disable row level security;</pre>
         </div>
 
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
                 <h3 style="margin:0;">📋 Журнал движений заготовок</h3>
                 <input type="text" id="bl-move-filter" placeholder="Поиск по заготовке" style="margin:0; padding:8px 12px; font-size:13px; width:200px;" oninput="renderBlankMovements()">
             </div>
-            <div class="table-wrapper">
-                <table class="modern-table">
-                    <thead><tr><th>Дата</th><th>Заготовка</th><th>Тип</th><th>Кол-во</th><th>Причина</th><th>Кто</th></tr></thead>
-                    <tbody id="blank-movements-table"></tbody>
-                </table>
+            <div class="wh-period-tabs" style="display:flex; gap:6px; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:14px; flex-wrap:wrap;">
+                <button class="bl-move-period-btn active" onclick="setBlMovePeriod('day')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#fff; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); font-size:13px; font-weight:700; cursor:pointer;">Сегодня</button>
+                <button class="bl-move-period-btn" onclick="setBlMovePeriod('week')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:transparent; color:#64748b; font-size:13px; font-weight:700; cursor:pointer;">Неделя</button>
+                <button class="bl-move-period-btn" onclick="setBlMovePeriod('month')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:transparent; color:#64748b; font-size:13px; font-weight:700; cursor:pointer;">Месяц</button>
+                <button class="bl-move-period-btn" onclick="setBlMovePeriod('all')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:transparent; color:#64748b; font-size:13px; font-weight:700; cursor:pointer;">Всё время</button>
             </div>
+            <div id="bl-move-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
+            <div id="blank-movements-list"></div>
         </div>
     </div>
 
@@ -2814,14 +2884,14 @@ function renderPaintLog() {
         const area  = cat ? (cat.area_m2 * (r.qty_done||0)).toFixed(2) : '—';
         const dt    = r.created_at ? new Date(r.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
         return `<tr>
-            <td><b>#${r.order_id}</b></td>
-            <td><span class="state-badge active" style="font-size:10px;padding:2px 8px;">${stage.label||r.stage_key}</span></td>
-            <td>${r.category||'—'}</td>
-            <td style="font-weight:600;">${r.item_name}</td>
-            <td style="font-weight:700;">${r.qty_done} шт</td>
-            <td style="color:var(--primary); font-weight:700;">${area} м²</td>
-            <td>${r.worker||'—'}</td>
-            <td style="font-size:11px; color:#64748b;">${dt}</td>
+            <td data-label="Заказ"><b>#${r.order_id}</b></td>
+            <td data-label="Этап"><span class="state-badge active" style="font-size:10px;padding:2px 8px;">${stage.label||r.stage_key}</span></td>
+            <td data-label="Категория">${r.category||'—'}</td>
+            <td data-label="Изделие" style="font-weight:600;">${r.item_name}</td>
+            <td data-label="Кол-во" style="font-weight:700;">${r.qty_done} шт</td>
+            <td data-label="М²" style="color:var(--primary); font-weight:700;">${area} м²</td>
+            <td data-label="Работник">${r.worker||'—'}</td>
+            <td data-label="Время" style="font-size:11px; color:#64748b;">${dt}</td>
         </tr>`;
     }).join('');
 }
@@ -3351,6 +3421,30 @@ function updateProdPaintSelects() {
     catSel.innerHTML = '<option value="">Выберите категорию...</option>' +
         categories.map(c => `<option value="${c}">${c}</option>`).join('');
     document.getElementById('prod-poi-item').innerHTML = '<option value="">Выберите изделие...</option>';
+}
+
+// БАГ-ФИКС: эта функция вызывалась кнопкой "Добавить в каталог" в блоке краски
+// на странице Производство, но нигде не была определена — кнопка не работала.
+async function addProdCatalogItem() {
+    const category = document.getElementById('prod-pc-category')?.value.trim();
+    const name     = document.getElementById('prod-pc-name')?.value.trim();
+    const area_m2  = parseFloat(document.getElementById('prod-pc-area')?.value) || 0;
+    if (!category || !name) return showToast('Заполните категорию и название', 'error');
+
+    try {
+        const { data, error } = await _supabase.from('paint_catalog').insert({ category, name, area_m2 }).select();
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+
+        if (data && data[0]) paint_catalog.push(data[0]);
+        else paint_catalog.push({ id: Date.now(), category, name, area_m2 });
+
+        ['prod-pc-category','prod-pc-name','prod-pc-area'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        updateProdPaintSelects();
+        showToast('Изделие добавлено в каталог: ' + name);
+    } catch(e) {
+        console.error('addProdCatalogItem error:', e);
+        showToast('Ошибка сети', 'error');
+    }
 }
 
 function updateProdPaintItemSelect() {
@@ -3957,14 +4051,14 @@ async function deleteSvcPrice(id){
 function renderSvcPrices(){
     const el=document.getElementById('svc-prices-list'); if(!el)return;
     if(!svc_prices.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:10px;">Справочник пуст</div>';return;}
-    el.innerHTML=`<table class="modern-table">
+    el.innerHTML=`<div class="table-wrapper"><table class="modern-table mobile-cards">
         <thead><tr><th>Услуга / Процесс</th><th>Наш материал</th><th>Материал клиента</th><th></th></tr></thead>
         <tbody>${svc_prices.map(p=>`<tr>
-            <td style="font-weight:700;">${p.service_type}</td>
-            <td>${formatMoney(p.price_ours)}</td>
-            <td>${formatMoney(p.price_client)}</td>
-            <td><button class="btn-red" style="padding:4px 8px;font-size:11px;" onclick="deleteSvcPrice(${p.id})">✖</button></td>
-        </tr>`).join('')}</tbody></table>`;
+            <td data-label="Услуга" style="font-weight:700;">${p.service_type}</td>
+            <td data-label="Наш материал">${formatMoney(p.price_ours)}</td>
+            <td data-label="Материал клиента">${formatMoney(p.price_client)}</td>
+            <td data-label="Действия"><button class="btn-red" style="padding:4px 8px;font-size:11px;" onclick="deleteSvcPrice(${p.id})">✖</button></td>
+        </tr>`).join('')}</tbody></table></div>`;
 }
 
 function renderSvcAnalytics(){
@@ -3990,16 +4084,16 @@ function renderSvcAnalytics(){
         const bm={};
         svc_transactions.forEach(t=>{const m=(t.created_at||'').slice(0,7)||'Без даты';if(!bm[m])bm[m]={rev:0,paid:0,count:0};bm[m].rev+=t.total_amount||0;bm[m].paid+=t.paid_amount||0;bm[m].count++;});
         const rows=Object.entries(bm).sort((a,b)=>b[0].localeCompare(a[0]));
-        mEl.innerHTML=rows.length?`<table class="modern-table">
+        mEl.innerHTML=rows.length?`<div class="table-wrapper"><table class="modern-table mobile-cards">
             <thead><tr><th>Месяц</th><th>Операций</th><th>Выручка</th><th>Получено</th><th>Долг</th></tr></thead>
             <tbody>${rows.map(([m,d])=>{
                 const lbl=m==='Без даты'?m:new Date(m+'-01').toLocaleString('ru-RU',{month:'long',year:'numeric'});
                 const debt=d.rev-d.paid;
-                return `<tr><td style="font-weight:700;">${lbl}</td><td>${d.count}</td>
-                    <td style="font-weight:700;">${formatMoney(d.rev)}</td>
-                    <td style="color:var(--success);">${formatMoney(d.paid)}</td>
-                    <td style="color:${debt>0?'#ef4444':'var(--success)'};font-weight:700;">${debt>0?'-':'+'}${formatMoney(Math.abs(debt))}</td></tr>`;
-            }).join('')}</tbody></table>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
+                return `<tr><td data-label="Месяц" style="font-weight:700;">${lbl}</td><td data-label="Операций">${d.count}</td>
+                    <td data-label="Выручка" style="font-weight:700;">${formatMoney(d.rev)}</td>
+                    <td data-label="Получено" style="color:var(--success);">${formatMoney(d.paid)}</td>
+                    <td data-label="Долг" style="color:${debt>0?'#ef4444':'var(--success)'};font-weight:700;">${debt>0?'-':'+'}${formatMoney(Math.abs(debt))}</td></tr>`;
+            }).join('')}</tbody></table></div>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
     }
 
     // По клиентам
@@ -4011,15 +4105,15 @@ function renderSvcAnalytics(){
             const pd=ct.reduce((s,t)=>s+(t.paid_amount||0),0);
             return{name:c.name,rev:rv,paid:pd,debt:rv-pd,count:ct.length,id:c.id};
         }).filter(c=>c.count>0).sort((a,b)=>b.rev-a.rev);
-        cEl.innerHTML=bc.length?`<table class="modern-table">
+        cEl.innerHTML=bc.length?`<div class="table-wrapper"><table class="modern-table mobile-cards">
             <thead><tr><th>Клиент</th><th>Операций</th><th>Выручка</th><th>Оплачено</th><th>Долг</th><th></th></tr></thead>
             <tbody>${bc.map(c=>`<tr>
-                <td style="font-weight:700;cursor:pointer;color:var(--primary);" onclick="openSvcClientModal(${c.id})">${c.name}</td>
-                <td>${c.count}</td><td>${formatMoney(c.rev)}</td>
-                <td style="color:var(--success);">${formatMoney(c.paid)}</td>
-                <td style="color:${c.debt>0?'#ef4444':'var(--success)'};font-weight:700;">${c.debt>0?'-':'+'}${formatMoney(Math.abs(c.debt))}</td>
-                <td><button onclick="openSvcClientModal(${c.id})" class="btn-ghost" style="padding:3px 8px;font-size:11px;">📋</button></td>
-            </tr>`).join('')}</tbody></table>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
+                <td data-label="Клиент" style="font-weight:700;cursor:pointer;color:var(--primary);" onclick="openSvcClientModal(${c.id})">${c.name}</td>
+                <td data-label="Операций">${c.count}</td><td data-label="Выручка">${formatMoney(c.rev)}</td>
+                <td data-label="Оплачено" style="color:var(--success);">${formatMoney(c.paid)}</td>
+                <td data-label="Долг" style="color:${c.debt>0?'#ef4444':'var(--success)'};font-weight:700;">${c.debt>0?'-':'+'}${formatMoney(Math.abs(c.debt))}</td>
+                <td data-label="Действия"><button onclick="openSvcClientModal(${c.id})" class="btn-ghost" style="padding:3px 8px;font-size:11px;">📋</button></td>
+            </tr>`).join('')}</tbody></table></div>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
     }
 
     // По услугам
@@ -4028,9 +4122,9 @@ function renderSvcAnalytics(){
         const bs={};
         txs.forEach(t=>{if(!bs[t.service_type])bs[t.service_type]={count:0,qty:0,rev:0};bs[t.service_type].count++;bs[t.service_type].qty+=t.qty||0;bs[t.service_type].rev+=t.total_amount||0;});
         const rows=Object.entries(bs).sort((a,b)=>b[1].rev-a[1].rev);
-        svEl.innerHTML=rows.length?`<table class="modern-table">
+        svEl.innerHTML=rows.length?`<div class="table-wrapper"><table class="modern-table mobile-cards">
             <thead><tr><th>Услуга</th><th>Операций</th><th>Кол-во</th><th>Выручка</th></tr></thead>
-            <tbody>${rows.map(([sv,d])=>`<tr><td style="font-weight:700;">${sv}</td><td>${d.count}</td><td>${d.qty.toFixed(2)}</td><td style="font-weight:700;">${formatMoney(d.rev)}</td></tr>`).join('')}</tbody></table>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
+            <tbody>${rows.map(([sv,d])=>`<tr><td data-label="Услуга" style="font-weight:700;">${sv}</td><td data-label="Операций">${d.count}</td><td data-label="Кол-во">${d.qty.toFixed(2)}</td><td data-label="Выручка" style="font-weight:700;">${formatMoney(d.rev)}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:#94a3b8;padding:10px;">Нет данных</div>';
     }
 }
 
@@ -4289,12 +4383,14 @@ function renderOcLabor() {
     const tbody = document.getElementById('oc-labor-rows');
     if (!tbody) return;
     if (!oc_labor.length) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:16px;">Нет работ. Нажмите «+ Добавить работу»</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:16px;">Нет работ. Нажмите «+ Добавить работу»</td></tr>`;
         updateOcSummary();
         return;
     }
+    const workerOptions = ['<option value="">— выбрать —</option>', ...workers.map(w => `<option value="${w.name}">${w.name}</option>`)].join('');
     tbody.innerHTML = oc_labor.map(l => `<tr>
         <td><input type="text" value="${l.description||''}" onchange="updateOcLabor(${l.id},'description',this.value)"></td>
+        <td><select onchange="updateOcLabor(${l.id},'worker',this.value)" style="min-width:120px;">${workerOptions.replace(`value="${l.worker}"`, `value="${l.worker}" selected`)}</select></td>
         <td><input type="number" value="${l.qty||1}" step="0.01" onchange="updateOcLabor(${l.id},'qty',this.value)" style="width:60px;"></td>
         <td><input type="number" value="${l.unit_price||0}" step="0.01" onchange="updateOcLabor(${l.id},'unit_price',this.value)" style="width:80px;"></td>
         <td style="font-weight:700; white-space:nowrap;">${formatMoney((l.qty||1)*(l.unit_price||0))}</td>
@@ -4305,7 +4401,7 @@ function renderOcLabor() {
 
 async function addOcLaborRow() {
     const { data, error } = await _supabase.from('order_labor')
-        .insert({ order_id: oc_orderId, description: 'Сборка/монтаж', qty: 1, unit_price: 0 }).select();
+        .insert({ order_id: oc_orderId, description: 'Сборка/монтаж', qty: 1, unit_price: 0, worker: curUser?.name || null, created_at: new Date().toISOString() }).select();
     if (error) return showToast('Ошибка: ' + error.message, 'error');
     oc_labor.push(data[0]);
     renderOcLabor();
@@ -4658,12 +4754,12 @@ function renderFinanceMonthly() {
         const f = computeFinancePeriod(m);
         const label = new Date(m+'-01').toLocaleString('ru-RU', {month:'long', year:'numeric'});
         return `<tr>
-            <td style="font-weight:700;">${label}</td>
-            <td>${formatMoney(f.ordersRevenue)}</td>
-            <td>${formatMoney(f.servicesRevenue)}</td>
-            <td style="color:#f59e0b;">${formatMoney(f.totalCost)}</td>
-            <td style="color:#ef4444;">${formatMoney(f.expensesTotal)}</td>
-            <td style="font-weight:800; color:${f.netProfit>=0?'var(--success)':'#ef4444'};">${formatMoney(f.netProfit)}</td>
+            <td data-label="Месяц" style="font-weight:700;">${label}</td>
+            <td data-label="Выручка (заказы)">${formatMoney(f.ordersRevenue)}</td>
+            <td data-label="Выручка (услуги)">${formatMoney(f.servicesRevenue)}</td>
+            <td data-label="Себестоимость" style="color:#f59e0b;">${formatMoney(f.totalCost)}</td>
+            <td data-label="Расходы" style="color:#ef4444;">${formatMoney(f.expensesTotal)}</td>
+            <td data-label="Чистая прибыль" style="font-weight:800; color:${f.netProfit>=0?'var(--success)':'#ef4444'};">${formatMoney(f.netProfit)}</td>
         </tr>`;
     }).join('');
 }
@@ -4882,12 +4978,12 @@ function renderWarehouseMovements() {
     tbody.innerHTML = list.map(m => {
         const dt = m.created_at ? new Date(m.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
         return `<tr>
-            <td style="font-size:12px; white-space:nowrap;">${dt}</td>
-            <td style="font-weight:700;">${m.item_name}</td>
-            <td>${m.type==='in' ? '<span class="wh-move-in">↓ Приход</span>' : '<span class="wh-move-out">↑ Расход</span>'}</td>
-            <td class="${m.type==='in'?'wh-move-in':'wh-move-out'}">${m.type==='in'?'+':'-'}${m.qty}</td>
-            <td style="font-size:12px; color:#64748b;">${m.reason||'—'}</td>
-            <td style="font-size:12px; color:#64748b;">${m.user_name||'—'}</td>
+            <td data-label="Дата" style="font-size:12px; white-space:nowrap;">${dt}</td>
+            <td data-label="Товар" style="font-weight:700;">${m.item_name}</td>
+            <td data-label="Тип">${m.type==='in' ? '<span class="wh-move-in">↓ Приход</span>' : '<span class="wh-move-out">↑ Расход</span>'}</td>
+            <td data-label="Кол-во" class="${m.type==='in'?'wh-move-in':'wh-move-out'}">${m.type==='in'?'+':'-'}${m.qty}</td>
+            <td data-label="Причина" style="font-size:12px; color:#64748b;">${m.reason||'—'}</td>
+            <td data-label="Кто" style="font-size:12px; color:#64748b;">${m.user_name||'—'}</td>
         </tr>`;
     }).join('');
 }
@@ -4929,6 +5025,7 @@ async function loadBlankData() {
 
 async function addBlankItem() {
     const category = document.getElementById('bl-category')?.value.trim();
+    const type = document.getElementById('bl-type')?.value.trim();
     const name = document.getElementById('bl-name')?.value.trim();
     const finish = document.getElementById('bl-finish')?.value.trim();
     const unit = document.getElementById('bl-unit')?.value.trim() || 'шт';
@@ -4938,13 +5035,13 @@ async function addBlankItem() {
     if (!name) return showToast('Введите название/цвет', 'error');
 
     const { data, error } = await _supabase.from('blank_items')
-        .insert({ category, name, finish, unit, qty_in_stock: qty, min_qty, photo_url }).select();
+        .insert({ category, type, name, finish, unit, qty_in_stock: qty, min_qty, photo_url }).select();
     if (error) return showToast('Ошибка: ' + error.message + ' — см. SQL для создания таблиц', 'error');
     blank_items.push(data[0]);
 
     if (qty > 0) await logBlankMovement(data[0].id, blankDisplayName(data[0]), 'in', qty, 'Начальный остаток');
 
-    ['bl-category','bl-name','bl-finish','bl-unit','bl-qty','bl-min','bl-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['bl-category','bl-type','bl-name','bl-finish','bl-unit','bl-qty','bl-min','bl-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
     renderBlankItems();
     showToast(`Заготовка добавлена: ${name}`);
 }
@@ -4957,7 +5054,7 @@ async function deleteBlankItem(id) {
 }
 
 function blankDisplayName(item) {
-    return [item.category, item.name, item.finish].filter(Boolean).join(' · ');
+    return [item.category, item.type, item.name, item.finish].filter(Boolean).join(' · ');
 }
 
 async function logBlankMovement(itemId, itemName, type, qty, reason) {
@@ -5021,7 +5118,7 @@ function renderBlankItems() {
             ${photo}
             <div style="flex:1;">
                 <div class="wh-item-name">${isLow?'⚠️ ':''}${i.name} ${i.finish ? '<span style="font-weight:400; color:#64748b;">('+i.finish+')</span>' : ''}</div>
-                <div class="wh-item-meta">${i.category||'Без категории'} ${i.min_qty>0?'· мин. '+i.min_qty+' '+i.unit:''}</div>
+                <div class="wh-item-meta">${i.category||'Без категории'} ${i.type?'· '+i.type:''} ${i.min_qty>0?'· мин. '+i.min_qty+' '+i.unit:''}</div>
             </div>
             <div style="text-align:center;">
                 <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock} ${i.unit}</div>
@@ -5036,25 +5133,85 @@ function renderBlankItems() {
     }).join('');
 }
 
+let blMovePeriod = 'day';
+
+function setBlMovePeriod(period) {
+    blMovePeriod = period;
+    document.querySelectorAll('.bl-move-period-btn').forEach(b => {
+        b.classList.remove('active');
+        b.style.background = 'transparent'; b.style.color = '#64748b'; b.style.boxShadow = 'none';
+    });
+    const map = { day:'сегодня', week:'недел', month:'месяц', all:'всё время' };
+    document.querySelectorAll('.bl-move-period-btn').forEach(b => {
+        if (b.textContent.toLowerCase().includes(map[period])) {
+            b.classList.add('active');
+            b.style.background = '#fff'; b.style.color = 'var(--primary)'; b.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)';
+        }
+    });
+    renderBlankMovements();
+}
+
+function isInBlMovePeriod(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(dateStr); const now = new Date();
+    if (blMovePeriod === 'all') return true;
+    if (blMovePeriod === 'day') return d.toDateString() === now.toDateString();
+    if (blMovePeriod === 'week') { const wa = new Date(now); wa.setDate(now.getDate()-7); return d >= wa && d <= now; }
+    if (blMovePeriod === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    return true;
+}
+
 function renderBlankMovements() {
-    const tbody = document.getElementById('blank-movements-table');
-    if (!tbody) return;
+    const el = document.getElementById('blank-movements-list');
+    const summaryEl = document.getElementById('bl-move-summary');
+    if (!el) return;
     const search = (document.getElementById('bl-move-filter')?.value || '').toLowerCase();
-    let list = search ? blank_movements.filter(m => (m.item_name||'').toLowerCase().includes(search)) : blank_movements;
-    list = list.slice(0, 60);
 
-    if (!list.length) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">Нет движений</td></tr>`; return; }
+    let list = blank_movements.filter(m => isInBlMovePeriod(m.created_at));
+    if (search) list = list.filter(m => (m.item_name||'').toLowerCase().includes(search));
 
-    tbody.innerHTML = list.map(m => {
-        const dt = m.created_at ? new Date(m.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-        return `<tr>
-            <td style="font-size:12px; white-space:nowrap;">${dt}</td>
-            <td style="font-weight:700;">${m.item_name}</td>
-            <td>${m.type==='in' ? '<span class="wh-move-in">↓ Приход</span>' : '<span class="wh-move-out">↑ Расход</span>'}</td>
-            <td class="${m.type==='in'?'wh-move-in':'wh-move-out'}">${m.type==='in'?'+':'-'}${m.qty}</td>
-            <td style="font-size:12px; color:#64748b;">${m.reason||'—'}</td>
-            <td style="font-size:12px; color:#64748b;">${m.user_name||'—'}</td>
-        </tr>`;
+    // Сводка за период
+    const totalIn  = list.filter(m => m.type==='in').reduce((s,m)=>s+(m.qty||0),0);
+    const totalOut = list.filter(m => m.type==='out').reduce((s,m)=>s+(m.qty||0),0);
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            <div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:var(--success);">+${totalIn.toFixed(0)}</div><div class="svc-stat-label">Приход за период</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:#ef4444;">-${totalOut.toFixed(0)}</div><div class="svc-stat-label">Расход за период</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val">${list.length}</div><div class="svc-stat-label">Записей</div></div>
+        `;
+    }
+
+    if (!list.length) { el.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:24px;">Нет движений за выбранный период</div>'; return; }
+
+    // Группируем по дню
+    const sorted = [...list].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    const byDate = {};
+    sorted.forEach(m => {
+        const d = (m.created_at || '').slice(0, 10);
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(m);
+    });
+
+    el.innerHTML = Object.entries(byDate).map(([date, recs]) => {
+        const dayIn  = recs.filter(m=>m.type==='in').reduce((s,m)=>s+(m.qty||0),0);
+        const dayOut = recs.filter(m=>m.type==='out').reduce((s,m)=>s+(m.qty||0),0);
+        const dayLabel = new Date(date+'T00:00:00').toLocaleDateString('ru-RU', {day:'2-digit', month:'long', weekday:'short'});
+        return `<div style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:2px solid #e2e8f0; margin-bottom:8px;">
+                <b style="color:var(--primary); font-size:14px;">📅 ${dayLabel}</b>
+                <span style="font-size:12px; font-weight:700;"><span style="color:var(--success);">+${dayIn.toFixed(0)}</span> <span style="color:#ef4444; margin-left:8px;">-${dayOut.toFixed(0)}</span></span>
+            </div>
+            ${recs.map(m => {
+                const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
+                return `<div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:#f8fafc; border-radius:10px; margin-bottom:6px;">
+                    <div>
+                        <div style="font-weight:700; font-size:13px;">${m.item_name}</div>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">${time} · ${m.user_name||'—'}${m.reason?' · '+m.reason:''}</div>
+                    </div>
+                    <div class="${m.type==='in'?'wh-move-in':'wh-move-out'}" style="font-size:15px; font-weight:900;">${m.type==='in'?'+':'-'}${m.qty}</div>
+                </div>`;
+            }).join('')}
+        </div>`;
     }).join('');
 }
 
@@ -5189,21 +5346,22 @@ async function assembleFinishedItem(itemId) {
     const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
     if (!recipe.length) return showToast('Сначала настройте рецепт для этого изделия', 'error');
 
-    const qty = parseFloat(prompt(`Сборка «${item.name}»\nСколько штук собрать:`));
+    const qty = parseFloat(prompt(`Сборка «${item.name}»\nРецепт:\n${recipe.map(r => `— ${r.blank_item_name} × ${r.qty_per_unit}`).join('\n')}\n\nСколько штук собрать:`));
     if (!qty || qty <= 0) return;
 
     // Проверяем достаточность заготовок
     const shortages = [];
+    const consumption = [];
     recipe.forEach(r => {
         const blank = blank_items.find(b => b.id === r.blank_item_id);
         const needed = r.qty_per_unit * qty;
+        consumption.push(`${r.blank_item_name} × ${needed}`);
         if (!blank || blank.qty_in_stock < needed) {
             shortages.push(`${r.blank_item_name}: нужно ${needed}, есть ${blank?.qty_in_stock || 0}`);
         }
     });
-    if (shortages.length) {
-        if (!confirm(`Не хватает заготовок:\n${shortages.join('\n')}\n\nВсё равно продолжить (уйдёт в минус)?`)) return;
-    }
+
+    if (!confirm(`Подтвердите сборку «${item.name}» × ${qty}\n\nБудет списано:\n${consumption.join('\n')}${shortages.length ? '\n\n⚠️ НЕ ХВАТАЕТ:\n'+shortages.join('\n') : ''}`)) return;
 
     // Списываем заготовки
     for (const r of recipe) {
@@ -5211,8 +5369,9 @@ async function assembleFinishedItem(itemId) {
         if (blank) await logBlankMovement(blank.id, blankDisplayName(blank), 'out', r.qty_per_unit * qty, `Сборка: ${item.name} × ${qty}`);
     }
 
-    // Приходуем готовое изделие
-    await logFinishedMovement(itemId, item.name, 'in', qty, `Собрано из заготовок`, null, null);
+    // Приходуем готовое изделие — с детальным составом в примечании
+    const composition = recipe.map(r => `${r.blank_item_name}×${r.qty_per_unit * qty}`).join(', ');
+    await logFinishedMovement(itemId, item.name, 'in', qty, `Собрано из: ${composition}`, null, null);
 
     renderBlankItems();
     renderFinishedItems();
@@ -5711,19 +5870,19 @@ function renderTelegramClients() {
 
     tbody.innerHTML = telegram_clients.map(client => `
         <tr>
-            <td>
+            <td data-label="Имя клиента">
                 <b>${client.name}</b>
                 ${client.active ? '<span class="telegram-badge">🟢 Активен</span>' : '<span style="color:#94a3b8;">⚪ Неактивен</span>'}
             </td>
-            <td>
+            <td data-label="Telegram ID">
                 <code style="background:#f1f5f9; padding:4px 8px; border-radius:6px; font-size:12px;">${client.telegram_id}</code>
             </td>
-            <td>
+            <td data-label="Уведомления">
                 ${(client.notify_processes || []).map(p => 
                     `<span class="proc-badge" style="font-size:10px;">${p}</span>`
                 ).join('')}
             </td>
-            <td>
+            <td data-label="Действия">
                 <button class="btn-ghost" style="padding:4px 8px; font-size:12px;" onclick="editTelegramClient(${client.id})">✏️</button>
                 <button class="btn-red" style="padding:4px 8px; font-size:12px;" onclick="deleteTelegramClient(${client.id})">✖</button>
             </td>
@@ -5754,11 +5913,11 @@ function renderNotificationHistory() {
 
         return `
             <tr>
-                <td style="font-size:12px; white-space:nowrap;">${dateStr}</td>
-                <td><b>${notif.client_name}</b></td>
-                <td><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">#${notif.order_id}</code></td>
-                <td><span class="proc-badge" style="font-size:10px;">${notif.process_name}</span></td>
-                <td><span class="notification-status ${statusClass}">${statusText}</span></td>
+                <td data-label="Дата/Время" style="font-size:12px; white-space:nowrap;">${dateStr}</td>
+                <td data-label="Клиент"><b>${notif.client_name}</b></td>
+                <td data-label="Заказ"><code style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:11px;">#${notif.order_id}</code></td>
+                <td data-label="Процесс"><span class="proc-badge" style="font-size:10px;">${notif.process_name}</span></td>
+                <td data-label="Статус"><span class="notification-status ${statusClass}">${statusText}</span></td>
             </tr>
         `;
     }).join('');
@@ -6006,28 +6165,28 @@ function renderProcessesTable() {
             
             rowsHTML += `
                 <tr>
-                    <td>
+                    <td data-label="№ Заказа">
                         <div style="font-weight: 800; color: var(--primary);">#${order.id}</div>
                         <div style="font-size: 11px; color: #94a3b8;">${processNumber}/${totalProcesses}</div>
                     </td>
-                    <td>
+                    <td data-label="Клиент">
                         <div style="font-weight: 600;">${crmData.client || '-'}</div>
                         <div style="font-size: 12px; color: #64748b;">${crmData.item || '-'}</div>
                     </td>
-                    <td>
+                    <td data-label="Процесс / Код">
                         <div style="font-weight: 600;">${process}</div>
                         <div class="wt-code-chip" style="margin-top: 4px;">${processCode}</div>
                     </td>
-                    <td>
+                    <td data-label="Статус">
                         <span class="state-badge ${statusClass}" style="font-size: 11px; padding: 4px 8px;">
                             ${statusText}
                         </span>
                     </td>
-                    <td>${history?.worker || '-'}</td>
-                    <td>${history?.completed_by || '-'}</td>
-                    <td style="font-size: 12px; white-space: nowrap;">${startTime}</td>
-                    <td style="font-size: 12px; white-space: nowrap;">${endTime}</td>
-                    <td>
+                    <td data-label="Кто начал">${history?.worker || '-'}</td>
+                    <td data-label="Кто завершил">${history?.completed_by || '-'}</td>
+                    <td data-label="Время начала" style="font-size: 12px; white-space: nowrap;">${startTime}</td>
+                    <td data-label="Время конца" style="font-size: 12px; white-space: nowrap;">${endTime}</td>
+                    <td data-label="Длительность">
                         <div style="display: flex; align-items: center; gap: 6px;">
                             <div style="font-weight: 600; color: ${status === 'completed' ? 'var(--success)' : 'var(--primary)'}">
                                 ${durationInfo.formatted || '-'}
@@ -6037,7 +6196,7 @@ function renderProcessesTable() {
                                 ''}
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Прогресс заказа">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 60px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;">
                                 <div style="width: ${orderProgress}%; height: 100%; background: var(--primary);"></div>
@@ -6045,7 +6204,7 @@ function renderProcessesTable() {
                             <span style="font-size: 12px; font-weight: 700;">${orderProgress}%</span>
                         </div>
                     </td>
-                    <td>${actionCell}</td>
+                    <td data-label="Упр.">${actionCell}</td>
                 </tr>
             `;
             
@@ -6358,11 +6517,11 @@ async function renderActivityLog(filters = {}) {
                 
                 return `
                 <tr>
-                    <td style="font-size:12px; color:#64748b; white-space:nowrap;">${dateStr}</td>
-                    <td><b>${l.user_name}</b></td>
-                    <td class="${actionClass}">${l.action}</td>
-                    <td style="max-width:200px; word-wrap:break-word;">${l.details || '-'}</td>
-                    <td><span class="proc-badge" style="${badgeColor}">${l.type}</span></td>
+                    <td data-label="Дата" style="font-size:12px; color:#64748b; white-space:nowrap;">${dateStr}</td>
+                    <td data-label="Работник"><b>${l.user_name}</b></td>
+                    <td data-label="Действие" class="${actionClass}">${l.action}</td>
+                    <td data-label="Детали" style="max-width:200px; word-wrap:break-word;">${l.details || '-'}</td>
+                    <td data-label="Тип"><span class="proc-badge" style="${badgeColor}">${l.type}</span></td>
                 </tr>`;
             }).join('');
             
@@ -7034,9 +7193,9 @@ function renderWorkers() {
         const procsList = Array.isArray(w.procs) ? w.procs : [];
         return `
         <tr>
-            <td><b>${w.name || 'Без имени'}</b></td>
-            <td>${procsList.map(p => `<span class="proc-badge">${p}</span>`).join('')}</td>
-            <td>
+            <td data-label="Сотрудник"><b>${w.name || 'Без имени'}</b></td>
+            <td data-label="Доступы">${procsList.map(p => `<span class="proc-badge">${p}</span>`).join('')}</td>
+            <td data-label="Действия">
                 <button class="btn-ghost" onclick="editWorker('${w.name}')">✏️</button>
                 <button class="btn-red" onclick="delW('${w.name}')">✖</button>
             </td>
@@ -7214,6 +7373,156 @@ function closeWvWorkerModal() {
     document.getElementById('wv-worker-modal').classList.add('hidden');
 }
 
+// ═══════════════════════════════════════════════════════
+// ДЕТАЛЬНАЯ АКТИВНОСТЬ — кто что сделал по дням (Персонал)
+// Объединяет: вход/выход, завершённые процессы, покраску,
+// и работы из Калькуляции заказов (order_labor с привязкой к работнику)
+// ═══════════════════════════════════════════════════════
+let daPeriod = 'day';
+let _daActivityCache = [];
+let _daLaborCache = [];
+
+function setDaPeriod(period) {
+    daPeriod = period;
+    document.querySelectorAll('.da-period-btn').forEach(b => b.classList.remove('active'));
+    const map = { day:'сегодня', week:'недел', month:'месяц', all:'всё время' };
+    document.querySelectorAll('.da-period-btn').forEach(b => {
+        if (b.textContent.toLowerCase().includes(map[period])) b.classList.add('active');
+    });
+    renderDetailedActivity();
+}
+
+function isInDaPeriod(dateStr) {
+    if (!dateStr) return false;
+    const d = new Date(dateStr); const now = new Date();
+    if (daPeriod === 'all') return true;
+    if (daPeriod === 'day') return d.toDateString() === now.toDateString();
+    if (daPeriod === 'week') { const wa = new Date(now); wa.setDate(now.getDate()-7); return d >= wa && d <= now; }
+    if (daPeriod === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    return true;
+}
+
+async function renderDetailedActivity() {
+    const el = document.getElementById('detailed-activity-list');
+    const summaryEl = document.getElementById('da-summary');
+    if (!el) return;
+    el.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8;">Загрузка...</div>';
+
+    try {
+        // Активность (вход/выход/процессы) — берём с запасом за 60 дней, дальше фильтруем на клиенте
+        const sinceDate = new Date(); sinceDate.setDate(sinceDate.getDate() - 60);
+        const { data: actData, error: actErr } = await _supabase
+            .from('activity_logs')
+            .select('*')
+            .gte('created_at', sinceDate.toISOString())
+            .order('created_at', { ascending: false });
+        _daActivityCache = actErr ? [] : (actData || []);
+
+        // Работы из калькуляции заказов (order_labor), с привязкой к работнику
+        if (!all_order_labor.length) {
+            const { data: labData } = await _supabase.from('order_labor').select('*');
+            all_order_labor = labData || [];
+        }
+        _daLaborCache = all_order_labor;
+    } catch(e) { console.error('Detailed activity load error:', e); }
+
+    const activity = _daActivityCache.filter(a => isInDaPeriod(a.created_at) && a.user_name !== 'System');
+    const labor = _daLaborCache.filter(l => isInDaPeriod(l.created_at) && l.worker);
+
+    // ── Сводка ──
+    if (summaryEl) {
+        const uniqueWorkers = new Set([...activity.map(a=>a.user_name), ...labor.map(l=>l.worker)]);
+        const processCount = activity.filter(a => a.type === 'process').length;
+        const laborSum = labor.reduce((s,l) => s + (l.qty||1)*(l.unit_price||0), 0);
+        summaryEl.innerHTML = `
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val">${uniqueWorkers.size}</div><div class="svc-stat-label">Активных людей</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:var(--primary);">${processCount}</div><div class="svc-stat-label">Процессов завершено</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:#8b5cf6;">${labor.length}</div><div class="svc-stat-label">Записей из калькуляции</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:var(--success);">${formatMoney(laborSum)}</div><div class="svc-stat-label">Сумма работ (калькуляция)</div></div>
+        `;
+    }
+
+    if (!activity.length && !labor.length) {
+        el.innerHTML = '<div style="text-align:center; padding:24px; color:#94a3b8;">Нет активности за выбранный период</div>';
+        return;
+    }
+
+    // ── Группируем по дню ──
+    const byDate = {};
+    activity.forEach(a => {
+        const d = (a.created_at || '').slice(0, 10);
+        if (!byDate[d]) byDate[d] = { activity: [], labor: [] };
+        byDate[d].activity.push(a);
+    });
+    labor.forEach(l => {
+        const d = (l.created_at || '').slice(0, 10);
+        if (!byDate[d]) byDate[d] = { activity: [], labor: [] };
+        byDate[d].labor.push(l);
+    });
+
+    const sortedDates = Object.keys(byDate).sort().reverse();
+
+    el.innerHTML = sortedDates.map(date => {
+        const dayData = byDate[date];
+        const dayLabel = new Date(date + 'T00:00:00').toLocaleDateString('ru-RU', { day:'2-digit', month:'long', weekday:'short' });
+
+        // Группируем активность дня по работнику
+        const byWorker = {};
+        dayData.activity.forEach(a => {
+            const w = a.user_name || 'Неизвестно';
+            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[] };
+            if (a.type === 'login') byWorker[w].logins++;
+            else if (a.type === 'logout') byWorker[w].logouts++;
+            else if (a.type === 'process') byWorker[w].processes.push(a);
+            else byWorker[w].other.push(a);
+        });
+        dayData.labor.forEach(l => {
+            const w = l.worker || 'Неизвестно';
+            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[], labor:[] };
+            if (!byWorker[w].labor) byWorker[w].labor = [];
+            byWorker[w].labor.push(l);
+        });
+
+        const workerNames = Object.keys(byWorker).sort();
+
+        return `<div style="margin-bottom:18px;">
+            <div style="display:flex; align-items:center; padding:8px 0; border-bottom:2px solid #e2e8f0; margin-bottom:10px;">
+                <b style="color:var(--primary); font-size:15px;">📅 ${dayLabel}</b>
+                <span style="margin-left:10px; font-size:12px; color:#94a3b8;">${workerNames.length} чел.</span>
+            </div>
+            ${workerNames.map(w => {
+                const d = byWorker[w];
+                const processCount = d.processes.length;
+                const laborItems = d.labor || [];
+                const laborSum = laborItems.reduce((s,l) => s + (l.qty||1)*(l.unit_price||0), 0);
+
+                return `<div style="background:#f8fafc; border-radius:12px; padding:12px 14px; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <b style="font-size:14px;">${w}</b>
+                        <div style="display:flex; gap:8px; font-size:11px;">
+                            ${d.logins ? `<span style="color:var(--success); font-weight:700;">🟢 ${d.logins} вход${d.logins>1?'а':''}</span>` : ''}
+                            ${processCount ? `<span style="color:var(--primary); font-weight:700;">✔ ${processCount} процесс${processCount>1?'ов':''}</span>` : ''}
+                            ${laborItems.length ? `<span style="color:#8b5cf6; font-weight:700;">🧮 ${laborItems.length} из калькуляции</span>` : ''}
+                        </div>
+                    </div>
+                    ${processCount ? `<div style="font-size:12px; color:#64748b; margin-top:4px;">
+                        ${d.processes.slice(0,5).map(p => `<div style="padding:3px 0;">• ${p.details || p.action || ''} <span style="color:#cbd5e1;">${new Date(p.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</span></div>`).join('')}
+                        ${processCount > 5 ? `<div style="color:#94a3b8;">...и ещё ${processCount-5}</div>` : ''}
+                    </div>` : ''}
+                    ${laborItems.length ? `<div style="font-size:12px; margin-top:6px; border-top:1px dashed #e2e8f0; padding-top:6px;">
+                        ${laborItems.map(l => `<div style="display:flex; justify-content:space-between; padding:3px 0;">
+                            <span>🧮 <span class="wt-code-chip" style="margin-right:4px;">#${l.order_id}</span>${l.description||''} × ${l.qty}</span>
+                            <b style="color:#8b5cf6;">${formatMoney((l.qty||1)*(l.unit_price||0))}</b>
+                        </div>`).join('')}
+                        <div style="text-align:right; font-weight:800; color:#8b5cf6; margin-top:4px;">Итого: ${formatMoney(laborSum)}</div>
+                    </div>` : ''}
+                </div>`;
+            }).join('')}
+        </div>`;
+    }).join('');
+}
+
+
 
 // ═══════════════════════════════════════════════════════
 // ATTENDANCE / ПОСЕЩАЕМОСТЬ — кто когда вошёл/вышел
@@ -7346,8 +7655,8 @@ function formatHoursMinutes(totalMinutes) {
 }
 
 function renderMonitor() {
-    const tableBody = document.getElementById('m-table');
-    if (!tableBody) return;
+    const container = document.getElementById('m-table');
+    if (!container) return;
 
     const search    = document.getElementById('monitor-search')?.value.trim().toLowerCase() || '';
     const dateFilter = document.getElementById('monitor-date-filter')?.value || '';
@@ -7373,80 +7682,132 @@ function renderMonitor() {
         });
     }
 
-    // Сортировка: последние созданные — сверху. Используем created_at если есть, иначе номер заказа.
     filtered = [...filtered].sort((a, b) => {
         if (a.created_at && b.created_at) return new Date(b.created_at) - new Date(a.created_at);
         return String(b.id).localeCompare(String(a.id), undefined, { numeric: true });
     });
 
     const totalCount = filtered.length;
-    if (limitVal !== 'all') {
-        filtered = filtered.slice(0, parseInt(limitVal));
-    }
+    if (limitVal !== 'all') filtered = filtered.slice(0, parseInt(limitVal));
 
     if (filtered.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:30px; color:#94a3b8;">
-            ${orders.length === 0 ? 'Пока нет заказов в производстве' : `Ничего не найдено`}
-        </td></tr>`;
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:#94a3b8;">
+            ${orders.length === 0 ? 'Пока нет заказов в производстве' : 'Ничего не найдено'}
+        </div>`;
         return;
     }
-    
-    let rows = filtered.map(o => {
+
+    let html = filtered.map(o => {
+        const crmData = crm_orders.find(c => c.oid === o.id) || {};
         const totalSteps = (o.path || []).length;
-        const finishedSteps = totalSteps > 0 ?
-            (o.path || []).filter(p => o.history && o.history[p] && o.history[p].end).length : 0;
+        const finishedSteps = totalSteps > 0 ? (o.path || []).filter(p => o.history && o.history[p] && o.history[p].end).length : 0;
         const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
-        const allDone = totalSteps > 0 && finishedSteps === totalSteps;
+        const barColor = progress >= 100 ? 'var(--success)' : 'var(--primary)';
 
-        const stepsHtml = (o.path || []).map(p => {
-            const status = getOrderStatus(o, p);
-            const code = getProcessCode(o, p);
-            if (status.status === 'done') {
-                return `<span class="state-badge ${status.status}" title="${p}">${code} ✔</span>`;
-            }
-            return `<span class="state-badge ${status.status}" title="Нажмите, чтобы завершить: ${p}" style="cursor:pointer;" onclick="adminCompleteProcess('${o.id}', '${p.replace(/'/g, "\\'")}')">${code} ${p}</span>`;
-        }).join(' ');
-
-        return `
-        <tr>
-            <td data-label="Заказ">
-                <b>#${o.id}</b><br>
-                <div style="display:flex; gap:4px; margin-top:5px; flex-wrap:wrap;">
-                    <button class="btn-blue" style="padding: 2px 8px; font-size: 10px;" onclick="openOrderDetails('${o.id}')">ℹ️ Инфо</button>
-                    <button class="btn-green" style="padding: 2px 8px; font-size: 10px;" onclick="openOrderCalc('${o.id}')">🧮 Калькуляция</button>
-                    <button class="btn-ghost" style="padding: 2px 8px; font-size: 10px;" onclick="printProductionSheetFor('${o.id}')">🖨 Лист</button>
-                </div>
-            </td>
-            <td data-label="Прогресс">
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="flex:1; min-width:100px; height:6px; background:#e2e8f0; border-radius: 3px; overflow:hidden;">
-                            <div style="width:${progress}%; background:var(--primary); height:100%;"></div>
-                        </div>
-                        <span style="font-size:12px; font-weight:600;">${progress}%</span>
-                    </div>
-                    <div style="font-size: 11px; color:#64748b; line-height: 1.6;">
-                        ${stepsHtml}
-                    </div>
-                </div>
-            </td>
-            <td data-label="Управление">
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                    ${allDone ? '' : `<button class="btn-admin-complete" onclick="adminCompleteOrder('${o.id}')">✔ Завершить заказ</button>`}
-                    <button class="btn-red" onclick="delO('${o.id}')">✖ Удалить</button>
-                </div>
-            </td>
-        </tr>`;
+        return `<div class="mon-card" onclick="openMonitorOrderModal('${o.id}')">
+            <div>
+                <div class="mon-card-id">#${o.id}</div>
+                <div class="mon-card-client">${crmData.client || 'Без клиента'}${crmData.due_date ? ' · ' + renderDueDateCell(crmData) : ''}</div>
+            </div>
+            <div class="mon-card-progress">
+                <div class="mon-card-bar"><div style="width:${progress}%; height:100%; background:${barColor};"></div></div>
+                <div class="mon-card-pct">${progress}% · ${finishedSteps}/${totalSteps} процессов</div>
+            </div>
+            <div class="mon-card-actions">
+                <button class="btn-blue" style="padding:8px 12px; font-size:14px;" onclick="event.stopPropagation(); openMonitorOrderModal('${o.id}')">👁</button>
+            </div>
+        </div>`;
     }).join('');
 
     if (limitVal !== 'all' && totalCount > filtered.length) {
-        rows += `<tr><td colspan="3" style="text-align:center; padding:10px; color:#94a3b8; font-size:12px;">
+        html += `<div style="text-align:center; padding:10px; color:#94a3b8; font-size:12px;">
             Показано ${filtered.length} из ${totalCount}. 
             <span style="color:var(--primary); cursor:pointer; font-weight:700;" onclick="document.getElementById('monitor-limit').value='all'; renderMonitor();">Показать все →</span>
-        </td></tr>`;
+        </div>`;
     }
 
-    tableBody.innerHTML = rows;
+    container.innerHTML = html;
+}
+
+// ── МОДАЛЬ: ДЕТАЛИ ЗАКАЗА В МОНИТОРИНГЕ ──
+let _monModalOrderId = null;
+let monModalFilter = 'all';
+
+function openMonitorOrderModal(orderId) {
+    _monModalOrderId = orderId;
+    monModalFilter = 'all';
+    document.querySelectorAll('.mon-status-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector('.mon-status-tab')?.classList.add('active');
+
+    const order = orders.find(o => o.id === orderId);
+    const crmData = crm_orders.find(c => c.oid === orderId) || {};
+
+    document.getElementById('mon-modal-id').innerText = orderId;
+    document.getElementById('mon-modal-client').innerText = `${crmData.client || 'Без клиента'} ${crmData.item ? '— ' + crmData.item : ''}`;
+    const datesLine = [
+        crmData.date ? 'Заказ: ' + new Date(crmData.date).toLocaleDateString('ru-RU') : '',
+        crmData.due_date ? 'Сдача: ' + new Date(crmData.due_date).toLocaleDateString('ru-RU') : ''
+    ].filter(Boolean).join(' · ');
+    document.getElementById('mon-modal-dates').innerText = datesLine;
+
+    const totalSteps = (order?.path || []).length;
+    const finishedSteps = totalSteps > 0 ? (order.path || []).filter(p => order.history && order.history[p] && order.history[p].end).length : 0;
+    const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
+    document.getElementById('mon-modal-bar').style.width = progress + '%';
+    document.getElementById('mon-modal-pct').innerText = progress + '%';
+
+    const finishBtn = document.getElementById('mon-modal-finish-btn');
+    if (finishBtn) finishBtn.classList.toggle('hidden', progress >= 100);
+
+    renderMonModalSteps();
+    document.getElementById('monitor-order-modal').classList.remove('hidden');
+    document.getElementById('monitor-order-modal').scrollTop = 0;
+}
+
+function closeMonitorOrderModal() {
+    document.getElementById('monitor-order-modal').classList.add('hidden');
+    _monModalOrderId = null;
+    renderMonitor();
+}
+
+function setMonModalFilter(filter) {
+    monModalFilter = filter;
+    document.querySelectorAll('.mon-status-tab').forEach(b => b.classList.remove('active'));
+    const map = { all:'все', pending:'ожида', active:'в работе', done:'завершены' };
+    document.querySelectorAll('.mon-status-tab').forEach(b => {
+        if (b.textContent.toLowerCase().includes(map[filter])) b.classList.add('active');
+    });
+    renderMonModalSteps();
+}
+
+function renderMonModalSteps() {
+    const el = document.getElementById('mon-modal-steps');
+    if (!el) return;
+    const order = orders.find(o => o.id === _monModalOrderId);
+    if (!order || !order.path || !order.path.length) {
+        el.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:20px;">Заказ ещё не запущен в производство</div>';
+        return;
+    }
+
+    let steps = order.path.map((p, i) => ({ p, i, status: getOrderStatus(order, p) }));
+    if (monModalFilter !== 'all') steps = steps.filter(s => s.status.status === monModalFilter);
+
+    if (!steps.length) {
+        el.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:20px;">Нет процессов в этом статусе</div>';
+        return;
+    }
+
+    el.innerHTML = steps.map(({ p, i, status }) => {
+        const code = getProcessCode(order, p);
+        const h = order.history?.[p];
+        const detail = status.status === 'done' ? `✔ Завершил: ${h?.completed_by || h?.worker || '—'}`
+            : status.status === 'active' ? `● В работе: ${h?.worker || '—'}` : '⏳ Ожидает';
+        const cls = status.status === 'done' ? 'done' : status.status === 'active' ? 'active' : '';
+        return `<div class="oc-step-row ${cls}" ${status.status !== 'done' ? `style="cursor:pointer;" onclick="adminCompleteProcess('${order.id}','${p.replace(/'/g,"\\'")}'); setTimeout(()=>openMonitorOrderModal('${order.id}'),400);"` : ''}>
+            <div><span class="wt-code-chip">${code}</span> <b style="margin-left:8px;">${p}</b></div>
+            <div style="font-size:12px; color:#64748b;">${detail}</div>
+        </div>`;
+    }).join('');
 }
 
 function renderCRM() {
@@ -7968,7 +8329,7 @@ function showPage(id) {
     if (id === 'page-monitor') renderAttendance();
 
     // Загружаем объём выполненных работ при открытии Персонала
-    if (id === 'page-workers') renderWorkerVolumeStats();
+    if (id === 'page-workers') { renderWorkerVolumeStats(); renderDetailedActivity(); }
 }
 
 function openGlobalSearch() {

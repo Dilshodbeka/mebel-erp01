@@ -1104,6 +1104,7 @@
                     <div id="paint-access-btn" class="hidden">
                         <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
                     </div>
+                    <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Выйти</button>
                 </div>
             </div>
         </div>
@@ -2536,6 +2537,7 @@ alter table paint_records disable row level security;</pre>
                         <div style="font-size: 24px; font-weight: 800;" id="kanban-inprogress-count">0</div>
                     </div>
                 </div>
+                <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; flex-shrink:0;">Выйти</button>
             </div>
         </div>
     </div>
@@ -2968,7 +2970,7 @@ function renderPwtOrders() {
         const doneSoFar     = doneRecs.reduce((s,r) => s + (r.qty_done||0), 0);
         const pct = totalExpected > 0 ? Math.min(100, Math.round(doneSoFar / totalExpected * 100)) : 0;
 
-        return `<div class="wt-task-card" onclick="selectPwtOrder('${o.id}')">
+        return `<div class="wt-task-card" onclick="selectPwtOrder('${o.id.replace(/'/g,"\\'")}')">
             <div class="wt-task-main">
                 <div class="wt-task-top">
                     <span class="wt-order-num">№ ${o.id}</span>
@@ -3037,7 +3039,7 @@ function renderPwtItems() {
     const categories = [...new Set(orderItems.map(i => i.category))];
 
     catGrid.innerHTML = categories.map(cat =>
-        `<div class="paint-cat-btn ${pwt.category===cat?'selected':''}" onclick="selectPwtCategory('${cat}')">${cat}</div>`
+        `<div class="paint-cat-btn ${pwt.category===cat?'selected':''}" onclick="selectPwtCategory('${cat.replace(/'/g,"\\'")}')">${cat}</div>`
     ).join('');
 
     if (pwt.category) renderPwtItemList();
@@ -3065,7 +3067,7 @@ function renderPwtItemList() {
         const remClass = remaining <= 0 ? 'paint-item-pick-rem zero' : 'paint-item-pick-rem';
         const remColor = remaining <= 0 ? 'var(--success)' : 'var(--primary)';
         const isSelected = pwt.itemName === oi.item_name ? 'selected' : '';
-        return `<div class="paint-item-pick-row ${isSelected}" onclick="selectPwtItem('${oi.item_name}', ${oi.qty}, ${doneForStage})">
+        return `<div class="paint-item-pick-row ${isSelected}" onclick="selectPwtItem('${oi.item_name.replace(/'/g,"\\'")}', ${oi.qty}, ${doneForStage})">
             <div>
                 <div class="paint-item-pick-name">${oi.item_name}</div>
                 <div class="${remClass}">${remText}</div>
@@ -5458,7 +5460,7 @@ function renderFinishedMovements() {
 
     el.innerHTML = list.map(m => {
         const dt = m.created_at ? new Date(m.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-        const photo = m.photo_url ? `<img src="${m.photo_url}" class="wh-photo-thumb" onerror="this.style.display='none'" style="cursor:pointer;" onclick="window.open('${m.photo_url}','_blank')">` : '';
+        const photo = m.photo_url ? `<img src="${m.photo_url}" class="wh-photo-thumb" onerror="this.style.display='none'" style="cursor:pointer;" onclick="window.open('${m.photo_url.replace(/'/g,"\\'")}','_blank')">` : '';
         return `<div style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:#f8fafc; border-radius:10px; margin-bottom:6px;">
             ${photo}
             <div style="flex:1;">
@@ -5570,7 +5572,7 @@ function renderWhAnalytics() {
         } else {
             shippedGalleryEl.innerHTML = `<div style="display:flex; flex-direction:column; gap:8px;">${shippedList.map(m => {
                 const dt = m.created_at ? new Date(m.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-                const photo = m.photo_url ? `<img src="${m.photo_url}" class="wh-photo-thumb" style="width:60px; height:60px;" onerror="this.style.display='none'" onclick="window.open('${m.photo_url}','_blank')">` : '<div class="wh-photo-thumb" style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;">📦</div>';
+                const photo = m.photo_url ? `<img src="${m.photo_url}" class="wh-photo-thumb" style="width:60px; height:60px;" onerror="this.style.display='none'" onclick="window.open('${m.photo_url.replace(/'/g,"\\'")}','_blank')">` : '<div class="wh-photo-thumb" style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;color:#cbd5e1;">📦</div>';
                 return `<div style="display:flex; align-items:center; gap:12px; padding:10px; background:#f8fafc; border-radius:12px;">
                     ${photo}
                     <div style="flex:1;">
@@ -7016,7 +7018,7 @@ function renderDashRecentOrders() {
     el.innerHTML = sorted.map(c => {
         const order = orders.find(o => o.id === c.oid);
         const pct = order ? calculateOrderProgress(order) : 0;
-        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="openOrderCalc('${c.oid}')">
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="openOrderCalc('${c.oid.replace(/'/g,"\\'")}')">
             <div>
                 <b>#${c.oid}</b> <span style="font-size:12px; color:#64748b;">${c.client||''}</span>
                 <div style="font-size:11px; color:#94a3b8;">${c.item||''}</div>
@@ -7196,8 +7198,8 @@ function renderWorkers() {
             <td data-label="Сотрудник"><b>${w.name || 'Без имени'}</b></td>
             <td data-label="Доступы">${procsList.map(p => `<span class="proc-badge">${p}</span>`).join('')}</td>
             <td data-label="Действия">
-                <button class="btn-ghost" onclick="editWorker('${w.name}')">✏️</button>
-                <button class="btn-red" onclick="delW('${w.name}')">✖</button>
+                <button class="btn-ghost" onclick="editWorker('${w.name.replace(/'/g,"\\'")}')">✏️</button>
+                <button class="btn-red" onclick="delW('${w.name.replace(/'/g,"\\'")}')">✖</button>
             </td>
         </tr>`;
     }).join('');
@@ -7704,7 +7706,7 @@ function renderMonitor() {
         const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
         const barColor = progress >= 100 ? 'var(--success)' : 'var(--primary)';
 
-        return `<div class="mon-card" onclick="openMonitorOrderModal('${o.id}')">
+        return `<div class="mon-card" onclick="openMonitorOrderModal('${o.id.replace(/'/g,"\\'")}')">
             <div>
                 <div class="mon-card-id">#${o.id}</div>
                 <div class="mon-card-client">${crmData.client || 'Без клиента'}${crmData.due_date ? ' · ' + renderDueDateCell(crmData) : ''}</div>
@@ -7714,7 +7716,7 @@ function renderMonitor() {
                 <div class="mon-card-pct">${progress}% · ${finishedSteps}/${totalSteps} процессов</div>
             </div>
             <div class="mon-card-actions">
-                <button class="btn-blue" style="padding:8px 12px; font-size:14px;" onclick="event.stopPropagation(); openMonitorOrderModal('${o.id}')">👁</button>
+                <button class="btn-blue" style="padding:8px 12px; font-size:14px;" onclick="event.stopPropagation(); openMonitorOrderModal('${o.id.replace(/'/g,"\\'")}')">👁</button>
             </div>
         </div>`;
     }).join('');
@@ -7845,7 +7847,7 @@ function renderCRM() {
         const svcBadge  = svcClient ? `<span style="background:#eef2ff; color:var(--primary); padding:2px 8px; border-radius:8px; font-size:10px; font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); openSvcClientModal(${svcClient.id})">🛠 ${svcClient.name}</span>` : '';
 
         return `
-        <tr style="cursor:pointer;" onclick="copyToProduction('${c.oid}')">
+        <tr style="cursor:pointer;" onclick="copyToProduction('${c.oid.replace(/'/g,"\\'")}')">
             <td data-label="№">#${c.oid}</td>
             <td data-label="Клиент">
                 <div style="font-weight:600;">${c.client || '-'} ${telegramBadge} ${svcBadge}</div>
@@ -7859,8 +7861,8 @@ function renderCRM() {
             <td data-label="Telegram">${hasTelegram ? '✅' : '—'}</td>
             <td data-label="Действия">
                 <div style="display:flex; gap:4px; flex-wrap:wrap;">
-                    <button class="btn-green" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openOrderCalc('${c.oid}')">🧮</button>
-                    <button class="btn-red" onclick="event.stopPropagation(); delCRM('${c.oid}')">✖</button>
+                    <button class="btn-green" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openOrderCalc('${c.oid.replace(/'/g,"\\'")}')">🧮</button>
+                    <button class="btn-red" onclick="event.stopPropagation(); delCRM('${c.oid.replace(/'/g,"\\'")}')">✖</button>
                 </div>
             </td>
         </tr>`;

@@ -810,6 +810,16 @@
         .wv-stage-label { font-size:10px; color:#94a3b8; margin-top:2px; text-transform:uppercase; }
 
         /* ============ MONITOR — компактные карточки ============ */
+        .mon-subnav { display:flex; gap:6px; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:18px; flex-wrap:wrap; }
+        .mon-subnav-btn { flex:1; min-width:120px; padding:10px; border:none; border-radius:8px; background:transparent; font-size:13px; font-weight:700; color:#64748b; cursor:pointer; white-space:nowrap; }
+        .mon-subnav-btn.active { background:#fff; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+        .mon-section { display:none; }
+        .mon-section.active { display:block; }
+
+        .mon-toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+        .mon-toolbar input, .mon-toolbar select { margin:0; }
+        .mon-toolbar input[type="text"] { flex:1; min-width:200px; }
+
         .mon-card { background:#fff; border:1px solid var(--border); border-radius:14px; padding:14px 16px; margin-bottom:10px; display:flex; align-items:center; gap:14px; cursor:pointer; transition:0.15s; }
         .mon-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(79,70,229,0.08); }
         .mon-card-id { font-weight:900; font-size:16px; color:var(--text); min-width:70px; }
@@ -821,6 +831,12 @@
         .mon-status-tabs { display:flex; gap:6px; background:#f8fafc; border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:14px; flex-wrap:wrap; }
         .mon-status-tab { flex:1; min-width:80px; padding:8px; border:none; border-radius:8px; background:transparent; color:#64748b; font-size:12px; font-weight:700; cursor:pointer; }
         .mon-status-tab.active { background:#fff; color:var(--primary); box-shadow:0 1px 4px rgba(0,0,0,0.08); }
+
+        @media (max-width: 768px) {
+            .mon-card { flex-wrap:wrap; }
+            .mon-card-progress { min-width:100%; order:3; }
+            .mon-toolbar input[type="date"] { width:100%; }
+        }
 
         /* ============ WAREHOUSE MODULE ============ */
         .wh-item-row { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:#fff; border:1px solid var(--border); border-radius:14px; margin-bottom:8px; gap:12px; flex-wrap:wrap; }
@@ -1622,92 +1638,103 @@
 
 <!-- Admin: Monitor -->
 <div id="page-monitor" class="page hidden">
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:4px;">
-            <h3 style="margin:0;">Мониторинг в реальном времени</h3>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <label style="font-size:12px; color:#64748b; white-space:nowrap;">Показывать:</label>
-                <select id="monitor-limit" style="margin:0; padding:8px 12px; font-size:13px;" onchange="renderMonitor()">
-                    <option value="5">5 последних</option>
-                    <option value="7" selected>7 последних</option>
-                    <option value="10">10 последних</option>
-                    <option value="20">20 последних</option>
-                    <option value="all">Все заказы</option>
-                </select>
-            </div>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px;">
-            <input type="text" id="monitor-search" placeholder="🔍 Поиск: № заказа, клиент, процесс или код" style="flex:1; min-width:220px;" oninput="renderMonitor()">
-            <input type="date" id="monitor-date-filter" style="margin:0; width:auto;" onchange="renderMonitor()" title="Фильтр по дате создания заказа">
-            <button class="btn-ghost" onclick="document.getElementById('monitor-search').value='';document.getElementById('monitor-date-filter').value='';renderMonitor()">Сбросить</button>
-        </div>
-        <div id="m-table"></div>
+
+    <div class="mon-subnav">
+        <button class="mon-subnav-btn active" onclick="showMonSection('orders')">📡 Заказы</button>
+        <button class="mon-subnav-btn" onclick="showMonSection('attendance')">👥 Посещаемость</button>
+        <button class="mon-subnav-btn" onclick="showMonSection('processes')">📋 Процессы</button>
     </div>
 
-    <!-- ── ПОСЕЩАЕМОСТЬ / ТАБЕЛЬ ── -->
-    <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-            <h3 style="margin:0;">👥 Посещаемость — кто работал</h3>
-            <div style="display:flex; gap:8px; align-items:center;">
-                <button class="btn-ghost" onclick="shiftAttendanceDate(-1)">←</button>
-                <input type="date" id="attendance-date" style="margin:0; width:auto;" onchange="renderAttendance()">
-                <button class="btn-ghost" onclick="shiftAttendanceDate(1)">→</button>
-                <button class="btn-blue" style="padding:8px 14px; font-size:13px;" onclick="setAttendanceToday()">Сегодня</button>
+    <!-- ══════════ ЗАКАЗЫ ══════════ -->
+    <div id="mon-sec-orders" class="mon-section active">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                <h3 style="margin:0;">Заказы в производстве</h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <label style="font-size:12px; color:#64748b; white-space:nowrap;">Показывать:</label>
+                    <select id="monitor-limit" style="margin:0; padding:8px 12px; font-size:13px;" onchange="renderMonitor()">
+                        <option value="5">5 последних</option>
+                        <option value="7" selected>7 последних</option>
+                        <option value="10">10 последних</option>
+                        <option value="20">20 последних</option>
+                        <option value="all">Все заказы</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div id="attendance-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
-        <div class="table-wrapper">
-            <table class="modern-table mobile-cards">
-                <thead><tr><th>Работник</th><th>Вход</th><th>Выход</th><th>Статус</th><th>Отработано</th></tr></thead>
-                <tbody id="attendance-table"></tbody>
-            </table>
+            <div class="mon-toolbar">
+                <input type="text" id="monitor-search" placeholder="🔍 Поиск: № заказа, клиент, процесс или код" oninput="renderMonitor()">
+                <input type="date" id="monitor-date-filter" style="width:auto;" onchange="renderMonitor()" title="Фильтр по дате создания заказа">
+                <button class="btn-ghost" onclick="document.getElementById('monitor-search').value='';document.getElementById('monitor-date-filter').value='';renderMonitor()">Сбросить</button>
+            </div>
+            <div id="m-table"></div>
         </div>
     </div>
-    
-    <!-- Детализация процессов -->
-    <div class="card">
-        <h3>Детализация процессов по заказам</h3>
-        <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
-            <input type="text" id="process-filter-order" placeholder="№ заказа, код процесса (1001-02) или название" 
-                   style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px;"
-                   oninput="renderProcessesTable()">
-            <select id="process-filter-status" style="padding: 10px; border: 1px solid var(--border); border-radius: 8px;"
-                    onchange="renderProcessesTable()">
-                <option value="all">Все статусы</option>
-                <option value="pending">Ожидает</option>
-                <option value="in-progress">В работе</option>
-                <option value="completed">Завершён</option>
-            </select>
-            <button class="btn-ghost" onclick="resetProcessFilters()">Сбросить</button>
+
+    <!-- ══════════ ПОСЕЩАЕМОСТЬ ══════════ -->
+    <div id="mon-sec-attendance" class="mon-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                <h3 style="margin:0;">👥 Посещаемость — кто работал</h3>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn-ghost" onclick="shiftAttendanceDate(-1)">←</button>
+                    <input type="date" id="attendance-date" style="margin:0; width:auto;" onchange="renderAttendance()">
+                    <button class="btn-ghost" onclick="shiftAttendanceDate(1)">→</button>
+                    <button class="btn-blue" style="padding:8px 14px; font-size:13px;" onclick="setAttendanceToday()">Сегодня</button>
+                </div>
+            </div>
+            <div id="attendance-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
+            <div class="table-wrapper">
+                <table class="modern-table mobile-cards">
+                    <thead><tr><th>Работник</th><th>Вход</th><th>Выход</th><th>Статус</th><th>Отработано</th></tr></thead>
+                    <tbody id="attendance-table"></tbody>
+                </table>
+            </div>
         </div>
-        
-        <div class="table-wrapper">
-            <table class="modern-table mobile-cards">
-                <thead>
-                    <tr>
-                        <th>№ Заказа</th>
-                        <th>Клиент</th>
-                        <th>Процесс / Код</th>
-                        <th>Статус</th>
-                        <th>Кто начал</th>
-                        <th>Кто завершил</th>
-                        <th>Время начала</th>
-                        <th>Время конца</th>
-                        <th>Длительность</th>
-                        <th>Прогресс заказа</th>
-                        <th>Упр.</th>
-                    </tr>
-                </thead>
-                <tbody id="processes-table"></tbody>
-            </table>
-        </div>
-        
-        <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b;">
-            <div>Показано: <span id="process-count">0</span> процессов</div>
-            <div>
-                <button class="btn-ghost" onclick="exportProcessesToCSV()" style="padding: 6px 12px; font-size: 12px;">
-                    📥 Экспорт в CSV
-                </button>
+    </div>
+
+    <!-- ══════════ ПРОЦЕССЫ ══════════ -->
+    <div id="mon-sec-processes" class="mon-section">
+        <div class="card">
+            <h3>Детализация процессов по заказам</h3>
+            <div class="mon-toolbar">
+                <input type="text" id="process-filter-order" placeholder="№ заказа, код процесса (1001-02) или название" oninput="renderProcessesTable()">
+                <select id="process-filter-status" style="width:auto;" onchange="renderProcessesTable()">
+                    <option value="all">Все статусы</option>
+                    <option value="pending">Ожидает</option>
+                    <option value="in-progress">В работе</option>
+                    <option value="completed">Завершён</option>
+                </select>
+                <button class="btn-ghost" onclick="resetProcessFilters()">Сбросить</button>
+            </div>
+            
+            <div class="table-wrapper">
+                <table class="modern-table mobile-cards">
+                    <thead>
+                        <tr>
+                            <th>№ Заказа</th>
+                            <th>Клиент</th>
+                            <th>Процесс / Код</th>
+                            <th>Статус</th>
+                            <th>Кто начал</th>
+                            <th>Кто завершил</th>
+                            <th>Время начала</th>
+                            <th>Время конца</th>
+                            <th>Длительность</th>
+                            <th>Прогресс заказа</th>
+                            <th>Упр.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="processes-table"></tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #64748b;">
+                <div>Показано: <span id="process-count">0</span> процессов</div>
+                <div>
+                    <button class="btn-ghost" onclick="exportProcessesToCSV()" style="padding: 6px 12px; font-size: 12px;">
+                        📥 Экспорт в CSV
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -7656,6 +7683,20 @@ function formatHoursMinutes(totalMinutes) {
     return `${h}ч ${m}м`;
 }
 
+// ── МОНИТОРИНГ: подвкладки ──
+function showMonSection(name) {
+    document.querySelectorAll('.mon-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.mon-subnav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('mon-sec-' + name)?.classList.add('active');
+    const map = { orders:'заказы', attendance:'посещаем', processes:'процесс' };
+    document.querySelectorAll('.mon-subnav-btn').forEach(b => {
+        if (b.textContent.toLowerCase().includes(map[name])) b.classList.add('active');
+    });
+    if (name === 'orders') renderMonitor();
+    if (name === 'attendance') renderAttendance();
+    if (name === 'processes') renderProcessesTable();
+}
+
 function renderMonitor() {
     const container = document.getElementById('m-table');
     if (!container) return;
@@ -8328,7 +8369,7 @@ function showPage(id) {
     if (id === 'page-orders') loadPaintData();
 
     // Загружаем посещаемость при открытии мониторинга
-    if (id === 'page-monitor') renderAttendance();
+    if (id === 'page-monitor') showMonSection('orders');
 
     // Загружаем объём выполненных работ при открытии Персонала
     if (id === 'page-workers') { renderWorkerVolumeStats(); renderDetailedActivity(); }

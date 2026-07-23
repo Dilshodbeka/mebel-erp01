@@ -1201,10 +1201,22 @@
                 <button class="btn-ghost" style="width:100%;" onclick="workerFindOrder()">Проверить заказ</button>
             </div>
 
-            <!-- Стандартные кнопки (не краска) -->
+            <!-- Стандартные кнопки (не краска, не сборка) -->
             <div id="worker-controls" class="hidden wt-controls">
                 <button id="btn-start" class="btn-blue wt-big-btn" onclick="processAction('start')">▶ НАЧАТЬ РАБОТУ</button>
-                <button class="btn-green hidden wt-big-btn" onclick="processAction('finish')"><span class="material-symbols-outlined" style="font-size:20px;">check_circle</span> ЗАВЕРШИТЬ</button>
+                <div id="finish-section" class="hidden" style="margin-top:12px;">
+                    <div style="background:var(--surface); border:1px solid var(--border-light); border-radius:14px; padding:16px; margin-bottom:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                            <div style="font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Количество</div>
+                            <div id="wt-target-qty" style="font-size:12px; color:var(--primary); font-weight:700;"></div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="number" id="wt-finish-qty" value="1" min="1" style="flex:1; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:18px; font-weight:800; text-align:center; box-sizing:border-box;">
+                            <span id="wt-finish-unit" style="font-size:14px; font-weight:700; color:var(--text-secondary);">шт</span>
+                        </div>
+                    </div>
+                    <button id="btn-finish" class="btn-green wt-big-btn" onclick="processAction('finish')" style="display:block; width:100%; padding:16px; font-size:16px; font-weight:800; border:none; border-radius:12px; cursor:pointer; color:#fff; background:#22c55e;">✔ ЗАВЕРШИТЬ</button>
+                </div>
                 <div id="done-msg" class="hidden wt-done-msg">✅ Готово! Процесс завершён</div>
             </div>
 
@@ -3293,8 +3305,10 @@ let ipt = { orderId:null, stageKey:null, stageLabel:null, itemName:null, qty:0, 
 
 function showInlinePaint(orderId) {
     ipt = { orderId, stageKey:null, stageLabel:null, itemName:null, qty:0, totalQty:0, doneQty:0 };
-    document.getElementById('worker-controls').classList.add('hidden');
-    document.getElementById('paint-inline-section').classList.remove('hidden');
+    var wc = document.getElementById('worker-controls');
+    if (wc) wc.classList.add('hidden');
+    var pis = document.getElementById('paint-inline-section');
+    if (pis) pis.classList.remove('hidden');
     document.getElementById('paint-stage-selected')?.classList.add('hidden');
     document.getElementById('paint-inline-qty-wrap')?.classList.add('hidden');
     document.getElementById('paint-inline-done')?.classList.add('hidden');
@@ -3308,8 +3322,10 @@ function showInlinePaint(orderId) {
 }
 
 function hideInlinePaint() {
-    document.getElementById('paint-inline-section').classList.add('hidden');
-    document.getElementById('worker-controls').classList.remove('hidden');
+    var pis2 = document.getElementById('paint-inline-section');
+    if (pis2) pis2.classList.add('hidden');
+    var wc2 = document.getElementById('worker-controls');
+    if (wc2) wc2.classList.remove('hidden');
     const t = document.querySelector('.wt-manual-toggle');
     if (t) t.style.display = '';
 }
@@ -3518,6 +3534,41 @@ function updateOrderCodePreview() {
         paintBlock.classList.toggle('hidden', !hasPaint);
         if (hasPaint) updateProdPaintSelects();
     }
+}
+
+// Показывает/скрывает строку количество + работник для каждого процесса в production grid
+function toggleProdProc(checkbox, idx) {
+    var card = checkbox.closest('.item-card');
+    if (!card) return;
+    var existingRow = document.getElementById('proc' + idx + '-row');
+    if (checkbox.checked) {
+        if (existingRow) { existingRow.style.display = 'flex'; return; }
+        var p = PROCS[idx];
+        var row = document.createElement('div');
+        row.id = 'proc' + idx + '-row';
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;';
+        row.innerHTML = '<input type="number" value="1" min="1" id="proc' + idx + '-qty" oninput="updateOrderCodePreview()" style="width:56px;padding:5px 4px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;font-weight:700;text-align:center;">'
+            + '<span style="font-size:11px;font-weight:600;color:#64748b;">шт</span>'
+            + '<select id="proc' + idx + '-worker" onchange="updateOrderCodePreview()" style="flex:1;padding:5px 4px;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;"><option value="">— работник —</option></select>';
+        card.appendChild(row);
+        populateProdWorkerSelects();
+    } else {
+        if (existingRow) existingRow.style.display = 'none';
+    }
+    updateOrderCodePreview();
+}
+
+// Заполняет селекты работников в production grid
+function populateProdWorkerSelects() {
+    workers.forEach(function(w) {
+        document.querySelectorAll('select[id^="proc"][id$="-worker"]').forEach(function(sel) {
+            if (sel.value === w.name) return;
+            var opt = document.createElement('option');
+            opt.value = w.name;
+            opt.innerText = w.name;
+            sel.appendChild(opt);
+        });
+    });
 }
 
 // Заполняет категории в блоке краски производства
@@ -6794,10 +6845,18 @@ async function handleLogout() {
 // --- WORKER LOGIC ---
 function resetWorkerFlow() {
     curProc = null;
-    document.getElementById('worker-action-card').classList.add('hidden');
-    document.getElementById('worker-tasks-card').classList.remove('hidden');
-    document.getElementById('worker-order-input').value = '';
-    document.getElementById('wt-manual-box')?.classList.add('hidden');
+    var ac = document.getElementById('worker-action-card');
+    if (ac) ac.classList.add('hidden');
+    var tc = document.getElementById('worker-tasks-card');
+    if (tc) tc.classList.remove('hidden');
+    var oi = document.getElementById('worker-order-input');
+    if (oi) oi.value = '';
+    var mb = document.getElementById('wt-manual-box');
+    if (mb) mb.classList.add('hidden');
+    var wc = document.getElementById('worker-controls');
+    if (wc) wc.classList.add('hidden');
+    var fs = document.getElementById('finish-section');
+    if (fs) fs.classList.add('hidden');
     renderWorkerTasks();
 }
 
@@ -6932,9 +6991,8 @@ function renderWorkerTasks() {
             <div class="wt-task-status ${task.status}">${statusText}</div>
         `;
         el.onclick = () => {
-            selectWorkerProc(task.proc);
             document.getElementById('worker-order-input').value = task.order.id;
-            workerFindOrder();
+            selectWorkerProc(task.proc);
         };
         list.appendChild(el);
     });
@@ -6942,58 +7000,84 @@ function renderWorkerTasks() {
 
 function selectWorkerProc(p) {
     curProc = p;
-    
-    document.getElementById('worker-tasks-card').classList.add('hidden');
-    document.getElementById('worker-action-card').classList.remove('hidden');
-    document.getElementById('active-proc-name').innerText = p;
-    // Сбрасываем секцию краски по умолчанию
-    document.getElementById('paint-inline-section').classList.add('hidden');
-    document.getElementById('worker-controls').classList.add('hidden');
 
-    const currentInput = document.getElementById('worker-order-input').value.trim();
+    var tc = document.getElementById('worker-tasks-card');
+    if (tc) tc.classList.add('hidden');
+    var ac = document.getElementById('worker-action-card');
+    if (ac) ac.classList.remove('hidden');
+    var apn = document.getElementById('active-proc-name');
+    if (apn) apn.innerText = p;
 
-    if (currentInput) {
-        const o = orders.find(x => x.id === currentInput);
-        if (o && o.path.includes(p)) {
+    var pis = document.getElementById('paint-inline-section');
+    if (pis) pis.classList.add('hidden');
+    var wc = document.getElementById('worker-controls');
+    if (wc) wc.classList.add('hidden');
+    var mb = document.getElementById('wt-manual-box');
+    if (mb) mb.classList.add('hidden');
+
+    var orderInput = document.getElementById('worker-order-input');
+    var oid = orderInput ? orderInput.value.trim() : '';
+
+    if (oid) {
+        var o = orders.find(function(x) { return x.id === oid; });
+        if (o && o.path && o.path.indexOf(p) !== -1) {
             updateActiveOrderInfo(o, p);
-            document.getElementById('wt-manual-box')?.classList.add('hidden');
+            if (mb) mb.classList.add('hidden');
 
             if (isPaintProc(p)) {
                 showInlinePaint(o.id);
             } else {
-                document.getElementById('worker-controls').classList.remove('hidden');
-                const h = o.history && o.history[p];
-                const isStarted = !!h, isFinished = isStarted && !!h.end;
-                document.getElementById('btn-start').classList.toggle('hidden', isStarted);
-                document.getElementById('btn-finish').classList.toggle('hidden', !isStarted || isFinished);
-                document.getElementById('done-msg').classList.toggle('hidden', !isFinished);
+                if (wc) wc.classList.remove('hidden');
+                var h = o.history && o.history[p];
+                var started = !!(h && h.start);
+                var finished = !!(h && h.start && h.end);
+
+                var btnS = document.getElementById('btn-start');
+                if (btnS) btnS.classList.toggle('hidden', started);
+
+                var finS = document.getElementById('finish-section');
+                if (finS) finS.classList.toggle('hidden', !(started && !finished));
+
+                var doneM = document.getElementById('done-msg');
+                if (doneM) doneM.classList.toggle('hidden', !finished);
             }
-        } else {
-            showToast(`Заказ #${currentInput} не проходит этап "${p}"`, 'error');
+            return;
         }
-    } else {
-        document.getElementById('worker-order-input').value = '';
-        document.getElementById('wt-manual-box')?.classList.remove('hidden');
     }
+
+    // Если заказ не найден — показать manual input
+    if (mb) mb.classList.remove('hidden');
+    if (orderInput) orderInput.value = '';
 }
 
 function workerFindOrder() {
-    const oid = document.getElementById('worker-order-input').value.trim();
-    const o = orders.find(x => x.id === oid);
-    if (!o || !o.path.includes(curProc)) return showToast('Заказ не найден', 'error');
+    var oidEl = document.getElementById('worker-order-input');
+    if (!oidEl) return;
+    var oid = oidEl.value.trim();
+    var o = orders.find(function(x) { return x.id === oid; });
+    if (!o || !o.path || o.path.indexOf(curProc) === -1) return showToast('Заказ не найден', 'error');
 
     updateActiveOrderInfo(o, curProc);
-    document.getElementById('wt-manual-box')?.classList.add('hidden');
+    var mb = document.getElementById('wt-manual-box');
+    if (mb) mb.classList.add('hidden');
 
     if (isPaintProc(curProc)) {
         showInlinePaint(o.id);
     } else {
-        document.getElementById('worker-controls').classList.remove('hidden');
-        const h = o.history && o.history[curProc];
-        const isStarted = !!h, isFinished = isStarted && !!h.end;
-        document.getElementById('btn-start').classList.toggle('hidden', isStarted);
-        document.getElementById('btn-finish').classList.toggle('hidden', !isStarted || isFinished);
-        document.getElementById('done-msg').classList.toggle('hidden', !isFinished);
+        var wc = document.getElementById('worker-controls');
+        if (wc) wc.classList.remove('hidden');
+        var h = o.history && o.history[curProc];
+        var started = !!(h && h.start);
+        var finished = !!(h && h.start && h.end);
+
+        var btnS = document.getElementById('btn-start');
+        if (btnS) btnS.classList.toggle('hidden', started);
+
+        var finS = document.getElementById('finish-section');
+        if (finS) finS.classList.toggle('hidden', !(started && !finished));
+
+        var doneM = document.getElementById('done-msg');
+        if (doneM) doneM.classList.toggle('hidden', !finished);
     }
 }
 
@@ -9428,10 +9512,13 @@ function init() {
             });
 
             // Грид производственного маршрута — только основные процессы
-            PROCS.forEach(p => {
+            PROCS.forEach(function(p, idx) {
                 if (p) {
-                    og.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}" onchange="updateOrderCodePreview()"> ${p}</label>`;
-                    tg.innerHTML += `<label class="item-card"><input type="checkbox" value="${p}"> ${p}</label>`;
+                    og.innerHTML += '<div class="item-card" style="padding:10px 12px;cursor:default;display:flex;flex-direction:column;align-items:stretch;">'
+                        + '<label style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;cursor:pointer;margin:0;">'
+                        + '<input type="checkbox" value="' + p + '" onchange="toggleProdProc(this,' + idx + ')" style="width:18px;height:18px;accent-color:#5446d9;"> ' + p
+                        + '</label></div>';
+                    tg.innerHTML += '<label class="item-card"><input type="checkbox" value="' + p + '"> ' + p + '</label>';
                 }
             });
         }

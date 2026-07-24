@@ -1175,6 +1175,7 @@
                     <div id="paint-access-btn" class="hidden">
                         <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
                     </div>
+                    <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
                     <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Выйти</button>
                 </div>
             </div>
@@ -1345,90 +1346,68 @@
             </div>
         </div>
 
-        <!-- ── ОБЪЁМ ВЫПОЛНЕННЫХ РАБОТ ── -->
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-                <h3 style="margin:0;">📊 Объём выполненных работ</h3>
-                <button class="btn-ghost" onclick="renderWorkerVolumeStats()">↻</button>
-            </div>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:-8px; margin-bottom:14px;">Пока считает Шлиповку, Грунтовку и Краску — другие процессы добавим позже</p>
-            <div class="wv-period-tabs">
-                <button class="wv-period-btn active" onclick="setWvPeriod('day')">Сегодня</button>
-                <button class="wv-period-btn" onclick="setWvPeriod('week')">Неделя</button>
-                <button class="wv-period-btn" onclick="setWvPeriod('month')">Месяц</button>
-                <button class="wv-period-btn" onclick="setWvPeriod('all')">Всё время</button>
-            </div>
-            <div id="worker-volume-stats"></div>
-        </div>
-
-        <!-- ── ДЕТАЛЬНАЯ АКТИВНОСТЬ ПО ДНЯМ ── -->
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:6px;">
-                <h3 style="margin:0;">🕐 Детальная активность — кто когда что сделал</h3>
-                <button class="btn-ghost" onclick="renderDetailedActivity()">↻</button>
-            </div>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:0; margin-bottom:14px;">Вход/выход, завершённые процессы, покраска и работы из калькуляции заказов — всё по дням</p>
-            <div class="wv-period-tabs">
-                <button class="da-period-btn active" onclick="setDaPeriod('day')">Сегодня</button>
-                <button class="da-period-btn" onclick="setDaPeriod('week')">Неделя</button>
-                <button class="da-period-btn" onclick="setDaPeriod('month')">Месяц</button>
-                <button class="da-period-btn" onclick="setDaPeriod('all')">Всё время</button>
-            </div>
-            <div id="da-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;"></div>
-            <div id="detailed-activity-list"></div>
-        </div>
-
-    <!-- Фильтры активности -->
-    <div class="card">
-        <h3>Фильтры активности работников</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Работник</label>
-                <input type="text" id="filter-user" placeholder="Имя работника" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Тип действия</label>
-                <select id="filter-type" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-                    <option value="all">Все действия</option>
-                    <option value="login">Вход в систему</option>
-                    <option value="logout">Выход из системы</option>
-                    <option value="process">Рабочие процессы</option>
-                    <option value="telegram">Telegram уведомления</option>
-                </select>
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Дата с</label>
-                <input type="date" id="filter-date-from" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-            <div>
-                <label style="display:block; font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:5px;">Дата по</label>
-                <input type="date" id="filter-date-to" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px;">
-            </div>
-        </div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-blue" onclick="applyActivityFilters()">Применить фильтры</button>
-            <button class="btn-ghost" onclick="resetActivityFilters()">Сбросить фильтры</button>
-        </div>
+        <div class="wh-subnav">
+        <button class="wh-subnav-btn active" onclick="showPersonnelSection('workers')">👤 Сотрудники</button>
+        <button class="wh-subnav-btn" onclick="showPersonnelSection('analytics')">📊 Аналитика</button>
     </div>
 
-    <div class="card">
-        <h3>Полная история активности</h3>
-        <div class="table-wrapper">
-            <table class="modern-table mobile-cards">
-                <thead>
-                    <tr>
-                        <th>Время</th>
-                        <th>Пользователь</th>
-                        <th>Действие</th>
-                        <th>Детали</th>
-                        <th>Тип</th>
-                    </tr>
-                </thead>
-                <tbody id="history-log"></tbody>
-            </table>
+    <!-- ══════════ СОТРУДНИКИ ══════════ -->
+    <div id="ps-sec-workers" class="wh-section active" style="display:block;">
+        <!-- Header -->
+        <div class="card" style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h2 style="margin:0; font-size:22px; font-weight:900;">👥 Контроль персонала</h2>
+                    <p style="margin:4px 0 0 0; font-size:13px; opacity:0.9;">Кто когда что сделал, на каком заказе, какой объём</p>
+                </div>
+                <button class="btn-ghost" onclick="renderPersonnelStats()" style="color:#fff; border-color:rgba(255,255,255,0.3);">↻ Обновить</button>
+            </div>
         </div>
+
+        <!-- Period tabs -->
+        <div class="wv-period-tabs" style="margin-bottom:16px;">
+            <button class="ps-period-btn" onclick="setPsPeriod('day')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Сегодня</button>
+            <button class="ps-period-btn" onclick="setPsPeriod('week')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Неделя</button>
+            <button class="ps-period-btn" onclick="setPsPeriod('month')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-size:13px; font-weight:700; cursor:pointer;">Месяц</button>
+            <button class="ps-period-btn" onclick="setPsPeriod('all')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Всё время</button>
+        </div>
+
+        <!-- KPI Summary -->
+        <div id="ps-kpi-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+
+        <!-- Worker List -->
+        <h3 style="margin:0 0 12px 0; font-size:16px; font-weight:800; color:var(--text-primary);">📋 Работники</h3>
+        <div id="ps-worker-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
+
+    <!-- ══════════ АНАЛИТИКА ПЕРСОНАЛА (Детальная активность) ══════════ -->
+    <div id="ps-sec-analytics" class="wh-section" style="display:none;">
+        <!-- Header -->
+        <div class="card" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6); color:#fff; border:none; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <h2 style="margin:0; font-size:22px; font-weight:900;">📊 Детальная активность</h2>
+                    <p style="margin:4px 0 0 0; font-size:13px; opacity:0.9;">По дням — вход/выход, процессы, работы, объёмы</p>
+                </div>
+                <button class="btn-ghost" onclick="renderDetailedActivity()" style="color:#fff; border-color:rgba(255,255,255,0.3);">↻ Обновить</button>
+            </div>
+        </div>
+
+        <!-- Period tabs -->
+        <div class="wv-period-tabs" style="margin-bottom:16px;">
+            <button class="da-period-btn" onclick="setDaPeriod('day')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-size:13px; font-weight:700; cursor:pointer;">Сегодня</button>
+            <button class="da-period-btn" onclick="setDaPeriod('week')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Неделя</button>
+            <button class="da-period-btn" onclick="setDaPeriod('month')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Месяц</button>
+            <button class="da-period-btn" onclick="setDaPeriod('all')" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Всё время</button>
+        </div>
+
+        <!-- Summary KPI -->
+        <div id="da-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+
+        <!-- Detailed activity list -->
+        <div id="detailed-activity-list" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
+</div><!-- end page-workers -->
 
     <!-- Admin: Telegram Clients -->
     <div id="page-telegram" class="page hidden">
@@ -1530,7 +1509,7 @@
             <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
                 <div>
                     <label class="field-label">№ заказа</label>
-                    <input type="text" id="crm-oid" placeholder="Например: 1001">
+                    <input type="text" id="crm-oid" placeholder="Авто: 0001" readonly style="background:var(--surface); cursor:default;">
                 </div>
                 <div>
                     <label class="field-label">Клиент из списка</label>
@@ -1565,19 +1544,6 @@
                 <div>
                     <label class="field-label">📅 Дата сдачи</label>
                     <input type="date" id="crm-due-date">
-                </div>
-                <div>
-                    <label class="field-label">🛠 Услугчик (если услуга)</label>
-                    <select id="crm-svc-client" style="margin-bottom:12px;">
-                        <option value="">— обычный заказ —</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="field-label">Материал (для услуги)</label>
-                    <select id="crm-svc-material" style="margin-bottom:12px;">
-                        <option value="client">🧑 Материал клиента</option>
-                        <option value="ours">📦 Наш материал</option>
-                    </select>
                 </div>
             </div>
             <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
@@ -2030,7 +1996,7 @@ alter table paint_records disable row level security;</pre>
                 <div><label class="field-label">Услугчик</label><select id="svc-op-client" style="margin:0;" onchange="updateSvcCRMOrders(); renderSvcOrderSummary();"><option value="">Выберите клиента...</option></select></div>
                 <div>
                     <label class="field-label">№ заказа (существующий или новый)</label>
-                    <input type="text" id="svc-op-crm-order" list="svc-op-crm-order-list" placeholder="Например: 603" style="margin:0;">
+                    <input type="text" id="svc-op-crm-order" list="svc-op-crm-order-list" placeholder="Авто: 0001" style="margin:0;">
                     <datalist id="svc-op-crm-order-list"></datalist>
                     <div style="font-size:10px; color:var(--text-muted); margin-top:3px;">Если номера ещё нет в CRM — создастся автоматически</div>
                 </div>
@@ -2181,6 +2147,91 @@ alter table paint_records disable row level security;</pre>
         </div>
     </div>
 </div>
+
+<!-- ── МОДАЛЬ: МОЯ СТАТИСТИКА (для работника) ── -->
+<div id="my-stats-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9000; overflow-y:auto; padding:20px;">
+    <div style="max-width:860px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+        <div style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-name">Работник</div>
+                    <div style="font-size:13px; opacity:0.85; margin-top:4px;">Личная статистика выполненных работ</div>
+                </div>
+                <button onclick="closeMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:700;">✕ Закрыть</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:18px;">
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-total-procs">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Процессов</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-total-qty">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Общий объём</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-total-orders">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Заказов</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-total-hours">0ч</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Общее время</div>
+                </div>
+            </div>
+        </div>
+        <div style="padding:20px;">
+            <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+                <button class="my-stats-period active" onclick="setMyStatsPeriod('day')" style="padding:6px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; background:#f1f5f9;">Сегодня</button>
+                <button class="my-stats-period" onclick="setMyStatsPeriod('week')" style="padding:6px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; background:#fff;">Неделя</button>
+                <button class="my-stats-period" onclick="setMyStatsPeriod('month')" style="padding:6px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; background:#fff;">Месяц</button>
+                <button class="my-stats-period" onclick="setMyStatsPeriod('all')" style="padding:6px 14px; border:1px solid #e2e8f0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; background:#fff;">Всё время</button>
+            </div>
+            <div id="my-stats-body" style="max-height:500px; overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ── МОДАЛЬ: ДЕТАЛИ РАБОТНИКА (Контроль персонала) ── -->
+<div id="worker-detail-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9000; overflow-y:auto; padding:20px;">
+    <div style="max-width:900px; margin:0 auto; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+        <div style="background:linear-gradient(135deg,#059669,#10b981); color:#fff; padding:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <div style="font-size:11px; text-transform:uppercase; opacity:0.8; font-weight:700;">Период: <span id="wd-period-label">Месяц</span></div>
+                    <div style="font-size:22px; font-weight:900; margin-top:4px;" id="wd-worker-name">Работник</div>
+                </div>
+                <button onclick="closeWorkerDetail()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:700;">✕ Закрыть</button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:18px;">
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="wd-stat-procs">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Процессов</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="wd-stat-qty">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Объём</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="wd-stat-orders">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Заказов</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="wd-stat-time">0м</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Время</div>
+                </div>
+            </div>
+        </div>
+        <div style="padding:20px;">
+            <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" class="wv-period-tabs">
+                <button class="ps-period-btn" onclick="setPsPeriod('day'); openWorkerDetail(document.getElementById('wd-worker-name').innerText)" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Сегодня</button>
+                <button class="ps-period-btn" onclick="setPsPeriod('week'); openWorkerDetail(document.getElementById('wd-worker-name').innerText)" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Неделя</button>
+                <button class="ps-period-btn" onclick="setPsPeriod('month'); openWorkerDetail(document.getElementById('wd-worker-name').innerText)" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:var(--primary); color:#fff; font-size:13px; font-weight:700; cursor:pointer;">Месяц</button>
+                <button class="ps-period-btn" onclick="setPsPeriod('all'); openWorkerDetail(document.getElementById('wd-worker-name').innerText)" style="flex:1; min-width:90px; padding:9px; border:none; border-radius:8px; background:#f1f5f9; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer;">Всё время</button>
+            </div>
+            <div id="wd-body" style="max-height:55vh; overflow-y:auto;"></div>
+        </div>
+    </div>
+</div>
+
 
 <!-- ── МОДАЛЬ: РЕЦЕПТ ГОТОВОГО ИЗДЕЛИЯ ── -->
 <div id="fn-recipe-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9000; overflow-y:auto; padding:20px;">
@@ -2461,6 +2512,7 @@ alter table paint_records disable row level security;</pre>
 <div id="page-warehouse" class="page hidden">
     <div class="wh-subnav">
         <button class="wh-subnav-btn active" onclick="showWhSection('materials')">🔧 Материалы</button>
+        <button class="wh-subnav-btn" onclick="showWhSection('labor')">👷 Работа / Монтаж</button>
         <button class="wh-subnav-btn" onclick="showWhSection('blanks')">🧱 Заготовки</button>
         <button class="wh-subnav-btn" onclick="showWhSection('finished')">📦 Готовые изделия</button>
         <button class="wh-subnav-btn" onclick="showWhSection('analytics')">📊 Аналитика</button>
@@ -2502,6 +2554,30 @@ alter table paint_records disable row level security;</pre>
                 <table class="modern-table mobile-cards">
                     <thead><tr><th>Дата</th><th>Товар</th><th>Тип</th><th>Кол-во</th><th>Причина</th><th>Кто</th></tr></thead>
                     <tbody id="warehouse-movements-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════ РАБОТА / МОНТАЖ (справочник) ══════════ -->
+    <div id="wh-sec-labor" class="wh-section">
+        <div class="card">
+            <h3>👷 Справочник работ и монтажа</h3>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Добавляйте виды работ: сборка, монтаж, доставка, установка и т.д. — из этого списка выбирается при калькуляции заказов.</p>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px;">
+                <div><label class="field-label">Название работы</label><input type="text" id="lb-name" placeholder="Сборка, Монтаж, Доставка..." style="margin:0;"></div>
+                <div><label class="field-label">Категория</label><input type="text" id="lb-category" placeholder="Сборка, Монтаж, Доставка..." style="margin:0;"></div>
+                <div><label class="field-label">Цена — наш материал</label><input type="number" id="lb-price-ours" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена — материал клиента</label><input type="number" id="lb-price-client" placeholder="0" step="0.01" style="margin:0;"></div>
+                <button class="btn-blue" onclick="addLaborCatalogItem()" style="height:46px;">+ Добавить</button>
+            </div>
+        </div>
+        <div class="card">
+            <h3 style="margin:0 0 12px;">📋 Список работ</h3>
+            <div class="table-wrapper">
+                <table class="modern-table mobile-cards">
+                    <thead><tr><th>Работа</th><th>Категория</th><th>Наш мат.</th><th>Мат. клиента</th><th></th></tr></thead>
+                    <tbody id="labor-catalog-list"></tbody>
                 </table>
             </div>
         </div>
@@ -3774,7 +3850,7 @@ function showSvcSection(name) {
         if (b.textContent.toLowerCase().includes(map[name] || name)) b.classList.add('active');
     });
     if (name === 'analytics')  renderSvcAnalytics();
-    if (name === 'operations') { updateSvcSelects(); renderSvcOperations(); }
+    if (name === 'operations') { updateSvcSelects(); renderSvcOperations(); autoFillSvcOrderNumber(); }
     if (name === 'clients')    renderSvcClients();
 }
 
@@ -4538,7 +4614,58 @@ async function addOcMaterialRow() {
     renderOcMaterials();
 }
 
-// Заполняет выпадающий список товаров со склада на вкладке Материалы
+// ═══════════════════════════════════════════════════════
+// СПРАВОЧНИК РАБОТ / МОНТАЖ (labor_catalog)
+// ═══════════════════════════════════════════════════════
+function renderLaborCatalog() {
+    var el = document.getElementById('labor-catalog-list');
+    if (!el) return;
+    if (!labor_catalog.length) {
+        el.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:16px;">Нет работ в справочнике. Добавьте сборку, монтаж, доставку и т.д.</td></tr>';
+        return;
+    }
+    el.innerHTML = labor_catalog.map(function(item) {
+        return '<tr>'
+            + '<td style="font-weight:700;">' + (item.name || '') + '</td>'
+            + '<td style="color:var(--text-secondary);">' + (item.category || '') + '</td>'
+            + '<td>' + formatMoney(item.price_ours || 0) + '</td>'
+            + '<td>' + formatMoney(item.price_client || 0) + '</td>'
+            + '<td><button class="btn-red" style="padding:3px 8px; font-size:11px;" onclick="deleteLaborCatalogItem(' + item.id + ')">✖</button></td>'
+            + '</tr>';
+    }).join('');
+}
+
+async function addLaborCatalogItem() {
+    var name = document.getElementById('lb-name')?.value.trim();
+    var category = document.getElementById('lb-category')?.value.trim();
+    var priceOurs = parseFloat(document.getElementById('lb-price-ours')?.value) || 0;
+    var priceClient = parseFloat(document.getElementById('lb-price-client')?.value) || 0;
+    if (!name) return showToast('Введите название работы', 'error');
+    try {
+        var { data, error } = await _supabase.from('labor_catalog')
+            .insert({ name: name, category: category, price_ours: priceOurs, price_client: priceClient }).select();
+        if (error) throw error;
+        if (data && data[0]) labor_catalog.push(data[0]);
+        labor_catalog.sort(function(a, b) { return a.name.localeCompare(b.name); });
+        renderLaborCatalog();
+        var n = document.getElementById('lb-name'); if (n) n.value = '';
+        var c = document.getElementById('lb-category'); if (c) c.value = '';
+        var p1 = document.getElementById('lb-price-ours'); if (p1) p1.value = '';
+        var p2 = document.getElementById('lb-price-client'); if (p2) p2.value = '';
+        showToast('Работа добавлена в справочник');
+    } catch(e) { showToast('Ошибка: ' + e.message, 'error'); }
+}
+
+async function deleteLaborCatalogItem(id) {
+    if (!confirm('Удалить работу из справочника?')) return;
+    try {
+        await _supabase.from('labor_catalog').delete().eq('id', id);
+        labor_catalog = labor_catalog.filter(function(i) { return i.id !== id; });
+        renderLaborCatalog();
+    } catch(e) { showToast('Ошибка', 'error'); }
+}
+
+// Заполняет выпадающий список товаров со склада на вкладку Материалы
 function populateOcWarehousePicker() {
     const sel = document.getElementById('oc-warehouse-pick');
     if (!sel) return;
@@ -4582,28 +4709,61 @@ async function deleteOcMaterial(id) {
 
 // ── РАБОТА / МОНТАЖ ───────────────────────────────────────
 function renderOcLabor() {
-    const tbody = document.getElementById('oc-labor-rows');
+    var tbody = document.getElementById('oc-labor-rows');
     if (!tbody) return;
     if (!oc_labor.length) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Нет работ. Нажмите «+ Добавить работу»</td></tr>`;
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:16px;">Нет работ. Нажмите «+ Добавить работу»</td></tr>';
         updateOcSummary();
         return;
     }
-    const workerOptions = ['<option value="">— выбрать —</option>', ...workers.map(w => `<option value="${w.name}">${w.name}</option>`)].join('');
-    tbody.innerHTML = oc_labor.map(l => `<tr>
-        <td><input type="text" value="${l.description||''}" onchange="updateOcLabor(${l.id},'description',this.value)"></td>
-        <td><select onchange="updateOcLabor(${l.id},'worker',this.value)" style="min-width:120px;">${workerOptions.replace(`value="${l.worker}"`, `value="${l.worker}" selected`)}</select></td>
-        <td><input type="number" value="${l.qty||1}" step="0.01" onchange="updateOcLabor(${l.id},'qty',this.value)" style="width:60px;"></td>
-        <td><input type="number" value="${l.unit_price||0}" step="0.01" onchange="updateOcLabor(${l.id},'unit_price',this.value)" style="width:80px;"></td>
-        <td style="font-weight:700; white-space:nowrap;">${formatMoney((l.qty||1)*(l.unit_price||0))}</td>
-        <td><button class="btn-red" style="padding:3px 8px; font-size:11px;" onclick="deleteOcLabor(${l.id})">✖</button></td>
-    </tr>`).join('');
+    var workerOptions = ['<option value="">— выбрать —</option>'];
+    workers.forEach(function(w) { workerOptions.push('<option value="' + w.name + '">' + w.name + '</option>'); });
+    var laborOpts = ['<option value="">— выбрать —</option>'];
+    labor_catalog.forEach(function(lc) { laborOpts.push('<option value="' + lc.name + '" data-price="' + (lc.price_ours||0) + '">' + lc.name + '</option>'); });
+    laborOpts.push('<option value="__custom">✏️ Своя работа</option>');
+
+    tbody.innerHTML = oc_labor.map(function(l) {
+        var descVal = l.description || '';
+        var inCat = labor_catalog.some(function(lc) { return lc.name === descVal; });
+        var descCell = inCat
+            ? '<select data-lid="' + l.id + '" class="oc-labor-desc" onchange="onLaborDescChange(this,' + l.id + ')" style="min-width:140px;font-size:12px;">' + laborOpts.join('').replace('value="' + descVal + '"', 'value="' + descVal + '" selected') + '</select>'
+            : '<input type="text" value="' + descVal + '" onchange="updateOcLabor(' + l.id + ',\'description\',this.value)" placeholder="Название..." style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;">';
+        var wOpts = workerOptions.join('').replace('value="' + (l.worker||'') + '"', 'value="' + (l.worker||'') + '" selected');
+        return '<tr>'
+            + '<td>' + descCell + '</td>'
+            + '<td><select onchange="updateOcLabor(' + l.id + ',\'worker\',this.value)" style="min-width:110px;font-size:12px;">' + wOpts + '</select></td>'
+            + '<td><input type="number" value="' + (l.qty||1) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'qty\',this.value)" style="width:60px;font-size:12px;"></td>'
+            + '<td><input type="number" value="' + (l.unit_price||0) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'unit_price\',this.value)" style="width:80px;font-size:12px;"></td>'
+            + '<td style="font-weight:700; white-space:nowrap;">' + formatMoney((l.qty||1)*(l.unit_price||0)) + '</td>'
+            + '<td><button class="btn-red" style="padding:3px 8px; font-size:11px;" onclick="deleteOcLabor(' + l.id + ')">✖</button></td>'
+            + '</tr>';
+    }).join('');
     updateOcSummary();
 }
 
+function onLaborDescChange(sel, lid) {
+    if (sel.value === '__custom') {
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = 'Название работы...';
+        inp.style.cssText = 'width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;';
+        inp.onchange = function() { updateOcLabor(lid, 'description', this.value); };
+        sel.parentNode.replaceChild(inp, sel);
+        inp.focus();
+    } else {
+        updateOcLabor(lid, 'description', sel.value);
+        var opt = sel.options[sel.selectedIndex];
+        var price = parseFloat(opt.getAttribute('data-price')) || 0;
+        if (price) updateOcLabor(lid, 'unit_price', price);
+    }
+}
+
 async function addOcLaborRow() {
+    // Если есть справочник работ — используем первую запись как default
+    var desc = labor_catalog.length ? labor_catalog[0].name : 'Сборка/монтаж';
+    var unitPrice = labor_catalog.length ? (labor_catalog[0].price_ours || 0) : 0;
     const { data, error } = await _supabase.from('order_labor')
-        .insert({ order_id: oc_orderId, description: 'Сборка/монтаж', qty: 1, unit_price: 0, worker: curUser?.name || null, created_at: new Date().toISOString() }).select();
+        .insert({ order_id: oc_orderId, description: desc, qty: 1, unit_price: unitPrice, worker: curUser?.name || null, created_at: new Date().toISOString() }).select();
     if (error) return showToast('Ошибка: ' + error.message, 'error');
     oc_labor.push(data[0]);
     renderOcLabor();
@@ -5023,6 +5183,7 @@ function renderExpenses() {
 // ═══════════════════════════════════════════════════════
 let warehouse_items = [];
 let warehouse_movements = [];
+let labor_catalog = []; // [{id, name, category, price_ours, price_client}]
 
 function showWarehousePage() {
     showPage('page-warehouse');
@@ -5035,7 +5196,7 @@ function showWhSection(name) {
     document.querySelectorAll('.wh-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.wh-subnav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('wh-sec-' + name)?.classList.add('active');
-    const map = { materials:'материал', blanks:'заготов', finished:'готов', analytics:'аналитик' };
+    const map = { materials:'материал', blanks:'заготов', finished:'готовые изд', analytics:'аналитик' };
     document.querySelectorAll('.wh-subnav-btn').forEach(b => {
         if (b.textContent.toLowerCase().includes(map[name])) b.classList.add('active');
     });
@@ -5045,15 +5206,18 @@ function showWhSection(name) {
 
 async function loadWarehouseData() {
     try {
-        const [itRes, mvRes] = await Promise.all([
+        const [itRes, mvRes, lbRes] = await Promise.all([
             _supabase.from('warehouse_items').select('*').order('name'),
-            _supabase.from('warehouse_movements').select('*').order('created_at', { ascending: false }).limit(200)
+            _supabase.from('warehouse_movements').select('*').order('created_at', { ascending: false }).limit(200),
+            _supabase.from('labor_catalog').select('*').order('name')
         ]);
         if (itRes.error) { showToast('Таблицы склада не найдены — см. SQL', 'error'); return; }
         warehouse_items = itRes.data || [];
         warehouse_movements = mvRes.data || [];
+        labor_catalog = lbRes.data || [];
         renderWarehouseItems();
         renderWarehouseMovements();
+        renderLaborCatalog();
     } catch(e) { console.error('Warehouse load error:', e); }
 }
 
@@ -7098,13 +7262,16 @@ async function processAction(type) {
             await logActivity(curUser.name, 'Начал процесс', 
                 `Заказ #${oid}, процесс: ${curProc}`, 'process');
         } else {
-            if(!o.history[curProc].start) return showToast("Сначала начните", "error");
+            if(!o.history[curProc].start) return showToast("Сначала начайте", "error");
             if(o.history[curProc].end) return showToast("Уже завершено", "error");
+            var finishQty = parseInt(document.getElementById('wt-finish-qty')?.value) || 1;
             o.history[curProc].end = timestamp;
             o.history[curProc].completed_by = curUser.name;
+            o.history[curProc].qty_done = finishQty;
+            o.history[curProc].unit = getPathProcUnit(curProc);
             
             await logActivity(curUser.name, 'Завершил процесс', 
-                `Заказ #${oid}, процесс: ${curProc}`, 'process');
+                `Заказ #${oid}, процесс: ${curProc}, объём: ${finishQty} ${getPathProcUnit(curProc)}`, 'process');
 
             // TELEGRAM УВЕДОМЛЕНИЕ при завершении процесса
             const crmData = crm_orders.find(c => c.oid === oid);
@@ -7607,6 +7774,510 @@ function closeWvWorkerModal() {
 }
 
 // ═══════════════════════════════════════════════════════
+// МОЯ СТАТИСТИКА — личная статистика для работника
+// Показывает: заказы, процессы, объём, старт, финиш, длительность
+// ═══════════════════════════════════════════════════════
+let myStatsPeriod = 'month';
+
+function setMyStatsPeriod(p) {
+    myStatsPeriod = p;
+    document.querySelectorAll('.my-stats-period').forEach(function(btn) {
+        btn.style.background = btn.textContent.trim() ===
+            ({day:'Сегодня',week:'Неделя',month:'Месяц',all:'Всё время'})[p] ? '#f1f5f9' : '#fff';
+    });
+    renderMyWorkerStats();
+}
+
+function isInMyStatsPeriod(dateStr) {
+    if (!dateStr || myStatsPeriod === 'all') return true;
+    var d = new Date(dateStr);
+    var now = new Date();
+    if (myStatsPeriod === 'day') {
+        return d.toISOString().slice(0,10) === now.toISOString().slice(0,10);
+    }
+    var ago = new Date();
+    if (myStatsPeriod === 'week') ago.setDate(ago.getDate() - 7);
+    else if (myStatsPeriod === 'month') ago.setDate(ago.getDate() - 30);
+    else ago.setMonth(ago.getMonth() - 1);
+    return d >= ago;
+}
+
+function openMyWorkerStats() {
+    if (!curUser) return;
+    var m = document.getElementById('my-stats-modal');
+    if (m) m.classList.remove('hidden');
+    document.getElementById('my-stats-name').innerText = curUser.name;
+    renderMyWorkerStats();
+}
+
+function closeMyWorkerStats() {
+    var m = document.getElementById('my-stats-modal');
+    if (m) m.classList.add('hidden');
+}
+
+function renderMyWorkerStats() {
+    if (!curUser) return;
+    var body = document.getElementById('my-stats-body');
+    if (!body) return;
+    body.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">Загрузка...</div>';
+
+    var workerName = curUser.name;
+    var records = [];
+
+    // Собираем завершённые процессы из orders[].history[]
+    orders.forEach(function(o) {
+        if (!o.history) return;
+        var procs = Object.keys(o.history);
+        procs.forEach(function(procName) {
+            var h = o.history[procName];
+            if (!h || !h.end) return;
+            if (h.completed_by !== workerName && h.worker !== workerName) return;
+            var startT = h.start ? new Date(h.start) : null;
+            var endT = h.end ? new Date(h.end) : null;
+            if (!isInMyStatsPeriod(h.end)) return;
+            var dur = 0;
+            if (startT && endT) dur = Math.round((endT - startT) / 60000);
+            var crmData = crm_orders.find(function(c) { return c.oid === o.id; });
+            records.push({
+                orderId: o.id,
+                proc: procName,
+                qty: h.qty_done || 1,
+                unit: h.unit || 'шт',
+                startTime: startT,
+                endTime: endT,
+                duration: dur,
+                item: crmData ? crmData.item : '',
+                client: crmData ? crmData.client : ''
+            });
+        });
+    });
+
+    // Собираем записи покраски
+    if (paint_records.length) {
+        paint_records.forEach(function(r) {
+            if (r.worker !== workerName) return;
+            if (!isInMyStatsPeriod(r.created_at)) return;
+            var cat = paint_catalog.find(function(c) { return c.name === r.item_name; });
+            var crmData2 = crm_orders.find(function(c) { return c.oid === r.order_id; });
+            records.push({
+                orderId: r.order_id,
+                proc: (PAINT_STAGES_DEF.find(function(s) { return s.key === r.stage_key; }) || {}).label || r.stage_key,
+                qty: r.qty_done || 0,
+                unit: cat ? 'м²' : 'шт',
+                startTime: r.created_at ? new Date(r.created_at) : null,
+                endTime: r.created_at ? new Date(r.created_at) : null,
+                duration: 0,
+                item: r.item_name || '',
+                client: crmData2 ? crmData2.client : '',
+                isPaint: true
+            });
+        });
+    }
+
+    // Сортировка по дате (новые сверху)
+    records.sort(function(a, b) {
+        var ta = a.endTime || a.startTime;
+        var tb = b.endTime || b.startTime;
+        return (tb ? tb.getTime() : 0) - (ta ? ta.getTime() : 0);
+    });
+
+    // Считаем итоги
+    var totalProcs = records.length;
+    var totalQty = 0;
+    var totalMinutes = 0;
+    var orderSet = {};
+    records.forEach(function(r) {
+        totalQty += r.qty;
+        totalMinutes += r.duration;
+        orderSet[r.orderId] = true;
+    });
+
+    var totalH = Math.floor(totalMinutes / 60);
+    var totalM = totalMinutes % 60;
+    var totalHoursStr = totalH > 0 ? totalH + 'ч ' + totalM + 'м' : totalM + 'м';
+
+    document.getElementById('my-stats-total-procs').innerText = totalProcs;
+    document.getElementById('my-stats-total-qty').innerText = totalQty;
+    document.getElementById('my-stats-total-orders').innerText = Object.keys(orderSet).length;
+    document.getElementById('my-stats-total-hours').innerText = totalHoursStr;
+
+    if (!records.length) {
+        body.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Нет завершённых работ за этот период</div>';
+        return;
+    }
+
+    // Группируем по дате
+    var byDate = {};
+    records.forEach(function(r) {
+        var d = r.endTime ? r.endTime.toISOString().slice(0,10) : (r.startTime ? r.startTime.toISOString().slice(0,10) : 'unknown');
+        if (!byDate[d]) byDate[d] = [];
+        byDate[d].push(r);
+    });
+
+    var html = '<table class="modern-table" style="font-size:13px; width:100%;">'
+        + '<thead><tr>'
+        + '<th>Дата</th><th>Заказ</th><th>Процесс</th><th>Изделие</th><th>Объём</th><th>Старт</th><th>Финиш</th><th>Длительность</th>'
+        + '</tr></thead><tbody>';
+
+    var sortedDates = Object.keys(byDate).sort().reverse();
+    sortedDates.forEach(function(date) {
+        var dayRecs = byDate[date];
+        var dayLabel = new Date(date + 'T00:00:00').toLocaleDateString('ru-RU', {day:'2-digit', month:'2-digit', weekday:'short'});
+        var dayQty = 0;
+        dayRecs.forEach(function(r) { dayQty += r.qty; });
+
+        dayRecs.forEach(function(r, ri) {
+            var startStr = r.startTime ? r.startTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—';
+            var endStr = r.endTime ? r.endTime.toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '—';
+            var durStr = r.duration > 0 ? (Math.floor(r.duration/60) > 0 ? Math.floor(r.duration/60) + 'ч ' : '') + (r.duration%60) + 'м' : '—';
+            if (ri === 0) {
+                html += '<tr style="background:#f8fafc;">'
+                    + '<td rowspan="' + dayRecs.length + '" style="font-weight:700; color:var(--primary); vertical-align:top; border-bottom:2px solid #e2e8f0;">'
+                    + '📅 ' + dayLabel + '<br><span style="font-size:10px; color:var(--text-muted);">∑ ' + dayQty + '</span></td>';
+            } else {
+                html += '<tr>';
+            }
+            html += '<td><span class="wt-code-chip">#' + r.orderId + '</span></td>'
+                + '<td style="font-weight:600;">' + r.proc + '</td>'
+                + '<td style="font-size:12px; color:var(--text-secondary);">' + (r.item || '—') + '</td>'
+                + '<td style="font-weight:800; color:var(--primary);">' + r.qty + ' ' + r.unit + '</td>'
+                + '<td style="font-size:12px;">' + startStr + '</td>'
+                + '<td style="font-size:12px;">' + endStr + '</td>'
+                + '<td style="font-size:12px; font-weight:700;">' + durStr + '</td>'
+                + '</tr>';
+        });
+    });
+
+    html += '</tbody></table>';
+    body.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// ПЕРЕКЛЮЧЕНИЕ СЕКЦИЙ ПЕРСОНАЛА (Сотрудники / Аналитика)
+// ═══════════════════════════════════════════════════════
+function showPersonnelSection(name) {
+    // Hide all sections
+    var sections = document.querySelectorAll('#page-workers .wh-section');
+    for (var i = 0; i < sections.length; i++) {
+        sections[i].style.display = 'none';
+        sections[i].classList.remove('active');
+    }
+    // Show target
+    var target = document.getElementById(name === 'analytics' ? 'ps-sec-analytics' : 'ps-sec-workers');
+    if (target) {
+        target.style.display = 'block';
+        target.classList.add('active');
+    }
+    // Update subnav buttons
+    var btns = document.querySelectorAll('#page-workers .wh-subnav-btn');
+    for (var i = 0; i < btns.length; i++) {
+        btns[i].classList.remove('active');
+    }
+    // Find matching button
+    var allBtns = document.querySelectorAll('#page-workers .wh-subnav-btn');
+    for (var i = 0; i < allBtns.length; i++) {
+        var txt = allBtns[i].textContent || '';
+        if (name === 'analytics' && txt.indexOf('Аналитика') !== -1) allBtns[i].classList.add('active');
+        if (name === 'workers' && txt.indexOf('Сотрудники') !== -1) allBtns[i].classList.add('active');
+    }
+    // Trigger render on section switch
+    if (name === 'analytics') {
+        renderDetailedActivity();
+    } else {
+        renderPersonnelStats();
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// КОНТРОЛЬ ПЕРСОНАЛА — объединённый модуль
+// ═══════════════════════════════════════════════════════
+var psPeriod = 'month';
+
+function setPsPeriod(p) {
+    psPeriod = p;
+    var tabs = document.querySelectorAll('.ps-period-btn');
+    for (var i = 0; i < tabs.length; i++) {
+        tabs[i].style.background = '#f1f5f9';
+        tabs[i].style.color = 'var(--text-secondary)';
+    }
+    var map = {day:'Сегодня',week:'Неделя',month:'Месяц',all:'Всё время'};
+    for (var i = 0; i < tabs.length; i++) {
+        if (tabs[i].innerText.trim() === map[p]) {
+            tabs[i].style.background = 'var(--primary)';
+            tabs[i].style.color = '#fff';
+        }
+    }
+    renderPersonnelStats();
+}
+
+function isInPsPeriod(dateStr) {
+    if (!dateStr) return false;
+    var d = new Date(dateStr);
+    var now = new Date();
+    if (psPeriod === 'all') return true;
+    if (psPeriod === 'day') return d.toDateString() === now.toDateString();
+    if (psPeriod === 'week') { var wa = new Date(now); wa.setDate(now.getDate()-7); return d >= wa && d <= now; }
+    if (psPeriod === 'month') return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    return true;
+}
+
+function _psFormatDuration(minutes) {
+    if (!minutes || minutes <= 0) return '0м';
+    var h = Math.floor(minutes / 60);
+    var m = Math.round(minutes % 60);
+    return (h > 0 ? h + 'ч ' : '') + m + 'м';
+}
+
+function _psCollectRecords() {
+    var records = [];
+    // 1) Completed processes from orders[].history[]
+    for (var oi = 0; oi < orders.length; oi++) {
+        var o = orders[oi];
+        if (!o.history) continue;
+        var keys = Object.keys(o.history);
+        for (var ki = 0; ki < keys.length; ki++) {
+            var procName = keys[ki];
+            var h = o.history[procName];
+            if (!h || !h.end) continue;
+            if (!isInPsPeriod(h.end)) continue;
+            var startT = h.start ? new Date(h.start) : null;
+            var endT = h.end ? new Date(h.end) : null;
+            var dur = 0;
+            if (startT && endT) dur = Math.round((endT - startT) / 60000);
+            var crmData = null;
+            for (var ci = 0; ci < crm_orders.length; ci++) {
+                if (crm_orders[ci].oid === o.id) { crmData = crm_orders[ci]; break; }
+            }
+            records.push({
+                date: (h.end || '').slice(0,10),
+                worker: h.completed_by || h.worker || '?',
+                orderId: o.id,
+                proc: procName,
+                qty: h.qty_done || 1,
+                unit: h.unit || 'шт',
+                startTime: startT,
+                endTime: endT,
+                duration: dur,
+                item: crmData ? crmData.item : '',
+                client: crmData ? crmData.client : '',
+                source: 'process'
+            });
+        }
+    }
+    // 2) Paint records
+    for (var pi = 0; pi < paint_records.length; pi++) {
+        var pr = paint_records[pi];
+        if (!pr.created_at) continue;
+        if (!isInPsPeriod(pr.created_at)) continue;
+        var crmData2 = null;
+        for (var ci2 = 0; ci2 < crm_orders.length; ci2++) {
+            if (crm_orders[ci2].oid === pr.order_id) { crmData2 = crm_orders[ci2]; break; }
+        }
+        records.push({
+            date: (pr.created_at || '').slice(0,10),
+            worker: pr.worker || '?',
+            orderId: pr.order_id,
+            proc: 'Краска — ' + (pr.item_name || ''),
+            qty: pr.qty_done || 1,
+            unit: pr.unit || 'шт',
+            startTime: pr.created_at ? new Date(pr.created_at) : null,
+            endTime: pr.created_at ? new Date(pr.created_at) : null,
+            duration: 0,
+            item: crmData2 ? crmData2.item : '',
+            client: crmData2 ? crmData2.client : '',
+            source: 'paint'
+        });
+    }
+    return records;
+}
+
+function renderPersonnelStats() {
+    var kpiEl = document.getElementById('ps-kpi-summary');
+    var listEl = document.getElementById('ps-worker-list');
+
+    var records = _psCollectRecords();
+
+    // KPI
+    var workerSet = {};
+    var totalProc = records.length;
+    var totalQty = 0;
+    var totalMin = 0;
+    var laborSum = 0;
+
+    // labor sum from all_order_labor
+    for (var li = 0; li < all_order_labor.length; li++) {
+        var lab = all_order_labor[li];
+        if (!lab.created_at || !lab.worker) continue;
+        if (!isInPsPeriod(lab.created_at)) continue;
+        laborSum += (lab.qty || 1) * (lab.unit_price || 0);
+    }
+
+    // Group by worker
+    var byWorker = {};
+    for (var ri = 0; ri < records.length; ri++) {
+        var r = records[ri];
+        var wName = r.worker || '?';
+        workerSet[wName] = true;
+        totalQty += (r.qty || 0);
+        totalMin += (r.duration || 0);
+        if (!byWorker[wName]) byWorker[wName] = { count: 0, qty: 0, minutes: 0, orders: {}, records: [] };
+        byWorker[wName].count++;
+        byWorker[wName].qty += (r.qty || 0);
+        byWorker[wName].minutes += (r.duration || 0);
+        byWorker[wName].orders[r.orderId] = true;
+        byWorker[wName].records.push(r);
+    }
+
+    var uniqueWorkers = Object.keys(workerSet);
+    var totalH = Math.floor(totalMin / 60);
+    var totalM = totalMin % 60;
+
+    if (kpiEl) {
+        kpiEl.innerHTML =
+            '<div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val">' + uniqueWorkers.length + '</div><div class="svc-stat-label">Активных людей</div></div>' +
+            '<div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:var(--primary);">' + totalProc + '</div><div class="svc-stat-label">Процессов завершено</div></div>' +
+            '<div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:#f59e0b;">' + totalQty + '</div><div class="svc-stat-label">Общий объём</div></div>' +
+            '<div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:var(--success);">' + (totalH > 0 ? totalH + 'ч ' : '') + totalM + 'м</div><div class="svc-stat-label">Общее время</div></div>' +
+            '<div class="svc-stat-card" style="flex:1; min-width:120px;"><div class="svc-stat-val" style="color:#8b5cf6;">' + formatMoney(laborSum) + '</div><div class="svc-stat-label">Сумма работ</div></div>';
+    }
+
+    // Worker cards
+    if (listEl) {
+        var workerNames = Object.keys(byWorker).sort();
+        if (workerNames.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Нет данных за выбранный период</div>';
+            return;
+        }
+        var html = '';
+        for (var wi = 0; wi < workerNames.length; wi++) {
+            var wn = workerNames[wi];
+            var wd = byWorker[wn];
+            var orderCount = Object.keys(wd.orders).length;
+            var durStr = _psFormatDuration(wd.minutes);
+            var wnSafe = wn.replace(/'/g, "\\u0027");
+            html += '<div class="card" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px;" onclick="openWorkerDetail(\'' + wnSafe + '\')">' +
+                '<div>' +
+                    '<div style="font-size:16px; font-weight:800; color:var(--text-primary);">👤 ' + wn + '</div>' +
+                    '<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">' +
+                        wd.count + ' процессов · ' + wd.qty + ' ' + wd.records[0].unit + ' · ' + durStr + ' · ' + orderCount + ' заказов' +
+                    '</div>' +
+                '</div>' +
+                '<button class="btn-blue" style="padding:8px 16px; font-size:13px;" onclick="event.stopPropagation(); openWorkerDetail(\'' + wnSafe + '\')">👁 Подробнее</button>' +
+            '</div>';
+        }
+        listEl.innerHTML = html;
+    }
+}
+
+function openWorkerDetail(workerName) {
+    var modal = document.getElementById('worker-detail-modal');
+    if (modal) modal.classList.remove('hidden');
+
+    var nameEl = document.getElementById('wd-worker-name');
+    var periodEl = document.getElementById('wd-period-label');
+    var statProcEl = document.getElementById('wd-stat-procs');
+    var statQtyEl = document.getElementById('wd-stat-qty');
+    var statOrdersEl = document.getElementById('wd-stat-orders');
+    var statTimeEl = document.getElementById('wd-stat-time');
+    var bodyEl = document.getElementById('wd-body');
+
+    var periodLabels = {day:'Сегодня', week:'Неделя', month:'Месяц', all:'Всё время'};
+
+    if (nameEl) nameEl.innerText = workerName;
+    if (periodEl) periodEl.innerText = periodLabels[psPeriod] || psPeriod;
+
+    var records = _psCollectRecords().filter(function(r) { return r.worker === workerName; });
+
+    // Stats
+    var procCount = records.length;
+    var qtyTotal = 0;
+    var minTotal = 0;
+    var orderSet = {};
+    for (var i = 0; i < records.length; i++) {
+        qtyTotal += (records[i].qty || 0);
+        minTotal += (records[i].duration || 0);
+        orderSet[records[i].orderId] = true;
+    }
+    var orderCount = Object.keys(orderSet).length;
+
+    if (statProcEl) statProcEl.innerText = procCount;
+    if (statQtyEl) statQtyEl.innerText = qtyTotal;
+    if (statOrdersEl) statOrdersEl.innerText = orderCount;
+    if (statTimeEl) statTimeEl.innerText = _psFormatDuration(minTotal);
+
+    // Group by order
+    var byOrder = {};
+    for (var j = 0; j < records.length; j++) {
+        var r = records[j];
+        if (!byOrder[r.orderId]) {
+            byOrder[r.orderId] = { client: r.client, item: r.item, qty: 0, records: [] };
+        }
+        byOrder[r.orderId].qty += (r.qty || 0);
+        byOrder[r.orderId].records.push(r);
+    }
+
+    if (bodyEl) {
+        var orderIds = Object.keys(byOrder).sort();
+        if (orderIds.length === 0) {
+            bodyEl.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</div>';
+            return;
+        }
+        var html = '';
+        for (var oi = 0; oi < orderIds.length; oi++) {
+            var oid = orderIds[oi];
+            var od = byOrder[oid];
+            html += '<div class="card" style="margin-bottom:10px; padding:0; overflow:hidden;">' +
+                '<div style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; background:var(--surface);" onclick="var tbl=document.getElementById(\x27wd-tbl-' + oid + '\x27); if(tbl) tbl.classList.toggle(\x27hidden\x27);">' +
+                    '<div>' +
+                        '<div style="font-weight:800; font-size:15px; color:var(--primary);">Заказ #' + oid + '</div>' +
+                        '<div style="font-size:12px; color:var(--text-muted); margin-top:3px;">' + (od.client || '—') + (od.item ? ' · ' + od.item : '') + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:right;">' +
+                        '<div style="font-weight:800; font-size:15px;">' + od.qty + '</div>' +
+                        '<div style="font-size:11px; color:var(--text-muted);">объём</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div id="wd-tbl-' + oid + '" class="hidden">' +
+                    '<table style="width:100%; font-size:12px; border-collapse:collapse;">' +
+                    '<thead><tr style="background:#f1f5f9;">' +
+                        '<th style="padding:8px 12px; text-align:left;">Процесс</th>' +
+                        '<th style="padding:8px 12px; text-align:center;">Объём</th>' +
+                        '<th style="padding:8px 12px; text-align:center;">Старт</th>' +
+                        '<th style="padding:8px 12px; text-align:center;">Финиш</th>' +
+                        '<th style="padding:8px 12px; text-align:center;">Длительность</th>' +
+                    '</tr></thead><tbody>';
+
+            var recs = od.records;
+            for (var ri = 0; ri < recs.length; ri++) {
+                var rc = recs[ri];
+                var startStr = rc.startTime ? ('0' + rc.startTime.getHours()).slice(-2) + ':' + ('0' + rc.startTime.getMinutes()).slice(-2) : '—';
+                var endStr = rc.endTime ? ('0' + rc.endTime.getHours()).slice(-2) + ':' + ('0' + rc.endTime.getMinutes()).slice(-2) : '—';
+                html += '<tr style="border-bottom:1px solid #e2e8f0;">' +
+                    '<td style="padding:8px 12px;"><span class="wt-code-chip">' + rc.proc + '</span></td>' +
+                    '<td style="padding:8px 12px; text-align:center; font-weight:700;">' + rc.qty + ' ' + rc.unit + '</td>' +
+                    '<td style="padding:8px 12px; text-align:center; color:var(--text-secondary);">' + startStr + '</td>' +
+                    '<td style="padding:8px 12px; text-align:center; color:var(--text-secondary);">' + endStr + '</td>' +
+                    '<td style="padding:8px 12px; text-align:center; font-weight:700; color:var(--success);">' + _psFormatDuration(rc.duration) + '</td>' +
+                '</tr>';
+            }
+
+            html += '</tbody></table>' +
+                '<div style="padding:10px 16px; border-top:1px solid var(--border); text-align:right;">' +
+                    '<button class="btn-blue" style="font-size:12px; padding:6px 14px;" onclick="document.getElementById(\x27global-search-input\x27).value=\x27' + oid + '\x27; openGlobalSearch(); closeWorkerDetail();">🔍 Открыть заказ</button>' +
+                '</div>' +
+                '</div>' +
+            '</div>';
+        }
+        bodyEl.innerHTML = html;
+    }
+}
+
+function closeWorkerDetail() {
+    var modal = document.getElementById('worker-detail-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// ═══════════════════════════════════════════════════════
 // ДЕТАЛЬНАЯ АКТИВНОСТЬ — кто что сделал по дням (Персонал)
 // Объединяет: вход/выход, завершённые процессы, покраску,
 // и работы из Калькуляции заказов (order_labor с привязкой к работнику)
@@ -7662,20 +8333,54 @@ async function renderDetailedActivity() {
     const activity = _daActivityCache.filter(a => isInDaPeriod(a.created_at) && a.user_name !== 'System');
     const labor = _daLaborCache.filter(l => isInDaPeriod(l.created_at) && l.worker);
 
+    // ── Собираем завершённые процессы из orders[].history[] (с объёмом) ──
+    var daProcessRecords = [];
+    orders.forEach(function(o) {
+        if (!o.history) return;
+        Object.keys(o.history).forEach(function(procName) {
+            var h = o.history[procName];
+            if (!h || !h.end) return;
+            if (!isInDaPeriod(h.end)) return;
+            var startT = h.start ? new Date(h.start) : null;
+            var endT = h.end ? new Date(h.end) : null;
+            var dur = 0;
+            if (startT && endT) dur = Math.round((endT - startT) / 60000);
+            var crmData = crm_orders.find(function(c) { return c.oid === o.id; });
+            daProcessRecords.push({
+                date: (h.end || '').slice(0,10),
+                worker: h.completed_by || h.worker || '?',
+                orderId: o.id,
+                proc: procName,
+                qty: h.qty_done || 1,
+                unit: h.unit || 'шт',
+                startTime: startT,
+                endTime: endT,
+                duration: dur,
+                item: crmData ? crmData.item : '',
+                client: crmData ? crmData.client : ''
+            });
+        });
+    });
+
     // ── Сводка ──
     if (summaryEl) {
-        const uniqueWorkers = new Set([...activity.map(a=>a.user_name), ...labor.map(l=>l.worker)]);
-        const processCount = activity.filter(a => a.type === 'process').length;
+        const uniqueWorkers = new Set([...activity.map(a=>a.user_name), ...labor.map(l=>l.worker), ...daProcessRecords.map(r=>r.worker)]);
+        const processCount = activity.filter(a => a.type === 'process').length + daProcessRecords.length;
+        const totalQty = daProcessRecords.reduce(function(s,r){ return s + r.qty; }, 0);
+        const totalMinutes = daProcessRecords.reduce(function(s,r){ return s + r.duration; }, 0);
+        const totalH = Math.floor(totalMinutes / 60);
+        const totalM = totalMinutes % 60;
         const laborSum = labor.reduce((s,l) => s + (l.qty||1)*(l.unit_price||0), 0);
         summaryEl.innerHTML = `
             <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val">${uniqueWorkers.size}</div><div class="svc-stat-label">Активных людей</div></div>
             <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:var(--primary);">${processCount}</div><div class="svc-stat-label">Процессов завершено</div></div>
-            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:#8b5cf6;">${labor.length}</div><div class="svc-stat-label">Записей из калькуляции</div></div>
-            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:var(--success);">${formatMoney(laborSum)}</div><div class="svc-stat-label">Сумма работ (калькуляция)</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:#f59e0b;">${totalQty}</div><div class="svc-stat-label">Общий объём</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:var(--success);">${totalH > 0 ? totalH + 'ч ' : ''}${totalM}м</div><div class="svc-stat-label">Общее время</div></div>
+            <div class="svc-stat-card" style="flex:1; min-width:110px;"><div class="svc-stat-val" style="color:#8b5cf6;">${formatMoney(laborSum)}</div><div class="svc-stat-label">Сумма (калькуляция)</div></div>
         `;
     }
 
-    if (!activity.length && !labor.length) {
+    if (!activity.length && !labor.length && !daProcessRecords.length) {
         el.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Нет активности за выбранный период</div>';
         return;
     }
@@ -7684,13 +8389,18 @@ async function renderDetailedActivity() {
     const byDate = {};
     activity.forEach(a => {
         const d = (a.created_at || '').slice(0, 10);
-        if (!byDate[d]) byDate[d] = { activity: [], labor: [] };
+        if (!byDate[d]) byDate[d] = { activity: [], labor: [], processes: [] };
         byDate[d].activity.push(a);
     });
     labor.forEach(l => {
         const d = (l.created_at || '').slice(0, 10);
-        if (!byDate[d]) byDate[d] = { activity: [], labor: [] };
+        if (!byDate[d]) byDate[d] = { activity: [], labor: [], processes: [] };
         byDate[d].labor.push(l);
+    });
+    daProcessRecords.forEach(r => {
+        const d = r.date;
+        if (!byDate[d]) byDate[d] = { activity: [], labor: [], processes: [] };
+        byDate[d].processes.push(r);
     });
 
     const sortedDates = Object.keys(byDate).sort().reverse();
@@ -7703,7 +8413,7 @@ async function renderDetailedActivity() {
         const byWorker = {};
         dayData.activity.forEach(a => {
             const w = a.user_name || 'Неизвестно';
-            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[] };
+            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[], procRecords:[] };
             if (a.type === 'login') byWorker[w].logins++;
             else if (a.type === 'logout') byWorker[w].logouts++;
             else if (a.type === 'process') byWorker[w].processes.push(a);
@@ -7711,9 +8421,15 @@ async function renderDetailedActivity() {
         });
         dayData.labor.forEach(l => {
             const w = l.worker || 'Неизвестно';
-            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[], labor:[] };
+            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[], labor:[], procRecords:[] };
             if (!byWorker[w].labor) byWorker[w].labor = [];
             byWorker[w].labor.push(l);
+        });
+        dayData.processes.forEach(r => {
+            const w = r.worker || 'Неизвестно';
+            if (!byWorker[w]) byWorker[w] = { logins:0, logouts:0, processes:[], other:[], procRecords:[] };
+            if (!byWorker[w].procRecords) byWorker[w].procRecords = [];
+            byWorker[w].procRecords.push(r);
         });
 
         const workerNames = Object.keys(byWorker).sort();
@@ -7728,6 +8444,44 @@ async function renderDetailedActivity() {
                 const processCount = d.processes.length;
                 const laborItems = d.labor || [];
                 const laborSum = laborItems.reduce((s,l) => s + (l.qty||1)*(l.unit_price||0), 0);
+                const procRecs = d.procRecords || [];
+                const procQtyTotal = procRecs.reduce((s,r) => s + r.qty, 0);
+                const procDurTotal = procRecs.reduce((s,r) => s + r.duration, 0);
+                const procDurStr = procDurTotal > 0 ? (Math.floor(procDurTotal/60) > 0 ? Math.floor(procDurTotal/60) + 'ч ' : '') + (procDurTotal%60) + 'м' : '';
+
+                // Таблица процессов с объёмом
+                var procTableHtml = '';
+                if (procRecs.length > 0) {
+                    procTableHtml = '<div style="margin-top:8px; border-top:1px dashed #e2e8f0; padding-top:8px;">'
+                        + '<div style="font-size:11px; font-weight:700; color:var(--text-secondary); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">📊 Выполненные работы (объём)</div>'
+                        + '<table style="width:100%; font-size:12px; border-collapse:collapse;">'
+                        + '<thead><tr style="background:#f1f5f9;">'
+                        + '<th style="text-align:left; padding:6px 8px; border-radius:6px 0 0 0;">Заказ</th>'
+                        + '<th style="text-align:left; padding:6px 8px;">Процесс</th>'
+                        + '<th style="text-align:center; padding:6px 8px;">Объём</th>'
+                        + '<th style="text-align:left; padding:6px 8px;">Старт</th>'
+                        + '<th style="text-align:left; padding:6px 8px;">Финиш</th>'
+                        + '<th style="text-align:right; padding:6px 8px; border-radius:0 6px 0 0;">Длительность</th>'
+                        + '</tr></thead><tbody>';
+                    procRecs.forEach(function(r) {
+                        var sStr = r.startTime ? r.startTime.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '—';
+                        var eStr = r.endTime ? r.endTime.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '—';
+                        var dStr = r.duration > 0 ? (Math.floor(r.duration/60) > 0 ? Math.floor(r.duration/60) + 'ч ' : '') + (r.duration%60) + 'м' : '—';
+                        procTableHtml += '<tr style="border-bottom:1px solid #f1f5f9;">'
+                            + '<td style="padding:5px 8px;"><span class="wt-code-chip">#' + r.orderId + '</span></td>'
+                            + '<td style="padding:5px 8px; font-weight:600;">' + r.proc + '</td>'
+                            + '<td style="padding:5px 8px; text-align:center; font-weight:800; color:var(--primary);">' + r.qty + ' ' + r.unit + '</td>'
+                            + '<td style="padding:5px 8px; color:var(--text-secondary);">' + sStr + '</td>'
+                            + '<td style="padding:5px 8px; color:var(--text-secondary);">' + eStr + '</td>'
+                            + '<td style="padding:5px 8px; text-align:right; font-weight:700;">' + dStr + '</td>'
+                            + '</tr>';
+                    });
+                    procTableHtml += '<tr style="background:#f0fdf4; font-weight:800;"><td colspan="2" style="padding:6px 8px; border-radius:6px 0 0 0;">Итого за день</td>'
+                        + '<td style="padding:6px 8px; text-align:center; color:var(--primary);">' + procQtyTotal + '</td>'
+                        + '<td colspan="2" style="padding:6px 8px;"></td>'
+                        + '<td style="padding:6px 8px; text-align:right; color:var(--success); border-radius:0 6px 0 0;">' + procDurStr + '</td>'
+                        + '</tr></tbody></table></div>';
+                }
 
                 return `<div style="background:var(--surface); border-radius:12px; padding:12px 14px; margin-bottom:8px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -7749,6 +8503,7 @@ async function renderDetailedActivity() {
                         </div>`).join('')}
                         <div style="text-align:right; font-weight:800; color:#8b5cf6; margin-top:4px;">Итого: ${formatMoney(laborSum)}</div>
                     </div>` : ''}
+                    ${procTableHtml}
                 </div>`;
             }).join('')}
         </div>`;
@@ -8361,6 +9116,38 @@ function setCRMDateDefault() {
     }
 }
 
+// Авто-нумерация заказов: 0001, 0002, ...
+// Ищет максимальный числовой номер в crm_orders и +1
+function getNextOrderNumber() {
+    var maxNum = 0;
+    for (var i = 0; i < crm_orders.length; i++) {
+        var oid = crm_orders[i].oid || '';
+        var num = parseInt(oid, 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+    var next = maxNum + 1;
+    // Формат 0001
+    var str = String(next);
+    while (str.length < 4) str = '0' + str;
+    return str;
+}
+
+// Авто-заполнение следующего номера заказа в CRM
+function autoFillCRMOrderNumber() {
+    var el = document.getElementById('crm-oid');
+    if (el && !el.value.trim()) {
+        el.value = getNextOrderNumber();
+    }
+}
+
+// Авто-заполнение следующего номера заказа в Услугах
+function autoFillSvcOrderNumber() {
+    var el = document.getElementById('svc-op-crm-order');
+    if (el && !el.value.trim()) {
+        el.value = getNextOrderNumber();
+    }
+}
+
 async function saveCRM() {
     const oid    = document.getElementById('crm-oid').value.trim();
     const client = document.getElementById('crm-client-select').value || document.getElementById('crm-client').value.trim();
@@ -8386,10 +9173,11 @@ async function saveCRM() {
         await logActivity(curUser.name, 'Создал заказ CRM', 
             `Заказ #${oid}, клиент: ${client}${svcClientId ? ', услугчик привязан' : ''}`, 'crm');
             
-        ['crm-oid','crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+        ['crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
         const csc=document.getElementById('crm-client-select'); if(csc) csc.value='';
         const css=document.getElementById('crm-svc-client'); if(css) css.value='';
         setCRMDateDefault();
+        autoFillCRMOrderNumber();
         
         await loadAllData();
         showToast("Заказ в CRM");
@@ -8742,7 +9530,10 @@ function showPage(id) {
     if (id === 'page-monitor') showMonSection('orders');
 
     // Загружаем объём выполненных работ при открытии Персонала
-    if (id === 'page-workers') { renderWorkerVolumeStats(); renderDetailedActivity(); }
+    if (id === 'page-workers') { renderPersonnelStats(); }
+
+    // Авто-нумерация при открытии CRM
+    if (id === 'page-crm') { autoFillCRMOrderNumber(); }
 }
 
 function openGlobalSearch() {

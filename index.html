@@ -878,6 +878,16 @@
         .wh-move-in { color:var(--success); font-weight:700; }
         .wh-move-out { color:#ef4444; font-weight:700; }
 
+        /* Блок остатка: число крупно, единица измерения — отдельной строкой под ним,
+           чтобы не сливались в одну нечитаемую последовательность цифр (например "3 4") */
+        .wh-qty-block { text-align:center; min-width:76px; }
+        .wh-qty-unit { font-size:12px; font-weight:700; color:var(--text-secondary); margin-top:1px; }
+        .wh-qty-caption { font-size:10px; color:var(--text-muted); margin-top:2px; }
+
+        /* Бейдж минимального остатка — отдельно от категории/типа, чтобы не сливаться в одну строку */
+        .wh-min-badge { display:inline-flex; align-items:center; gap:3px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:8px; font-size:11px; font-weight:700; margin-top:4px; }
+        .wh-tag { display:inline-block; background:var(--surface-container); color:var(--text-secondary); padding:2px 8px; border-radius:8px; font-size:11px; font-weight:600; margin-top:2px; margin-right:4px; }
+
         .wh-subnav { display:flex; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:18px; flex-wrap:wrap; }
         .wh-subnav-btn { flex:1; min-width:110px; padding:9px; border:none; border-radius:8px; background:transparent; font-size:13px; font-weight:700; color:var(--text-secondary); cursor:pointer; }
         .wh-subnav-btn.active { background:var(--card); color:var(--primary); box-shadow:var(--shadow); }
@@ -1212,7 +1222,7 @@
                             <div id="wt-target-qty" style="font-size:12px; color:var(--primary); font-weight:700;"></div>
                         </div>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="number" id="wt-finish-qty" value="1" min="1" style="flex:1; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:18px; font-weight:800; text-align:center; box-sizing:border-box;">
+                            <input type="number" id="wt-finish-qty" value="1" min="1" oninput="this.dataset.touched='1'" style="flex:1; padding:12px; border:2px solid var(--border); border-radius:10px; font-size:18px; font-weight:800; text-align:center; box-sizing:border-box;">
                             <span id="wt-finish-unit" style="font-size:14px; font-weight:700; color:var(--text-secondary);">шт</span>
                         </div>
                     </div>
@@ -1265,6 +1275,44 @@
                         <button class="btn-blue wt-big-btn" style="flex:2;" onclick="submitInlinePaint()">✔ ОТПРАВИТЬ</button>
                     </div>
                     <div id="paint-inline-done" class="hidden wt-done-msg" style="margin-top:10px;"></div>
+                </div>
+
+            </div>
+
+            <!-- ── СЕКЦИЯ СБОРКИ (показывается вместо стандартных кнопок для процесса "Сборка") ── -->
+            <!-- Работнику доступно ТОЛЬКО действие "Собрать": выбрать изделие из рецепта, указать
+                 количество и нажать "Собрать". Никаких "Рецепт" / "Отгрузить" / удаление — это
+                 остаётся только у администратора на странице Склад. -->
+            <div id="assembly-inline-section" class="hidden">
+
+                <div id="assembly-item-picker">
+                    <div class="wt-section-label">Категория</div>
+                    <div class="paint-cat-grid" id="assembly-cat-grid"></div>
+
+                    <div id="assembly-items-section" class="hidden">
+                        <div class="wt-section-label" style="margin-top:12px;">Выберите изделие для сборки</div>
+                        <div class="paint-item-pick" id="assembly-item-list"></div>
+                    </div>
+                </div>
+
+                <div id="assembly-qty-wrap" class="hidden">
+                    <button class="wt-back-btn" onclick="backToAssemblyItems()">← К изделиям</button>
+
+                    <div class="wt-active-info">
+                        <div class="wt-active-order" id="assembly-item-title">Изделие</div>
+                        <div style="margin-top:10px; text-align:left;" id="assembly-recipe-preview"></div>
+                    </div>
+
+                    <div id="assembly-shortage-warning" class="hidden" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:12px;"></div>
+
+                    <div class="paint-qty-controls">
+                        <button class="paint-qty-btn" onclick="adjustAssemblyQty(-1)">−</button>
+                        <div class="paint-qty-display" id="assembly-qty-val">1</div>
+                        <button class="paint-qty-btn" onclick="adjustAssemblyQty(1)">+</button>
+                    </div>
+
+                    <button class="btn-blue wt-big-btn" onclick="submitInlineAssembly()">🔨 СОБРАТЬ</button>
+                    <div id="assembly-done-msg" class="hidden wt-done-msg" style="margin-top:10px;"></div>
                 </div>
 
             </div>
@@ -1544,6 +1592,23 @@
                 <div>
                     <label class="field-label">📅 Дата сдачи</label>
                     <input type="date" id="crm-due-date">
+                </div>
+                <div>
+                    <label class="field-label">🛠 Услугчик (необязательно)</label>
+                    <select id="crm-svc-client">
+                        <option value="">— обычный заказ —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label">Материал</label>
+                    <select id="crm-svc-material">
+                        <option value="client">Клиента</option>
+                        <option value="ours">Наш</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="field-label">Кол-во (для автосписания в Услуги)</label>
+                    <input type="number" id="crm-svc-qty" placeholder="1" min="0" step="0.01" value="1">
                 </div>
             </div>
             <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
@@ -2159,7 +2224,7 @@ alter table paint_records disable row level security;</pre>
                 </div>
                 <button onclick="closeMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:700;">✕ Закрыть</button>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:18px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:10px; margin-top:18px;">
                 <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
                     <div style="font-size:22px; font-weight:900;" id="my-stats-total-procs">0</div>
                     <div style="font-size:10px; opacity:0.85; margin-top:3px;">Процессов</div>
@@ -2175,6 +2240,10 @@ alter table paint_records disable row level security;</pre>
                 <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
                     <div style="font-size:22px; font-weight:900;" id="my-stats-total-hours">0ч</div>
                     <div style="font-size:10px; opacity:0.85; margin-top:3px;">Общее время</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="my-stats-total-sum">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Заработано</div>
                 </div>
             </div>
         </div>
@@ -2201,7 +2270,7 @@ alter table paint_records disable row level security;</pre>
                 </div>
                 <button onclick="closeWorkerDetail()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-size:14px; cursor:pointer; font-weight:700;">✕ Закрыть</button>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:10px; margin-top:18px;">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(90px,1fr)); gap:10px; margin-top:18px;">
                 <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
                     <div style="font-size:22px; font-weight:900;" id="wd-stat-procs">0</div>
                     <div style="font-size:10px; opacity:0.85; margin-top:3px;">Процессов</div>
@@ -2217,6 +2286,10 @@ alter table paint_records disable row level security;</pre>
                 <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
                     <div style="font-size:22px; font-weight:900;" id="wd-stat-time">0м</div>
                     <div style="font-size:10px; opacity:0.85; margin-top:3px;">Время</div>
+                </div>
+                <div style="background:rgba(255,255,255,0.15); border-radius:12px; padding:12px; text-align:center;">
+                    <div style="font-size:22px; font-weight:900;" id="wd-stat-sum">0</div>
+                    <div style="font-size:10px; opacity:0.85; margin-top:3px;">Заработано</div>
                 </div>
             </div>
         </div>
@@ -2525,7 +2598,17 @@ alter table paint_records disable row level security;</pre>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr auto; gap:10px; align-items:end;">
                 <div><label class="field-label">Название</label><input type="text" id="wh-name" placeholder="ЛДСП 16мм..." style="margin:0;"></div>
                 <div><label class="field-label">Категория</label><input type="text" id="wh-category" placeholder="Плиты, фурнитура..." style="margin:0;"></div>
-                <div><label class="field-label">Ед. изм.</label><input type="text" id="wh-unit" placeholder="шт, м², лист..." style="margin:0;"></div>
+                <div><label class="field-label">Ед. изм.</label>
+                    <select id="wh-unit" style="margin:0;">
+                        <option value="шт" selected>шт</option>
+                        <option value="м²">м²</option>
+                        <option value="м">м</option>
+                        <option value="кг">кг</option>
+                        <option value="л">л</option>
+                        <option value="лист">лист</option>
+                        <option value="упак.">упак.</option>
+                    </select>
+                </div>
                 <div><label class="field-label">Начальный остаток</label><input type="number" id="wh-qty" placeholder="0" step="0.01" style="margin:0;"></div>
                 <div><label class="field-label">Цена за ед.</label><input type="number" id="wh-cost" placeholder="0" step="0.01" style="margin:0;"></div>
                 <div><label class="field-label">Мин. остаток (сигнал)</label><input type="number" id="wh-min" placeholder="0" step="0.01" style="margin:0;"></div>
@@ -2593,7 +2676,17 @@ alter table paint_records disable row level security;</pre>
                 <div><label class="field-label">Тип</label><input type="text" id="bl-type" placeholder="Прямой, Радиусный..." style="margin:0;"></div>
                 <div><label class="field-label">Название / Цвет</label><input type="text" id="bl-name" placeholder="Дуб золотой..." style="margin:0;"></div>
                 <div><label class="field-label">Отделка</label><input type="text" id="bl-finish" placeholder="Крашеный, ЛДСП..." style="margin:0;"></div>
-                <div><label class="field-label">Ед. изм.</label><input type="text" id="bl-unit" placeholder="шт" style="margin:0;"></div>
+                <div><label class="field-label">Ед. изм.</label>
+                    <select id="bl-unit" style="margin:0;">
+                        <option value="шт" selected>шт</option>
+                        <option value="м²">м²</option>
+                        <option value="м">м</option>
+                        <option value="кг">кг</option>
+                        <option value="лист">лист</option>
+                        <option value="компл.">компл.</option>
+                        <option value="пара">пара</option>
+                    </select>
+                </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end;">
                 <div><label class="field-label">Начальный остаток</label><input type="number" id="bl-qty" placeholder="0" step="0.01" style="margin:0;"></div>
@@ -2635,7 +2728,13 @@ alter table paint_records disable row level security;</pre>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:10px; align-items:end;">
                 <div><label class="field-label">Категория</label><input type="text" id="fn-category" placeholder="Шкаф, Комод..." style="margin:0;"></div>
                 <div><label class="field-label">Название</label><input type="text" id="fn-name" placeholder="Шкаф Дуб золотой" style="margin:0;"></div>
-                <div><label class="field-label">Ед. изм.</label><input type="text" id="fn-unit" placeholder="шт" style="margin:0;"></div>
+                <div><label class="field-label">Ед. изм.</label>
+                    <select id="fn-unit" style="margin:0;">
+                        <option value="шт" selected>шт</option>
+                        <option value="компл.">компл.</option>
+                        <option value="пара">пара</option>
+                    </select>
+                </div>
                 <div><label class="field-label">Фото (ссылка)</label><input type="text" id="fn-photo" placeholder="https://..." style="margin:0;"></div>
                 <button class="btn-blue" onclick="addFinishedItem()" style="height:46px;">+ Добавить</button>
             </div>
@@ -2826,6 +2925,11 @@ function formatMoney(amount) {
     const num = Number(amount);
     if (isNaN(num)) return '-';
     return num.toLocaleString('ru-RU');
+}
+
+// Единица измерения объёма для завершённого процесса (для лога и history[proc].unit)
+function getPathProcUnit(procName) {
+    return isPaintProc(procName) ? 'м²' : 'шт';
 }
 
 function getProcessCode(order, processName) {
@@ -3350,15 +3454,24 @@ async function checkPaintOrderComplete(orderId) {
 
     if (allDone) {
         if (!order.history) order.history = {};
-        if (!order.history['краска']) order.history['краска'] = {};
-        if (!order.history['краска'].end) {
-            const now = new Date().toISOString();
-            if (!order.history['краска'].start) {
-                order.history['краска'].start = now;
-                order.history['краска'].worker = curUser.name;
+        const now = new Date().toISOString();
+        // Отмечаем завершение у КАЖДОГО покрасочного процесса, который реально есть в маршруте заказа
+        // (раньше отмечался только жёстко зашитый 'краска', и если в маршруте отдельно стояли
+        // "Шлиповка"/"Грунтовка" — они навсегда оставались "ожидает" в Мониторинге/CRM/Дашборде)
+        let changed = false;
+        order.path.filter(p => isPaintProc(p)).forEach(procName => {
+            if (!order.history[procName]) order.history[procName] = {};
+            if (!order.history[procName].end) {
+                if (!order.history[procName].start) {
+                    order.history[procName].start = now;
+                    order.history[procName].worker = curUser.name;
+                }
+                order.history[procName].end = now;
+                order.history[procName].completed_by = curUser.name;
+                changed = true;
             }
-            order.history['краска'].end = now;
-            order.history['краска'].completed_by = curUser.name;
+        });
+        if (changed) {
             await _supabase.from('orders').upsert(order);
             const idx = orders.findIndex(o => o.id === orderId);
             if (idx !== -1) orders[idx] = order;
@@ -3370,12 +3483,214 @@ async function checkPaintOrderComplete(orderId) {
 }
 
 
-// ── INLINE PAINT (встроен в worker-action-card) ────────────────
-
 const PAINT_PROC_NAMES = ['краска', 'шлиповка', 'грунтовка', 'Краска', 'Шлиповка', 'Грунтовка'];
 function isPaintProc(procName) {
     return PAINT_PROC_NAMES.some(p => p.toLowerCase() === (procName || '').toLowerCase());
 }
+
+// ── INLINE СБОРКА (встроен в worker-action-card) ────────────────
+// Даёт работнику с доступом к процессу "Сборка" урезанный интерфейс: выбрать изделие из
+// рецепта, указать количество и нажать "Собрать". Всё остальное (создание рецептов, отгрузка,
+// удаление) доступно только администратору на странице Склад.
+function isAssemblyProc(procName) {
+    return (procName || '').trim().toLowerCase() === 'сборка';
+}
+
+let asm = { orderId: null, category: null, itemId: null, qty: 1 };
+let _assemblyDataLoaded = false;
+
+// Заготовки/готовые изделия/рецепты/справочник работ обычно грузятся только на админской
+// странице Склад — работнику они не видны, поэтому подгружаем их отдельно по требованию.
+async function ensureAssemblyDataLoaded() {
+    if (_assemblyDataLoaded) return;
+    try {
+        const [biRes, fiRes, frRes, lcRes] = await Promise.all([
+            _supabase.from('blank_items').select('*').order('category'),
+            _supabase.from('finished_items').select('*').order('category'),
+            _supabase.from('finished_recipe').select('*'),
+            _supabase.from('labor_catalog').select('*')
+        ]);
+        if (!biRes.error) blank_items = biRes.data || [];
+        if (!fiRes.error) finished_items = fiRes.data || [];
+        if (!frRes.error) finished_recipe = frRes.data || [];
+        if (!lcRes.error) labor_catalog = lcRes.data || [];
+        _assemblyDataLoaded = true;
+    } catch(e) { console.error('Assembly data load error:', e); }
+}
+
+function showInlineAssembly(orderId) {
+    asm = { orderId, category: null, itemId: null, qty: 1 };
+    document.getElementById('worker-controls')?.classList.add('hidden');
+    document.getElementById('paint-inline-section')?.classList.add('hidden');
+    document.getElementById('assembly-inline-section')?.classList.remove('hidden');
+    document.getElementById('assembly-item-picker')?.classList.remove('hidden');
+    document.getElementById('assembly-qty-wrap')?.classList.add('hidden');
+    document.getElementById('assembly-done-msg')?.classList.add('hidden');
+    const t = document.querySelector('.wt-manual-toggle');
+    if (t) t.style.display = 'none';
+    ensureAssemblyDataLoaded().then(renderAssemblyCatGrid);
+}
+
+function hideInlineAssembly() {
+    document.getElementById('assembly-inline-section')?.classList.add('hidden');
+    document.getElementById('worker-controls')?.classList.remove('hidden');
+    const t = document.querySelector('.wt-manual-toggle');
+    if (t) t.style.display = '';
+}
+
+// Только изделия, для которых администратор уже настроил рецепт (иначе собрать нечего)
+function assemblableItems() {
+    return finished_items.filter(i => finished_recipe.some(r => r.finished_item_id === i.id));
+}
+
+function renderAssemblyCatGrid() {
+    const grid = document.getElementById('assembly-cat-grid');
+    if (!grid) return;
+    const items = assemblableItems();
+    const categories = [...new Set(items.map(i => i.category || 'Без категории'))];
+    if (!categories.length) {
+        grid.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Нет изделий с настроенным рецептом. Обратитесь к администратору.</div>';
+        document.getElementById('assembly-items-section')?.classList.add('hidden');
+        return;
+    }
+    grid.innerHTML = categories.map(cat =>
+        `<div class="paint-cat-btn ${asm.category===cat?'selected':''}" onclick="selectAssemblyCategory('${esc(cat)}')">${cat}</div>`
+    ).join('');
+    if (asm.category) { document.getElementById('assembly-items-section')?.classList.remove('hidden'); renderAssemblyItemList(); }
+}
+
+function selectAssemblyCategory(cat) {
+    asm.category = cat;
+    asm.itemId = null;
+    document.querySelectorAll('#assembly-cat-grid .paint-cat-btn').forEach(b => b.classList.toggle('selected', b.innerText === cat));
+    document.getElementById('assembly-items-section')?.classList.remove('hidden');
+    renderAssemblyItemList();
+}
+
+function renderAssemblyItemList() {
+    const list = document.getElementById('assembly-item-list');
+    if (!list) return;
+    const items = assemblableItems().filter(i => (i.category || 'Без категории') === asm.category);
+    list.innerHTML = items.map(i => {
+        const recipe = finished_recipe.filter(r => r.finished_item_id === i.id);
+        const isSel = asm.itemId === i.id;
+        return `<div class="paint-item-pick-row ${isSel?'selected':''}" onclick="selectAssemblyItem(${i.id})">
+            <div>
+                <div class="paint-item-pick-name">${i.name}</div>
+                <div class="paint-item-pick-rem">${recipe.length} компонент${recipe.length===1?'':'ов'} · на складе: ${i.qty_in_stock||0} ${i.unit||'шт'}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectAssemblyItem(itemId) {
+    asm.itemId = itemId;
+    asm.qty = 1;
+    document.getElementById('assembly-item-picker')?.classList.add('hidden');
+    document.getElementById('assembly-qty-wrap')?.classList.remove('hidden');
+
+    const item = finished_items.find(i => i.id === itemId);
+    const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
+    document.getElementById('assembly-item-title').innerText = item ? item.name : '';
+    document.getElementById('assembly-recipe-preview').innerHTML = recipe.map(r =>
+        `<div style="display:flex; justify-content:space-between; padding:4px 0; font-size:12px; border-bottom:1px dashed var(--border-light);"><span>${r.blank_item_name}</span><b>× ${r.qty_per_unit}</b></div>`
+    ).join('');
+    document.getElementById('assembly-qty-val').innerText = asm.qty;
+    document.getElementById('assembly-done-msg')?.classList.add('hidden');
+    updateAssemblyShortageWarning();
+}
+
+function backToAssemblyItems() {
+    document.getElementById('assembly-qty-wrap')?.classList.add('hidden');
+    document.getElementById('assembly-item-picker')?.classList.remove('hidden');
+}
+
+function adjustAssemblyQty(delta) {
+    asm.qty = Math.max(1, asm.qty + delta);
+    document.getElementById('assembly-qty-val').innerText = asm.qty;
+    updateAssemblyShortageWarning();
+}
+
+function updateAssemblyShortageWarning() {
+    const warnEl = document.getElementById('assembly-shortage-warning');
+    if (!warnEl) return;
+    const recipe = finished_recipe.filter(r => r.finished_item_id === asm.itemId);
+    const shortages = [];
+    recipe.forEach(r => {
+        const blank = blank_items.find(b => b.id === r.blank_item_id);
+        const needed = r.qty_per_unit * asm.qty;
+        if (!blank || blank.qty_in_stock < needed) {
+            shortages.push(`${r.blank_item_name}: нужно ${needed}, есть ${blank?.qty_in_stock || 0}`);
+        }
+    });
+    if (shortages.length) {
+        warnEl.innerHTML = '⚠️ Не хватает на складе:<br>' + shortages.join('<br>');
+        warnEl.classList.remove('hidden');
+    } else {
+        warnEl.classList.add('hidden');
+    }
+}
+
+async function submitInlineAssembly() {
+    const item = finished_items.find(i => i.id === asm.itemId);
+    if (!item) return showToast('Выберите изделие', 'error');
+    const recipe = finished_recipe.filter(r => r.finished_item_id === asm.itemId);
+    if (!recipe.length) return showToast('У изделия нет рецепта', 'error');
+    const qty = asm.qty;
+    const order = orders.find(o => o.id === asm.orderId);
+    if (!order) return showToast('Заказ не найден', 'error');
+
+    try {
+        // Списываем заготовки со склада по рецепту
+        for (const r of recipe) {
+            const blank = blank_items.find(b => b.id === r.blank_item_id);
+            if (blank) await logBlankMovement(blank.id, blankDisplayName(blank), 'out', r.qty_per_unit * qty, `Сборка: ${item.name} × ${qty} (заказ #${asm.orderId})`);
+        }
+        // Приходуем готовое изделие на склад
+        await logFinishedMovement(item.id, item.name, 'in', qty, `Собрано по заказу #${asm.orderId}`, null, null);
+
+        // Отмечаем процесс "Сборка" этого заказа завершённым от имени работника — дальше это
+        // автоматически подхватывается общей системой учёта (Персонал / Моя статистика / Kanban / Мониторинг)
+        if (!order.history) order.history = {};
+        if (!order.history['Сборка']) order.history['Сборка'] = {};
+        const now = new Date().toISOString();
+        if (!order.history['Сборка'].start) {
+            order.history['Сборка'].start = now;
+            order.history['Сборка'].worker = curUser.name;
+        }
+        order.history['Сборка'].end = now;
+        order.history['Сборка'].completed_by = curUser.name;
+        order.history['Сборка'].qty_done = qty;
+        order.history['Сборка'].unit = 'шт';
+        order.history['Сборка'].assembled_item = item.name;
+        await _supabase.from('orders').upsert(order);
+
+        // Если в справочнике работ есть расценка на сборку — начисляем сумму работнику
+        // (появится в его статистике вместе с обычными строками "Работа/монтаж" из калькуляции)
+        const laborRate = labor_catalog.find(lc => (lc.name||'').toLowerCase().includes('сборк') || (lc.category||'').toLowerCase().includes('сборк'));
+        if (laborRate) {
+            await _supabase.from('order_labor').insert({
+                order_id: asm.orderId, description: `Сборка: ${item.name}`, qty,
+                unit_price: laborRate.price_ours || 0, worker: curUser.name, created_at: now
+            });
+            all_order_labor.push({ order_id: asm.orderId, description: `Сборка: ${item.name}`, qty, unit_price: laborRate.price_ours || 0, worker: curUser.name, created_at: now });
+        }
+
+        await logActivity(curUser.name, 'Собрал изделие', `Заказ #${asm.orderId}, ${item.name} × ${qty}`, 'process');
+
+        const doneEl = document.getElementById('assembly-done-msg');
+        if (doneEl) { doneEl.innerHTML = `✅ Собрано: ${item.name} × ${qty}`; doneEl.classList.remove('hidden'); }
+        showToast(`✔ Собрано: ${item.name} × ${qty}`);
+
+        await loadAllData();
+        setTimeout(() => resetWorkerFlow(), 1800);
+    } catch(e) {
+        console.error(e);
+        showToast('Ошибка при сборке', 'error');
+    }
+}
+
+// ── INLINE PAINT (встроен в worker-action-card) ────────────────
 
 let ipt = { orderId:null, stageKey:null, stageLabel:null, itemName:null, qty:0, totalQty:0, doneQty:0 };
 
@@ -5240,7 +5555,8 @@ async function addWarehouseItem() {
         await logWarehouseMovement(data[0].id, name, 'in', qty, 'Начальный остаток');
     }
 
-    ['wh-name','wh-category','wh-unit','wh-qty','wh-cost','wh-min','wh-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['wh-name','wh-category','wh-qty','wh-cost','wh-min','wh-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const whUnitEl = document.getElementById('wh-unit'); if (whUnitEl) whUnitEl.value = 'шт';
     renderWarehouseItems();
     showToast(`Товар добавлен: ${name}`);
 }
@@ -5317,11 +5633,16 @@ function renderWarehouseItems() {
             ${photo}
             <div style="flex:1;">
                 <div class="wh-item-name">${isLow?'⚠️ ':''}${i.name}</div>
-                <div class="wh-item-meta">${i.category||'Без категории'} ${i.min_qty>0?'· мин. '+i.min_qty+' '+i.unit:''} ${i.unit_cost?'· '+formatMoney(i.unit_cost)+'/'+i.unit:''}</div>
+                <div class="wh-item-meta">
+                    <span class="wh-tag">${i.category||'Без категории'}</span>
+                    ${i.unit_cost ? `<span class="wh-tag">${formatMoney(i.unit_cost)} / ${i.unit}</span>` : ''}
+                </div>
+                ${i.min_qty>0 ? `<div><span class="wh-min-badge">⚠ Мин. остаток: ${i.min_qty} ${i.unit}</span></div>` : ''}
             </div>
-            <div style="text-align:center;">
-                <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock} ${i.unit}</div>
-                <div style="font-size:10px; color:var(--text-muted);">остаток</div>
+            <div class="wh-qty-block">
+                <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock}</div>
+                <div class="wh-qty-unit">${i.unit}</div>
+                <div class="wh-qty-caption">на складе</div>
             </div>
             <div style="display:flex; gap:6px;">
                 <button class="btn-green" style="padding:6px 12px; font-size:12px;" onclick="warehouseStockIn(${i.id})">+ Приход</button>
@@ -5407,7 +5728,8 @@ async function addBlankItem() {
 
     if (qty > 0) await logBlankMovement(data[0].id, blankDisplayName(data[0]), 'in', qty, 'Начальный остаток');
 
-    ['bl-category','bl-type','bl-name','bl-finish','bl-unit','bl-qty','bl-min','bl-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['bl-category','bl-type','bl-name','bl-finish','bl-qty','bl-min','bl-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const unitEl = document.getElementById('bl-unit'); if (unitEl) unitEl.value = 'шт';
     renderBlankItems();
     showToast(`Заготовка добавлена: ${name}`);
 }
@@ -5484,11 +5806,16 @@ function renderBlankItems() {
             ${photo}
             <div style="flex:1;">
                 <div class="wh-item-name">${isLow?'⚠️ ':''}${i.name} ${i.finish ? '<span style="font-weight:400; color:var(--text-secondary);">('+i.finish+')</span>' : ''}</div>
-                <div class="wh-item-meta">${i.category||'Без категории'} ${i.type?'· '+i.type:''} ${i.min_qty>0?'· мин. '+i.min_qty+' '+i.unit:''}</div>
+                <div class="wh-item-meta">
+                    <span class="wh-tag">${i.category||'Без категории'}</span>
+                    ${i.type ? `<span class="wh-tag">${i.type}</span>` : ''}
+                </div>
+                ${i.min_qty>0 ? `<div><span class="wh-min-badge">⚠ Мин. остаток: ${i.min_qty} ${i.unit}</span></div>` : ''}
             </div>
-            <div style="text-align:center;">
-                <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock} ${i.unit}</div>
-                <div style="font-size:10px; color:var(--text-muted);">остаток</div>
+            <div class="wh-qty-block">
+                <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock}</div>
+                <div class="wh-qty-unit">${i.unit}</div>
+                <div class="wh-qty-caption">на складе</div>
             </div>
             <div style="display:flex; gap:6px;">
                 <button class="btn-green" style="padding:6px 12px; font-size:12px;" onclick="blankStockIn(${i.id})">+ Приход</button>
@@ -5617,7 +5944,8 @@ async function addFinishedItem() {
     if (error) return showToast('Ошибка: ' + error.message + ' — см. SQL для создания таблиц', 'error');
     finished_items.push(data[0]);
 
-    ['fn-category','fn-name','fn-unit','fn-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    ['fn-category','fn-name','fn-photo'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    const fnUnitEl = document.getElementById('fn-unit'); if (fnUnitEl) fnUnitEl.value = 'шт';
     renderFinishedItems();
     showToast(`Карточка изделия создана: ${name}. Теперь настройте рецепт →`);
 }
@@ -5797,11 +6125,15 @@ function renderFinishedItems() {
             ${photo}
             <div style="flex:1;">
                 <div class="wh-item-name">${i.name}</div>
-                <div class="wh-item-meta">${i.category||'Без категории'} · <span class="wh-recipe-chip">📋 ${recipeCount} компонент${recipeCount===1?'':'ов'} в рецепте</span></div>
+                <div class="wh-item-meta">
+                    <span class="wh-tag">${i.category||'Без категории'}</span>
+                    <span class="wh-recipe-chip">📋 ${recipeCount} компонент${recipeCount===1?'':'ов'} в рецепте</span>
+                </div>
             </div>
-            <div style="text-align:center;">
-                <div class="wh-qty-badge wh-qty-ok">${i.qty_in_stock} ${i.unit}</div>
-                <div style="font-size:10px; color:var(--text-muted);">на складе</div>
+            <div class="wh-qty-block">
+                <div class="wh-qty-badge wh-qty-ok">${i.qty_in_stock}</div>
+                <div class="wh-qty-unit">${i.unit}</div>
+                <div class="wh-qty-caption">на складе</div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:280px;">
                 <button class="btn-ghost" style="padding:6px 10px; font-size:12px;" onclick="openFnRecipeModal(${i.id})">📋 Рецепт</button>
@@ -7021,6 +7353,14 @@ function resetWorkerFlow() {
     if (wc) wc.classList.add('hidden');
     var fs = document.getElementById('finish-section');
     if (fs) fs.classList.add('hidden');
+    var qtyEl = document.getElementById('wt-finish-qty');
+    if (qtyEl) { qtyEl.value = '1'; delete qtyEl.dataset.touched; }
+    var targetEl = document.getElementById('wt-target-qty');
+    if (targetEl) targetEl.innerText = '';
+    var pis = document.getElementById('paint-inline-section');
+    if (pis) pis.classList.add('hidden');
+    var ais = document.getElementById('assembly-inline-section');
+    if (ais) ais.classList.add('hidden');
     renderWorkerTasks();
 }
 
@@ -7104,8 +7444,13 @@ function renderWorkerTasks() {
             orders.forEach(o => {
                 if (o.path && o.path.includes(proc)) {
                     const h = o.history && o.history[proc];
-                    if (!h || (!h.end && h.start)) {
-                        myTasks.push({ order: o, proc, status: h ? 'active' : 'pending', isPaint: false });
+                    // ВАЖНО: history[proc] теперь может существовать заранее (planned_qty/
+                    // assigned_worker пишутся при запуске заказа в saveOrder), поэтому нельзя
+                    // судить "процесс начат" по одной лишь истинности h — проверяем h.start/h.end явно.
+                    const isDone = !!(h && h.end);
+                    const isStarted = !!(h && h.start);
+                    if (!isDone) {
+                        myTasks.push({ order: o, proc, status: isStarted ? 'active' : 'pending', isPaint: false });
                     }
                 }
             });
@@ -7174,6 +7519,8 @@ function selectWorkerProc(p) {
 
     var pis = document.getElementById('paint-inline-section');
     if (pis) pis.classList.add('hidden');
+    var ais = document.getElementById('assembly-inline-section');
+    if (ais) ais.classList.add('hidden');
     var wc = document.getElementById('worker-controls');
     if (wc) wc.classList.add('hidden');
     var mb = document.getElementById('wt-manual-box');
@@ -7190,6 +7537,8 @@ function selectWorkerProc(p) {
 
             if (isPaintProc(p)) {
                 showInlinePaint(o.id);
+            } else if (isAssemblyProc(p)) {
+                showInlineAssembly(o.id);
             } else {
                 if (wc) wc.classList.remove('hidden');
                 var h = o.history && o.history[p];
@@ -7204,6 +7553,8 @@ function selectWorkerProc(p) {
 
                 var doneM = document.getElementById('done-msg');
                 if (doneM) doneM.classList.toggle('hidden', !finished);
+
+                updateWorkerFinishQtyDefaults(h);
             }
             return;
         }
@@ -7212,6 +7563,21 @@ function selectWorkerProc(p) {
     // Если заказ не найден — показать manual input
     if (mb) mb.classList.remove('hidden');
     if (orderInput) orderInput.value = '';
+}
+
+// Заполняет плановое количество (wt-target-qty) и подставляет его по умолчанию в поле объёма
+function updateWorkerFinishQtyDefaults(h) {
+    const targetEl = document.getElementById('wt-target-qty');
+    const qtyEl = document.getElementById('wt-finish-qty');
+    const unitEl = document.getElementById('wt-finish-unit');
+    const unit = getPathProcUnit(curProc);
+    if (unitEl) unitEl.innerText = unit;
+    if (h && h.planned_qty) {
+        if (targetEl) targetEl.innerText = `План: ${h.planned_qty} ${unit}`;
+        if (qtyEl && !qtyEl.dataset.touched) qtyEl.value = h.planned_qty;
+    } else if (targetEl) {
+        targetEl.innerText = '';
+    }
 }
 
 function workerFindOrder() {
@@ -7227,6 +7593,8 @@ function workerFindOrder() {
 
     if (isPaintProc(curProc)) {
         showInlinePaint(o.id);
+    } else if (isAssemblyProc(curProc)) {
+        showInlineAssembly(o.id);
     } else {
         var wc = document.getElementById('worker-controls');
         if (wc) wc.classList.remove('hidden');
@@ -7242,6 +7610,8 @@ function workerFindOrder() {
 
         var doneM = document.getElementById('done-msg');
         if (doneM) doneM.classList.toggle('hidden', !finished);
+
+        updateWorkerFinishQtyDefaults(h);
     }
 }
 
@@ -7815,7 +8185,7 @@ function closeMyWorkerStats() {
     if (m) m.classList.add('hidden');
 }
 
-function renderMyWorkerStats() {
+async function renderMyWorkerStats() {
     if (!curUser) return;
     var body = document.getElementById('my-stats-body');
     if (!body) return;
@@ -7847,7 +8217,8 @@ function renderMyWorkerStats() {
                 endTime: endT,
                 duration: dur,
                 item: crmData ? crmData.item : '',
-                client: crmData ? crmData.client : ''
+                client: crmData ? crmData.client : '',
+                sum: 0
             });
         });
     });
@@ -7869,10 +8240,34 @@ function renderMyWorkerStats() {
                 duration: 0,
                 item: r.item_name || '',
                 client: crmData2 ? crmData2.client : '',
+                sum: 0,
                 isPaint: true
             });
         });
     }
+
+    // Собираем строки "Работа/монтаж" из калькуляции заказа (order_labor), назначенные на этого
+    // работника — раньше эти суммы нигде не были видны самому работнику
+    try {
+        const { data: laborData } = await _supabase.from('order_labor').select('*').eq('worker', workerName);
+        (laborData || []).forEach(function(lab) {
+            if (!isInMyStatsPeriod(lab.created_at)) return;
+            var crmDataL = crm_orders.find(function(c) { return c.oid === lab.order_id; });
+            records.push({
+                orderId: lab.order_id,
+                proc: lab.description || 'Работа/монтаж',
+                qty: lab.qty || 1,
+                unit: 'шт',
+                startTime: lab.created_at ? new Date(lab.created_at) : null,
+                endTime: lab.created_at ? new Date(lab.created_at) : null,
+                duration: 0,
+                item: crmDataL ? crmDataL.item : '',
+                client: crmDataL ? crmDataL.client : '',
+                sum: (lab.qty || 1) * (lab.unit_price || 0),
+                isLabor: true
+            });
+        });
+    } catch(e) { console.warn('order_labor load error (my stats):', e); }
 
     // Сортировка по дате (новые сверху)
     records.sort(function(a, b) {
@@ -7885,10 +8280,12 @@ function renderMyWorkerStats() {
     var totalProcs = records.length;
     var totalQty = 0;
     var totalMinutes = 0;
+    var totalSum = 0;
     var orderSet = {};
     records.forEach(function(r) {
         totalQty += r.qty;
         totalMinutes += r.duration;
+        totalSum += (r.sum || 0);
         orderSet[r.orderId] = true;
     });
 
@@ -7900,6 +8297,8 @@ function renderMyWorkerStats() {
     document.getElementById('my-stats-total-qty').innerText = totalQty;
     document.getElementById('my-stats-total-orders').innerText = Object.keys(orderSet).length;
     document.getElementById('my-stats-total-hours').innerText = totalHoursStr;
+    var sumEl = document.getElementById('my-stats-total-sum');
+    if (sumEl) sumEl.innerText = formatMoney(totalSum);
 
     if (!records.length) {
         body.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted);">Нет завершённых работ за этот период</div>';
@@ -7916,7 +8315,7 @@ function renderMyWorkerStats() {
 
     var html = '<table class="modern-table" style="font-size:13px; width:100%;">'
         + '<thead><tr>'
-        + '<th>Дата</th><th>Заказ</th><th>Процесс</th><th>Изделие</th><th>Объём</th><th>Старт</th><th>Финиш</th><th>Длительность</th>'
+        + '<th>Дата</th><th>Заказ</th><th>Процесс</th><th>Изделие</th><th>Объём</th><th>Старт</th><th>Финиш</th><th>Длительность</th><th>Сумма</th>'
         + '</tr></thead><tbody>';
 
     var sortedDates = Object.keys(byDate).sort().reverse();
@@ -7944,6 +8343,7 @@ function renderMyWorkerStats() {
                 + '<td style="font-size:12px;">' + startStr + '</td>'
                 + '<td style="font-size:12px;">' + endStr + '</td>'
                 + '<td style="font-size:12px; font-weight:700;">' + durStr + '</td>'
+                + '<td style="font-size:12px; font-weight:700; color:#8b5cf6;">' + (r.sum ? formatMoney(r.sum) : '—') + '</td>'
                 + '</tr>';
         });
     });
@@ -8060,6 +8460,7 @@ function _psCollectRecords() {
                 duration: dur,
                 item: crmData ? crmData.item : '',
                 client: crmData ? crmData.client : '',
+                sum: 0,
                 source: 'process'
             });
         }
@@ -8085,15 +8486,51 @@ function _psCollectRecords() {
             duration: 0,
             item: crmData2 ? crmData2.item : '',
             client: crmData2 ? crmData2.client : '',
+            sum: 0,
             source: 'paint'
+        });
+    }
+    // 3) Работа/монтаж из калькуляции заказа (order_labor) — раньше эти строки нигде не
+    // засчитывались работнику, даже если админ явно указал кол-во, цену и исполнителя
+    for (var lai = 0; lai < all_order_labor.length; lai++) {
+        var lab = all_order_labor[lai];
+        if (!lab.worker || !lab.created_at) continue;
+        if (!isInPsPeriod(lab.created_at)) continue;
+        var crmData3 = null;
+        for (var ci3 = 0; ci3 < crm_orders.length; ci3++) {
+            if (crm_orders[ci3].oid === lab.order_id) { crmData3 = crm_orders[ci3]; break; }
+        }
+        records.push({
+            date: (lab.created_at || '').slice(0,10),
+            worker: lab.worker,
+            orderId: lab.order_id,
+            proc: lab.description || 'Работа/монтаж',
+            qty: lab.qty || 1,
+            unit: 'шт',
+            startTime: lab.created_at ? new Date(lab.created_at) : null,
+            endTime: lab.created_at ? new Date(lab.created_at) : null,
+            duration: 0,
+            item: crmData3 ? crmData3.item : '',
+            client: crmData3 ? crmData3.client : '',
+            sum: (lab.qty || 1) * (lab.unit_price || 0),
+            source: 'labor'
         });
     }
     return records;
 }
 
-function renderPersonnelStats() {
+async function renderPersonnelStats() {
     var kpiEl = document.getElementById('ps-kpi-summary');
     var listEl = document.getElementById('ps-worker-list');
+
+    // order_labor раньше грузился только при открытии страницы Финансы — если админ туда не
+    // заходил, all_order_labor оставался пустым и суммы работникам никогда не начислялись
+    if (!all_order_labor.length) {
+        try {
+            const { data } = await _supabase.from('order_labor').select('*');
+            all_order_labor = data || [];
+        } catch(e) { console.warn('order_labor load error:', e); }
+    }
 
     var records = _psCollectRecords();
 
@@ -8120,10 +8557,11 @@ function renderPersonnelStats() {
         workerSet[wName] = true;
         totalQty += (r.qty || 0);
         totalMin += (r.duration || 0);
-        if (!byWorker[wName]) byWorker[wName] = { count: 0, qty: 0, minutes: 0, orders: {}, records: [] };
+        if (!byWorker[wName]) byWorker[wName] = { count: 0, qty: 0, minutes: 0, sum: 0, orders: {}, records: [] };
         byWorker[wName].count++;
         byWorker[wName].qty += (r.qty || 0);
         byWorker[wName].minutes += (r.duration || 0);
+        byWorker[wName].sum += (r.sum || 0);
         byWorker[wName].orders[r.orderId] = true;
         byWorker[wName].records.push(r);
     }
@@ -8155,11 +8593,12 @@ function renderPersonnelStats() {
             var orderCount = Object.keys(wd.orders).length;
             var durStr = _psFormatDuration(wd.minutes);
             var wnSafe = wn.replace(/'/g, "\\u0027");
+            var sumLine = wd.sum > 0 ? ' · <span style="color:#8b5cf6; font-weight:700;">' + formatMoney(wd.sum) + '</span>' : '';
             html += '<div class="card" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; padding:16px;" onclick="openWorkerDetail(\'' + wnSafe + '\')">' +
                 '<div>' +
                     '<div style="font-size:16px; font-weight:800; color:var(--text-primary);">👤 ' + wn + '</div>' +
                     '<div style="font-size:12px; color:var(--text-muted); margin-top:4px;">' +
-                        wd.count + ' процессов · ' + wd.qty + ' ' + wd.records[0].unit + ' · ' + durStr + ' · ' + orderCount + ' заказов' +
+                        wd.count + ' процессов · ' + wd.qty + ' ' + wd.records[0].unit + ' · ' + durStr + ' · ' + orderCount + ' заказов' + sumLine +
                     '</div>' +
                 '</div>' +
                 '<button class="btn-blue" style="padding:8px 16px; font-size:13px;" onclick="event.stopPropagation(); openWorkerDetail(\'' + wnSafe + '\')">👁 Подробнее</button>' +
@@ -8179,6 +8618,7 @@ function openWorkerDetail(workerName) {
     var statQtyEl = document.getElementById('wd-stat-qty');
     var statOrdersEl = document.getElementById('wd-stat-orders');
     var statTimeEl = document.getElementById('wd-stat-time');
+    var statSumEl = document.getElementById('wd-stat-sum');
     var bodyEl = document.getElementById('wd-body');
 
     var periodLabels = {day:'Сегодня', week:'Неделя', month:'Месяц', all:'Всё время'};
@@ -8192,10 +8632,12 @@ function openWorkerDetail(workerName) {
     var procCount = records.length;
     var qtyTotal = 0;
     var minTotal = 0;
+    var sumTotal = 0;
     var orderSet = {};
     for (var i = 0; i < records.length; i++) {
         qtyTotal += (records[i].qty || 0);
         minTotal += (records[i].duration || 0);
+        sumTotal += (records[i].sum || 0);
         orderSet[records[i].orderId] = true;
     }
     var orderCount = Object.keys(orderSet).length;
@@ -8204,6 +8646,7 @@ function openWorkerDetail(workerName) {
     if (statQtyEl) statQtyEl.innerText = qtyTotal;
     if (statOrdersEl) statOrdersEl.innerText = orderCount;
     if (statTimeEl) statTimeEl.innerText = _psFormatDuration(minTotal);
+    if (statSumEl) statSumEl.innerText = formatMoney(sumTotal);
 
     // Group by order
     var byOrder = {};
@@ -8245,6 +8688,7 @@ function openWorkerDetail(workerName) {
                         '<th style="padding:8px 12px; text-align:center;">Старт</th>' +
                         '<th style="padding:8px 12px; text-align:center;">Финиш</th>' +
                         '<th style="padding:8px 12px; text-align:center;">Длительность</th>' +
+                        '<th style="padding:8px 12px; text-align:right;">Сумма</th>' +
                     '</tr></thead><tbody>';
 
             var recs = od.records;
@@ -8258,6 +8702,7 @@ function openWorkerDetail(workerName) {
                     '<td style="padding:8px 12px; text-align:center; color:var(--text-secondary);">' + startStr + '</td>' +
                     '<td style="padding:8px 12px; text-align:center; color:var(--text-secondary);">' + endStr + '</td>' +
                     '<td style="padding:8px 12px; text-align:center; font-weight:700; color:var(--success);">' + _psFormatDuration(rc.duration) + '</td>' +
+                    '<td style="padding:8px 12px; text-align:right; font-weight:700; color:#8b5cf6;">' + (rc.sum ? formatMoney(rc.sum) : '—') + '</td>' +
                 '</tr>';
             }
 
@@ -9153,12 +9598,13 @@ async function saveCRM() {
     const client = document.getElementById('crm-client-select').value || document.getElementById('crm-client').value.trim();
     const svcClientId  = document.getElementById('crm-svc-client')?.value  || null;
     const svcMaterial  = document.getElementById('crm-svc-material')?.value || 'client';
+    const svcQty       = parseFloat(document.getElementById('crm-svc-qty')?.value) || 1;
     
     if(!oid) return showToast("Введите №", "error");
     if(!client) return showToast("Укажите клиента", "error");
     
     try {
-        await _supabase.from('crm_orders').upsert({ 
+        const crmPayload = { 
             oid, client,
             phone:       document.getElementById('crm-phone').value.trim(),
             item:        document.getElementById('crm-item').value, 
@@ -9167,8 +9613,16 @@ async function saveCRM() {
             date:        document.getElementById('crm-date').value || null,
             due_date:    document.getElementById('crm-due-date')?.value || null,
             svc_client_id: svcClientId ? parseInt(svcClientId) : null,
-            svc_material:  svcMaterial
-        });
+            svc_material:  svcMaterial,
+            svc_qty:       svcQty
+        };
+        let { error: crmSaveErr } = await _supabase.from('crm_orders').upsert(crmPayload);
+        if (crmSaveErr && /svc_qty|svc_material|svc_client_id/.test(crmSaveErr.message || '')) {
+            // В таблице ещё нет новых колонок — сохраняем без них, чтобы не блокировать создание заказа
+            delete crmPayload.svc_qty; delete crmPayload.svc_material; delete crmPayload.svc_client_id;
+            await _supabase.from('crm_orders').upsert(crmPayload);
+            showToast('Заказ сохранён, но привязка к услугчику требует новых колонок в таблице crm_orders (svc_client_id, svc_material, svc_qty)', 'error');
+        }
         
         await logActivity(curUser.name, 'Создал заказ CRM', 
             `Заказ #${oid}, клиент: ${client}${svcClientId ? ', услугчик привязан' : ''}`, 'crm');
@@ -9176,6 +9630,8 @@ async function saveCRM() {
         ['crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
         const csc=document.getElementById('crm-client-select'); if(csc) csc.value='';
         const css=document.getElementById('crm-svc-client'); if(css) css.value='';
+        const csm=document.getElementById('crm-svc-material'); if(csm) csm.value='client';
+        const csq=document.getElementById('crm-svc-qty'); if(csq) csq.value='1';
         setCRMDateDefault();
         autoFillCRMOrderNumber();
         
@@ -9193,8 +9649,20 @@ async function saveOrder() {
     try {
         const existing = orders.find(x => x.id === id);
         const payload = { id, path };
-        if (!existing) payload.history = {};
-        else payload.history = existing.history || {};
+        payload.history = existing?.history || {};
+
+        // Сохраняем плановое количество и назначенного работника по каждому выбранному процессу
+        // (раньше toggleProdProc создавал поля proc{idx}-qty / proc{idx}-worker, но saveOrder их не читал)
+        PROCS.forEach((p, idx) => {
+            if (!path.includes(p)) return;
+            const qtyEl = document.getElementById('proc' + idx + '-qty');
+            const workerEl = document.getElementById('proc' + idx + '-worker');
+            const plannedQty = qtyEl ? (parseInt(qtyEl.value) || 1) : 1;
+            const assignedWorker = workerEl ? (workerEl.value || '') : '';
+            if (!payload.history[p]) payload.history[p] = {};
+            payload.history[p].planned_qty = plannedQty;
+            if (assignedWorker) payload.history[p].assigned_worker = assignedWorker;
+        });
         
         await _supabase.from('orders').upsert(payload);
 
@@ -9227,6 +9695,7 @@ async function saveOrder() {
             
         document.getElementById('adm-o-id').value = '';
         document.querySelectorAll('#adm-o-grid input:checked').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#adm-o-grid [id$="-row"]').forEach(row => row.style.display = 'none');
         prodPaintItems = [];
         renderProdPaintItems();
         document.getElementById('prod-paint-block')?.classList.add('hidden');
@@ -9655,7 +10124,9 @@ function getCurrentProcess(order) {
     
     try {
         for (const process of order.path) {
-            if (!process || process === "Ровер") {
+            // Процессы без колонки на доске (Ровер и др. из KANBAN_PROCS-исключений) не выбираются
+            // текущей активной колонкой — для них просто нет визуального места на доске.
+            if (!process || !KANBAN_PROCS.includes(process)) {
                 continue;
             }
             
@@ -9675,10 +10146,14 @@ function getCurrentProcess(order) {
         }
         
         const lastProcess = order.path
-            .filter(p => p !== "Ровер")
+            .filter(p => KANBAN_PROCS.includes(p))
             .slice(-1)[0];
-            
-        return { process: lastProcess || 'Завершен', status: 'completed' };
+
+        // Все отслеживаемые в Kanban шаги завершены — но если остались незавершённые шаги без
+        // колонки (например "Ровер" ещё не сделан), заказ реально ещё не готов: не красим зелёным.
+        const hiddenPending = order.path.some(p => p && !KANBAN_PROCS.includes(p) && !order.history?.[p]?.end);
+
+        return { process: lastProcess || 'Завершен', status: hiddenPending ? 'in-progress' : 'completed' };
         
     } catch (err) {
         console.error('Ошибка определения текущего процесса:', err);
@@ -9688,19 +10163,20 @@ function getCurrentProcess(order) {
 
 function calculateProgress(order) {
     if (!order || !order.path || order.path.length === 0) return 0;
-    
-    const filteredPath = order.path.filter(p => p !== "Ровер");
-    if (filteredPath.length === 0) return 100;
-    
+
+    // ВАЖНО: раньше здесь "Ровер" исключался из расчёта, а calculateOrderProgress (Мониторинг/CRM/
+    // Дашборд) считает по всем шагам маршрута. Из-за расхождения формул один и тот же заказ мог
+    // считаться в Kanban завершённым на 100% (и пропадать с доски), пока в Мониторинге/Дашборде он
+    // ещё показывался активным. Используем ту же формулу, что и everywhere else — по всем шагам.
     let completed = 0;
-    for (const process of filteredPath) {
+    for (const process of order.path) {
         const history = order.history?.[process];
         if (history && history.end) {
             completed++;
         }
     }
-    
-    return Math.round((completed / filteredPath.length) * 100);
+
+    return Math.round((completed / order.path.length) * 100);
 }
 
 function calculateDaysInProcess(order, process) {

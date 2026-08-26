@@ -7897,6 +7897,11 @@ async function handleLogin(forceLogin = false) {
                 loadPaintData();
             }
             
+            // Показываем кнопку Сборка если у работника есть доступ
+            if (workerHasAssemblyAccess(worker)) {
+                document.getElementById('assembly-access-btn').classList.remove('hidden');
+            }
+            
             localStorage.setItem('erp_user', worker.name);
             localStorage.setItem('erp_user_type', 'worker');
             
@@ -8024,6 +8029,18 @@ function renderWorkerTasks() {
                 const exists = myTasks.some(t => t.order.id === o.id && t.proc === proc);
                 if (!exists) {
                     myTasks.push({ order: o, proc, status: anyActive ? 'active' : 'pending', isPaint: true, pct });
+                }
+            });
+        } else if (isAssemblyProc(proc)) {
+            // Обработка задач по сборке
+            orders.forEach(o => {
+                if (o.path && o.path.includes(proc)) {
+                    const h = o.history && o.history[proc];
+                    const isDone = !!(h && h.end);
+                    const isStarted = !!(h && h.start);
+                    if (!isDone) {
+                        myTasks.push({ order: o, proc, status: isStarted ? 'active' : 'pending', isAssembly: true });
+                    }
                 }
             });
         } else {
@@ -11426,6 +11443,11 @@ function init() {
                         // Показываем кнопку Краска если у работника есть доступ
                         if (workerHasPaintAccess(worker)) {
                             document.getElementById('paint-access-btn').classList.remove('hidden');
+                        }
+                        
+                        // Показываем кнопку Сборка если у работника есть доступ
+                        if (workerHasAssemblyAccess(worker)) {
+                            document.getElementById('assembly-access-btn').classList.remove('hidden');
                         }
                         
                         renderWorkerTasks();

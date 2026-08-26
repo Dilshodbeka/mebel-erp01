@@ -1135,6 +1135,7 @@
         <button class="tab-btn" onclick="showPage('page-orders'); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">precision_manufacturing</span> Производство</button>
         <button class="tab-btn" onclick="showPage('page-monitor'); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">monitoring</span> Мониторинг</button>
         <button class="tab-btn" onclick="showWarehousePage(); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">inventory_2</span> Склад</button>
+        <button class="tab-btn" onclick="showGrindPage(); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">sand</span> Шлифовка</button>
         <button class="tab-btn" onclick="showPaintPage(); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">format_paint</span> Краска</button>
         <button class="tab-btn" onclick="showFinancePage(); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">payments</span> Финансы</button>
         <button class="tab-btn" onclick="showKanbanAsAdmin(); setActiveNav(this)"><span class="material-symbols-outlined" style="font-size:18px; margin-right:4px;">view_kanban</span> Kanban</button>
@@ -1184,6 +1185,9 @@
                     </div>
                     <div id="paint-access-btn" class="hidden">
                         <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
+                    </div>
+                    <div id="assembly-access-btn" class="hidden">
+                        <button onclick="showAssemblyWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🔧 Сборка</button>
                     </div>
                     <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
                     <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Выйти</button>
@@ -1839,6 +1843,128 @@
 </div>
 
 <!-- Kanban Board -->
+<!-- ======== ADMIN: GRIND / ШЛИФОВКА ======== -->
+<div id="page-grind" class="page hidden">
+
+    <!-- Sub-navigation -->
+    <div class="paint-subnav">
+        <button class="paint-subnav-btn active" onclick="showGrindSection('analytics')">📊 Аналитика</button>
+        <button class="paint-subnav-btn" onclick="showGrindSection('settings')">⚙️ Настройки</button>
+        <button class="paint-subnav-btn" onclick="showGrindSection('journal')">📋 Журнал</button>
+    </div>
+
+    <!-- ── СЕКЦИЯ: АНАЛИТИКА ── -->
+    <div id="grind-sec-analytics" class="paint-section active">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0;">🪵 Аналитика шлифовки</h3>
+                <button class="btn-ghost" onclick="loadPaintData()">↻ Обновить</button>
+            </div>
+            <div class="paint-analytics-grid" id="grind-analytics"></div>
+        </div>
+
+        <!-- Статус заказов в шлифовке -->
+        <div class="card">
+            <h3>Статус заказов в шлифовке</h3>
+            <div id="grind-orders-status"></div>
+        </div>
+    </div>
+
+    <!-- ── СЕКЦИЯ: НАСТРОЙКИ ── -->
+    <div id="grind-sec-settings" class="paint-section">
+
+        <!-- Предупреждение если таблицы не созданы -->
+        <div id="grind-tables-warning" class="hidden" style="background:#fffbeb; border:1px solid #f59e0b; border-radius:12px; padding:16px; margin-bottom:16px;">
+            <div style="font-weight:700; color:#92400e; margin-bottom:8px;">⚠️ Таблицы в Supabase не найдены</div>
+            <div style="font-size:13px; color:#92400e; margin-bottom:10px;">Скопируйте и выполните этот SQL в Supabase → SQL Editor:</div>
+            <pre id="grind-sql-hint" style="background:#fff; border:1px solid #fcd34d; border-radius:8px; padding:12px; font-size:11px; overflow-x:auto; line-height:1.6; color:#1e293b;">create table grind_catalog (
+  id bigserial primary key,
+  category text, name text, area_m2 numeric default 0
+);
+create table grind_order_items (
+  id bigserial primary key,
+  order_id text, category text, item_name text, qty integer
+);
+create table grind_layer_config (
+  order_id text primary key,
+  layers integer default 2
+);
+create table grind_records (
+  id bigserial primary key,
+  order_id text, stage_key text, category text,
+  item_name text, qty_done integer, worker text,
+  created_at timestamptz default now()
+);
+
+-- Разрешаем доступ (отключаем RLS)
+alter table grind_catalog disable row level security;
+alter table grind_order_items disable row level security;
+alter table grind_layer_config disable row level security;
+alter table grind_records disable row level security;</pre>
+            <button class="btn-ghost" onclick="navigator.clipboard.writeText(document.getElementById('grind-sql-hint').innerText).then(()=>showToast('SQL скопирован'))" style="margin-top:8px; font-size:12px;">📋 Скопировать SQL</button>
+        </div>
+
+        <!-- Каталог изделий -->
+        <div class="card">
+            <h3>🗂 Каталог изделий для шлифовки</h3>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Добавленные изделия появятся в форме Производства при выборе Шлифовки</p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px;">
+                <div>
+                    <label class="field-label">Категория</label>
+                    <input type="text" id="gc-category" placeholder="Шкаф, Комод..." style="margin:0;">
+                </div>
+                <div>
+                    <label class="field-label">Название изделия</label>
+                    <input type="text" id="gc-name" placeholder="Хайтек 2..." style="margin:0;">
+                </div>
+                <div>
+                    <label class="field-label">М² за 1 штуку</label>
+                    <input type="number" id="gc-area" placeholder="0.00" step="0.01" style="margin:0;">
+                </div>
+                <button class="btn-blue" onclick="saveGrindCatalogItem()" style="height:46px; white-space:nowrap;">+ Добавить</button>
+            </div>
+            <div id="grind-catalog-list"></div>
+        </div>
+
+        <!-- Слои для заказа -->
+        <div class="card">
+            <h3>⚙️ Слои шлифовки по заказу</h3>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Если для заказа нужен 1 слой шлифовки — выберите 1. Программа автоматически пропустит 2-й слой.</p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:end;">
+                <div>
+                    <label class="field-label">№ заказа</label>
+                    <input type="text" id="glayers-order" placeholder="1001" style="margin:0;">
+                </div>
+                <div>
+                    <label class="field-label">Слоёв шлифовки</label>
+                    <select id="glayers-count" style="margin:0;">
+                        <option value="1">1 слой</option>
+                        <option value="2" selected>2 слоя</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-blue" style="width:100%; margin-top:12px;" onclick="saveGrindLayers()">Сохранить слои</button>
+        </div>
+    </div>
+
+    <!-- ── СЕКЦИЯ: ЖУРНАЛ ── -->
+    <div id="grind-sec-journal" class="paint-section">
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="margin:0;">📋 Журнал шлифовки</h3>
+                <input type="text" id="grind-log-filter" placeholder="№ заказа или изделие" style="margin:0; padding:8px 12px; font-size:13px; width:200px;" oninput="renderGrindLog()">
+            </div>
+            <div class="table-wrapper">
+                <table class="modern-table mobile-cards">
+                    <thead><tr><th>Заказ</th><th>Этап</th><th>Категория</th><th>Изделие</th><th>Кол-во</th><th>М²</th><th>Работник</th><th>Время</th></tr></thead>
+                    <tbody id="grind-log-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 <!-- ======== ADMIN: PAINT / КРАСКА ======== -->
 <div id="page-paint" class="page hidden">
 
@@ -2026,6 +2152,62 @@ alter table paint_records disable row level security;</pre>
         <div id="pwt-controls" class="wt-controls">
             <button class="btn-blue wt-big-btn" onclick="submitPaintRecord()">✔ Отправить</button>
             <div id="pwt-done-msg" class="hidden wt-done-msg">✅ Записано!</div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== WORKER: ASSEMBLY TERMINAL (reuse paint terminal structure) ======== -->
+<div id="page-assembly-worker" class="hidden">
+    <div class="wt-header">
+        <div class="wt-header-row">
+            <div>
+                <div class="wt-greeting">🔧 Сборка</div>
+                <div class="wt-subtitle" id="awt-subtitle">Выберите заказ</div>
+            </div>
+            <button class="btn-ghost" onclick="resetAssemblyWorkerFlow()" style="color:#fff; border-color:rgba(255,255,255,0.4);">← Назад</button>
+        </div>
+    </div>
+
+    <!-- Выбор заказа -->
+    <div id="awt-order-list" class="card">
+        <div class="wt-section-label">Заказы со сборкой</div>
+        <div id="awt-orders-container" class="wt-task-list"></div>
+    </div>
+
+    <!-- Выбор изделия для сборки -->
+    <div id="awt-item-picker" class="card hidden">
+        <button class="wt-back-btn" onclick="showAwtStep('order')">← К заказам</button>
+        <div class="wt-section-label">Заказ <span id="awt-cur-order"></span></div>
+
+        <div class="wt-section-label" style="margin-top:10px;">Категория изделия</div>
+        <div class="paint-cat-grid" id="awt-cat-grid"></div>
+
+        <div id="awt-items-section" class="hidden">
+            <div class="wt-section-label" style="margin-top:12px;">Выберите изделие для сборки</div>
+            <div class="paint-item-pick" id="awt-item-list"></div>
+        </div>
+    </div>
+
+    <!-- Ввод количества -->
+    <div id="awt-qty-input" class="card hidden">
+        <button class="wt-back-btn" onclick="showAwtStep('item')">← К изделиям</button>
+
+        <div class="wt-active-info">
+            <div class="wt-active-order" id="awt-item-title">Изделие</div>
+            <div class="wt-active-item" id="awt-recipe-preview"></div>
+        </div>
+
+        <div id="awt-shortage-warning" class="hidden" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:12px;"></div>
+
+        <div class="paint-qty-controls">
+            <button class="paint-qty-btn" onclick="adjustAssemblyQty(-1)">−</button>
+            <div class="paint-qty-display" id="awt-qty-val">1</div>
+            <button class="paint-qty-btn" onclick="adjustAssemblyQty(1)">+</button>
+        </div>
+
+        <div id="awt-controls" class="wt-controls">
+            <button class="btn-blue wt-big-btn" onclick="submitAssemblyRecord()">✔ Собрать</button>
+            <div id="awt-done-msg" class="hidden wt-done-msg">✅ Собрано!</div>
         </div>
     </div>
 </div>
@@ -3035,6 +3217,120 @@ const ALL_WORKER_PROCS = [...new Set([...PROCS, ...PAINT_PROCS])];
 const KANBAN_PROCS = PROCS.filter(p => !["краска", "Упаковка", "Сборка", "Пленка PVC", "ФАСАД NESTING", "Ровер"].includes(p));
 
 let workers = [], orders = [], crm_orders = [], telegram_clients = [], notification_history = [];
+
+// --- ГЛОБАЛЬНАЯ БАЗА ЗНАНИЙ (ТЕХНОЛОГИЧЕСКАЯ КАРТА) ---
+// Справочник для автоматического расчета материалов и работ при создании заказа
+const TECH_MAP = {
+    'wardrobe': {
+        name: 'Шкаф-купе',
+        materials: [
+            { id: 'ldsp_white', name: 'ЛДСП Белый', unit: 'м²', norm: 2.5 },
+            { id: 'mirror', name: 'Зеркало', unit: 'м²', norm: 0.8 },
+            { id: 'profile', name: 'Профиль алюминиевый', unit: 'м.п.', norm: 4.0 },
+            { id: 'screws', name: 'Конфирматы/Саморезы', unit: 'шт', norm: 40 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Распил', hours: 1.5, role: 'operator' },
+            { stage: 'edge', name: 'Кромление', hours: 1.0, role: 'operator' },
+            { stage: 'drill', name: 'Сверловка', hours: 1.0, role: 'operator' },
+            { stage: 'assemble', name: 'Сборка', hours: 3.0, role: 'assembler' }
+        ]
+    },
+    'kitchen': {
+        name: 'Кухонный гарнитур',
+        materials: [
+            { id: 'ldsp_color', name: 'ЛДСП Цветной', unit: 'м²', norm: 4.0 },
+            { id: 'facade_mdf', name: 'Фасад МДФ', unit: 'м²', norm: 3.5 },
+            { id: 'fittings', name: 'Фурнитура (петли, ящики)', unit: 'компл', norm: 1 },
+            { id: 'countertop', name: 'Столешница', unit: 'м.п.', norm: 3.0 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Распил', hours: 2.5, role: 'operator' },
+            { stage: 'edge', name: 'Кромление', hours: 2.0, role: 'operator' },
+            { stage: 'milling', name: 'Фрезеровка', hours: 3.0, role: 'cnc' },
+            { stage: 'assemble', name: 'Сборка', hours: 6.0, role: 'assembler' },
+            { stage: 'install', name: 'Установка', hours: 4.0, role: 'installer' }
+        ]
+    },
+    'table': {
+        name: 'Обеденный стол',
+        materials: [
+            { id: 'wood', name: 'Массив дерева', unit: 'м³', norm: 0.05 },
+            { id: 'varnish', name: 'Лак', unit: 'л', norm: 0.5 },
+            { id: 'glue', name: 'Клей столярный', unit: 'мл', norm: 200 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Раскрой массива', hours: 1.0, role: 'operator' },
+            { stage: 'glue', name: 'Склейка щита', hours: 2.0, role: 'assembler' },
+            { stage: 'grind', name: 'Шлифовка', hours: 3.0, role: 'painter' },
+            { stage: 'paint', name: 'Покраска/Лакировка', hours: 4.0, role: 'painter' },
+            { stage: 'assemble', name: 'Сборка', hours: 1.5, role: 'assembler' }
+        ]
+    }
+};
+
+// Автоматическое выполнение заказа: списание материалов + создание задач
+async function autoFulfillOrder(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const techData = TECH_MAP[order.type];
+    if (!techData) {
+        console.log('Для типа', order.type, 'нет технологической карты');
+        return;
+    }
+
+    // 1. Автоматическое списание/бронирование материалов
+    let materialCost = 0;
+    const materialLog = [];
+    
+    techData.materials.forEach(mat => {
+        const totalQty = mat.norm * (order.quantity || 1);
+        const warehouseItem = materials.find(m => m.id === mat.id);
+        
+        if (warehouseItem) {
+            if (warehouseItem.amount >= totalQty) {
+                warehouseItem.amount -= totalQty;
+                materialCost += totalQty * warehouseItem.cost;
+                materialLog.push(`Списано: ${mat.name} - ${totalQty} ${mat.unit}`);
+            } else {
+                materialLog.push(`ВНИМАНИЕ: Недостаточно ${mat.name} (нужно ${totalQty}, есть ${warehouseItem.amount})`);
+                materialCost += totalQty * warehouseItem.cost;
+            }
+        } else {
+            materialLog.push(`Материал ${mat.name} не найден на складе!`);
+        }
+    });
+
+    // 2. Автоматическое создание задач для работников (Цех)
+    const tasksLog = [];
+    techData.operations.forEach(op => {
+        const totalHours = op.hours * (order.quantity || 1);
+        tasks.push({
+            id: Date.now() + Math.random(),
+            orderId: order.id,
+            title: `${techData.name} (#${order.id}): ${op.name}`,
+            stage: op.stage,
+            assignedTo: null,
+            requiredRole: op.role,
+            estHours: totalHours,
+            status: 'new',
+            created: new Date().toLocaleDateString()
+        });
+        tasksLog.push(`Создана задача: ${op.name} (${totalHours} ч.)`);
+    });
+
+    // 3. Обновление финансов и аналитики
+    order.materialCost = materialCost;
+    order.status = 'in_progress';
+    order.comment = `АВТО-РАСЧЕТ:\nМатериалы: ${materialLog.join('; ')}\nЗадачи: ${tasksLog.join('; ')}`;
+    
+    updateAnalytics();
+    saveData();
+    
+    console.log(`Заказ #${order.id} запущен в работу! Задач: ${tasksLog.length}`);
+}
+
 let curUser = null, curProc = null, editWId = null, editTgId = null;
 let botToken = '';
 
@@ -3110,6 +3406,238 @@ let paint_order_layers = {}; // {order_id: {layers:2, coats:2}}
 
 // Текущий выбор в воркер-терминале
 let pwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
+
+// GRIND variables
+let grind_catalog      = [];
+let grind_records      = [];
+let grind_order_items  = [];
+let grind_order_layers = {};
+let gwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
+
+async function loadGrindData() {
+    try {
+        const [catRes, recRes, oiRes] = await Promise.all([
+            _supabase.from('grind_catalog').select('*').order('category'),
+            _supabase.from('grind_records').select('*').order('created_at', { ascending: false }),
+            _supabase.from('grind_order_items').select('*')
+        ]);
+
+        const warning = document.getElementById('grind-tables-warning');
+        if (catRes.error || recRes.error || oiRes.error) {
+            console.error('Grind tables error:', catRes.error || recRes.error || oiRes.error);
+            if (warning) warning.classList.remove('hidden');
+            showGrindSection('settings');
+            return;
+        }
+        if (warning) warning.classList.add('hidden');
+
+        grind_catalog      = catRes.data  || [];
+        grind_records      = recRes.data  || [];
+        grind_order_items  = oiRes.data   || [];
+
+        const lcRes = await _supabase.from('grind_layer_config').select('*');
+        (lcRes.data || []).forEach(r => {
+            grind_order_layers[r.order_id] = { layers: r.layers };
+        });
+
+        renderGrindCatalog();
+        renderGrindAnalytics();
+        renderGrindLog();
+        updateGrindAdminSelects();
+    } catch(e) {
+        console.error('Grind load error:', e);
+        const warning = document.getElementById('grind-tables-warning');
+        if (warning) { warning.classList.remove('hidden'); showGrindSection('settings'); }
+    }
+}
+
+async function saveGrindCatalogItem() {
+    const category = document.getElementById('gc-category').value.trim();
+    const name     = document.getElementById('gc-name').value.trim();
+    const area_m2  = parseFloat(document.getElementById('gc-area').value) || 0;
+    if (!category || !name) return showToast('Заполните категорию и название', 'error');
+
+    try {
+        const { data, error } = await _supabase.from('grind_catalog').insert({ category, name, area_m2 }).select();
+        if (error) {
+            console.error('grind_catalog insert error:', error);
+            return showToast('Ошибка: ' + (error.message || error.code), 'error');
+        }
+
+        if (data && data[0]) grind_catalog.push(data[0]);
+        else grind_catalog.push({ id: Date.now(), category, name, area_m2 });
+
+        ['gc-category','gc-name','gc-area'].forEach(id => document.getElementById(id).value = '');
+
+        renderGrindCatalog();
+        updateGrindAdminSelects();
+        showToast('Изделие добавлено: ' + name);
+
+    } catch(e) {
+        console.error('saveGrindCatalogItem exception:', e);
+        showToast('Ошибка сети', 'error');
+    }
+}
+
+async function deleteGrindCatalogItem(id) {
+    if (!confirm('Удалить?')) return;
+    await _supabase.from('grind_catalog').delete().eq('id', id);
+    await loadGrindData();
+}
+
+function renderGrindCatalog() {
+    const el = document.getElementById('grind-catalog-list');
+    if (!el) return;
+    if (!grind_catalog.length) { el.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Каталог пуст. Добавьте изделия выше.</div>'; return; }
+
+    const byCategory = {};
+    grind_catalog.forEach(item => {
+        if (!byCategory[item.category]) byCategory[item.category] = [];
+        byCategory[item.category].push(item);
+    });
+
+    el.innerHTML = Object.entries(byCategory).map(([cat, items]) => `
+        <div style="margin-bottom:12px;">
+            <div class="wt-section-label">${cat}</div>
+            ${items.map(item => `
+                <div class="paint-item-row">
+                    <div>
+                        <div style="font-weight:700;">${item.name}</div>
+                        <div style="font-size:12px; color:var(--text-secondary);">${item.area_m2} м² / шт</div>
+                    </div>
+                    <button class="btn-red" style="padding:4px 10px; font-size:12px;" onclick="deleteGrindCatalogItem(${item.id})">✖</button>
+                </div>`).join('')}
+        </div>`).join('');
+}
+
+function updateGrindAdminSelects() {
+    const catSel = document.getElementById('prod-grind-category');
+    const itemSel = document.getElementById('prod-grind-item');
+    if (!catSel || !itemSel) return;
+    
+    const categories = [...new Set(grind_catalog.map(i => i.category))];
+    catSel.innerHTML = '<option value="">Выберите категорию...</option>' +
+        categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    itemSel.innerHTML = '<option value="">Сначала выберите категорию</option>';
+    
+    catSel.onchange = () => {
+        const cat = catSel.value;
+        const items = grind_catalog.filter(i => i.category === cat);
+        itemSel.innerHTML = '<option value="">Выберите изделие...</option>' +
+            items.map(i => `<option value="${i.name}">${i.name} (${i.area_m2} м²/шт)</option>`).join('');
+    };
+}
+
+function renderGrindAnalytics() {
+    const el = document.getElementById('grind-analytics');
+    if (!el) return;
+    const totalRecords = grind_records.length;
+    const uniqueOrders = new Set(grind_records.map(r => r.order_id)).size;
+    const totalQty = grind_records.reduce((sum, r) => sum + (r.qty_done || 0), 0);
+    const totalArea = grind_records.reduce((sum, r) => {
+        const item = grind_catalog.find(i => i.name === r.item_name && i.category === r.category);
+        return sum + ((item ? item.area_m2 : 0) * (r.qty_done || 0));
+    }, 0);
+    
+    el.innerHTML = `
+        <div class="paint-stat-card"><div class="paint-stat-val">${totalRecords}</div><div class="paint-stat-label">Записей</div></div>
+        <div class="paint-stat-card"><div class="paint-stat-val">${uniqueOrders}</div><div class="paint-stat-label">Заказов</div></div>
+        <div class="paint-stat-card"><div class="paint-stat-val">${totalQty}</div><div class="paint-stat-label">Изделий отшлифовано</div></div>
+        <div class="paint-stat-card"><div class="paint-stat-val">${totalArea.toFixed(1)}</div><div class="paint-stat-label">м² всего</div></div>
+    `;
+}
+
+function renderGrindOrdersStatus() {
+    const el = document.getElementById('grind-orders-status');
+    if (!el) return;
+    
+    const ordersWithItems = [...new Set(grind_order_items.map(i => i.order_id))];
+    if (!ordersWithItems.length) {
+        el.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:10px;">Нет заказов с изделиями для шлифовки</div>';
+        return;
+    }
+    
+    el.innerHTML = ordersWithItems.map(orderId => {
+        const items = grind_order_items.filter(i => i.order_id === orderId);
+        const records = grind_records.filter(r => r.order_id === orderId);
+        const cfg = grind_order_layers[orderId] || { layers: 2 };
+        
+        const stages = cfg.layers === 1 ? ['шлиф_1'] : ['шлиф_1', 'шлиф_2'];
+        const statusByStage = {};
+        stages.forEach(stage => {
+            const done = records.filter(r => r.stage_key === stage).reduce((sum, r) => sum + (r.qty_done || 0), 0);
+            const total = items.reduce((sum, i) => sum + (i.qty || 0), 0);
+            statusByStage[stage] = { done, total, percent: total > 0 ? Math.round((done / total) * 100) : 0 };
+        });
+        
+        return `
+            <div style="border:1px solid var(--border-light); border-radius:10px; padding:12px; margin-bottom:8px;">
+                <div style="font-weight:700; margin-bottom:8px;">Заказ #${orderId}</div>
+                ${stages.map(stage => {
+                    const s = statusByStage[stage];
+                    const label = stage === 'шлиф_1' ? 'Шлифовка 1' : 'Шлифовка 2';
+                    return `
+                        <div style="margin-bottom:6px;">
+                            <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:2px;">
+                                <span>${label}</span>
+                                <span style="color:var(--text-secondary);">${s.done}/${s.total} (${s.percent}%)</span>
+                            </div>
+                            <div style="height:6px; background:var(--border-light); border-radius:3px; overflow:hidden;">
+                                <div style="width:${s.percent}%; height:100%; background:var(--primary);"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }).join('');
+}
+
+function renderGrindLog() {
+    const el = document.getElementById('grind-log-table');
+    if (!el) return;
+    const filter = (document.getElementById('grind-log-filter')?.value || '').toLowerCase();
+    
+    const filtered = grind_records.filter(r => {
+        if (!filter) return true;
+        return (r.order_id || '').toLowerCase().includes(filter) || (r.item_name || '').toLowerCase().includes(filter);
+    });
+    
+    el.innerHTML = filtered.map(r => {
+        const item = grind_catalog.find(i => i.name === r.item_name && i.category === r.category);
+        const area = item ? (item.area_m2 * (r.qty_done || 0)).toFixed(2) : '0';
+        return `
+            <tr>
+                <td>#${r.order_id}</td>
+                <td>${(PAINT_STAGES_DEF.find(s => s.key === r.stage_key) || {}).label || r.stage_key}</td>
+                <td>${r.category || ''}</td>
+                <td>${r.item_name || ''}</td>
+                <td>${r.qty_done || 0}</td>
+                <td>${area} м²</td>
+                <td>${r.worker || ''}</td>
+                <td>${new Date(r.created_at).toLocaleString('ru-RU')}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+async function saveGrindLayers() {
+    const orderId = document.getElementById('glayers-order').value.trim();
+    const layers = parseInt(document.getElementById('glayers-count').value) || 2;
+    if (!orderId) return showToast('Введите номер заказа', 'error');
+
+    try {
+        const { error } = await _supabase.from('grind_layer_config').upsert({ order_id: orderId, layers });
+        if (error) throw error;
+        
+        grind_order_layers[orderId] = { layers };
+        showToast(`Для заказа #${orderId} установлено ${layers} слой(ев)`);
+        document.getElementById('glayers-order').value = '';
+    } catch(e) {
+        console.error('saveGrindLayers error:', e);
+        showToast('Ошибка сохранения', 'error');
+    }
+}
 
 async function loadPaintData() {
     try {
@@ -3331,6 +3859,12 @@ function workerHasPaintAccess(user) {
     return user.procs.some(p => PAINT_WORKER_TYPES[p]);
 }
 
+// Проверяет, имеет ли воркер доступ к сборке
+function workerHasAssemblyAccess(user) {
+    if (!user || !Array.isArray(user.procs)) return false;
+    return user.procs.some(p => isAssemblyProc(p));
+}
+
 // Определяет, какие stage_key доступны этому воркеру
 function getWorkerPaintStageKeys(user) {
     const allowed = new Set();
@@ -3341,7 +3875,7 @@ function getWorkerPaintStageKeys(user) {
 }
 
 function showPaintWorkerTerminal() {
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker')
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-assembly-worker')
         .forEach(p => p.classList.add('hidden'));
     document.getElementById('page-paint-worker').classList.remove('hidden');
     pwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
@@ -3352,6 +3886,35 @@ function resetPaintWorkerFlow() {
     document.getElementById('page-paint-worker').classList.add('hidden');
     document.getElementById('page-worker-terminal').classList.remove('hidden');
     renderWorkerTasks();
+}
+
+// Assembly worker terminal functions
+let awt = { orderId: null, itemId: null, qty: 1 };
+
+function showAssemblyWorkerTerminal() {
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-assembly-worker')
+        .forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-assembly-worker').classList.remove('hidden');
+    awt = { orderId: null, itemId: null, qty: 1 };
+    showAwtStep('order');
+}
+
+function resetAssemblyWorkerFlow() {
+    document.getElementById('page-assembly-worker').classList.add('hidden');
+    document.getElementById('page-worker-terminal').classList.remove('hidden');
+    renderWorkerTasks();
+}
+
+function showAwtStep(step) {
+    ['order','item','qty'].forEach(s => {
+        const el = document.getElementById(`awt-${s === 'order' ? 'order-list' : s === 'item' ? 'item-picker' : 'qty-input'}`);
+        if (el) el.classList.add('hidden');
+    });
+    const map = { order: 'awt-order-list', item: 'awt-item-picker', qty: 'awt-qty-input' };
+    document.getElementById(map[step])?.classList.remove('hidden');
+    if (step === 'order') renderAwtOrders();
+    if (step === 'item')  renderAwtItems();
+    if (step === 'qty')   renderAwtQty();
 }
 
 function showPwtStep(step) {
@@ -4029,6 +4592,21 @@ function showPaintSection(name) {
     if (name === 'settings')  { renderPaintCatalog(); }
 }
 
+// ── GRIND SUB-NAV ─────────────────────────────────────────────
+function showGrindSection(name) {
+    document.querySelectorAll('.paint-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.paint-subnav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('grind-sec-' + name)?.classList.add('active');
+    document.querySelectorAll('.paint-subnav-btn').forEach(b => {
+        if (b.textContent.toLowerCase().includes(
+            name === 'analytics' ? 'аналитик' : name === 'settings' ? 'настройк' : 'журнал'
+        )) b.classList.add('active');
+    });
+    if (name === 'analytics') renderGrindOrdersStatus();
+    if (name === 'journal')   renderGrindLog();
+    if (name === 'settings')  { renderGrindCatalog(); }
+}
+
 // ── PRODUCTION PAGE: paint block toggle ───────────────────────
 function updateOrderCodePreview() {
     const id = document.getElementById('adm-o-id')?.value.trim() || '';
@@ -4246,6 +4824,14 @@ function showPaintPage() {
     showPage('page-paint');
     showPaintSection('analytics');
     loadPaintData();
+}
+
+// ── GRIND PAGE SHOW ────────────────────────────────────────────
+// Вызывается при переходе на страницу шлифовки
+function showGrindPage() {
+    showPage('page-grind');
+    showGrindSection('analytics');
+    loadGrindData();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -10181,6 +10767,12 @@ async function saveCRM() {
         
         await loadAllData();
         showToast("Заказ в CRM");
+        
+        // !!! ЗАПУСК АВТОМАТИЗАЦИИ ERP !!!
+        // После сохранения заказа CRM пытаемся применить технологическую карту
+        setTimeout(() => {
+            autoFulfillOrder(oid);
+        }, 200);
     } catch (err) { 
         showToast("Ошибка", "error"); console.error(err);
     }
@@ -11374,6 +11966,12 @@ function init() {
                         document.getElementById('page-worker-terminal').classList.remove('hidden');
                         document.getElementById('logout-btn').classList.remove('hidden');
                         document.getElementById('worker-title').innerText = worker.name;
+                        
+                        // Показываем кнопку Краска если у работника есть доступ
+                        if (workerHasPaintAccess(worker)) {
+                            document.getElementById('paint-access-btn').classList.remove('hidden');
+                        }
+                        
                         renderWorkerTasks();
                     } else {
                         handleLogout();
@@ -11420,19 +12018,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ═══════════════════════════════════════════════════════
-// PWA — установка приложения на телефон/компьютер
-// ═══════════════════════════════════════════════════════
-if ('serviceWorker' in navigator) {
-    const swCode = `
-        self.addEventListener('install', e => self.skipWaiting());
-        self.addEventListener('activate', e => self.clients.claim());
-        self.addEventListener('fetch', e => {}); // passthrough — обязателен для установки как приложение
-    `;
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl).catch(err => console.warn('SW registration failed:', err));
-}
+// PWA — установка приложения на телефон/компьютер (упрощено без ServiceWorker для избежания ошибок blob:)
+// ServiceWorker не используется, так как в некоторых средах (Vercel preview) он вызывает ошибки протокола.
+// Приложение всё равно можно установить через меню браузера.
 
 let _deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {

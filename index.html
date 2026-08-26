@@ -11474,19 +11474,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ═══════════════════════════════════════════════════════
-// PWA — установка приложения на телефон/компьютер
-// ═══════════════════════════════════════════════════════
-if ('serviceWorker' in navigator) {
-    const swCode = `
-        self.addEventListener('install', e => self.skipWaiting());
-        self.addEventListener('activate', e => self.clients.claim());
-        self.addEventListener('fetch', e => {}); // passthrough — обязателен для установки как приложение
-    `;
-    const swBlob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl).catch(err => console.warn('SW registration failed:', err));
-}
+// PWA — установка приложения на телефон/компьютер (упрощено без ServiceWorker для избежания ошибок blob:)
+// ServiceWorker не используется, так как в некоторых средах (Vercel preview) он вызывает ошибки протокола.
+// Приложение всё равно можно установить через меню браузера.
 
 let _deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', (e) => {

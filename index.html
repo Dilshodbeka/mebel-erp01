@@ -2906,6 +2906,120 @@ const ALL_WORKER_PROCS = [...new Set([...PROCS, ...PAINT_PROCS])];
 const KANBAN_PROCS = PROCS.filter(p => !["краска", "Упаковка", "Сборка", "Пленка PVC", "ФАСАД NESTING", "Ровер"].includes(p));
 
 let workers = [], orders = [], crm_orders = [], telegram_clients = [], notification_history = [];
+
+// --- ГЛОБАЛЬНАЯ БАЗА ЗНАНИЙ (ТЕХНОЛОГИЧЕСКАЯ КАРТА) ---
+// Справочник для автоматического расчета материалов и работ при создании заказа
+const TECH_MAP = {
+    'wardrobe': {
+        name: 'Шкаф-купе',
+        materials: [
+            { id: 'ldsp_white', name: 'ЛДСП Белый', unit: 'м²', norm: 2.5 },
+            { id: 'mirror', name: 'Зеркало', unit: 'м²', norm: 0.8 },
+            { id: 'profile', name: 'Профиль алюминиевый', unit: 'м.п.', norm: 4.0 },
+            { id: 'screws', name: 'Конфирматы/Саморезы', unit: 'шт', norm: 40 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Распил', hours: 1.5, role: 'operator' },
+            { stage: 'edge', name: 'Кромление', hours: 1.0, role: 'operator' },
+            { stage: 'drill', name: 'Сверловка', hours: 1.0, role: 'operator' },
+            { stage: 'assemble', name: 'Сборка', hours: 3.0, role: 'assembler' }
+        ]
+    },
+    'kitchen': {
+        name: 'Кухонный гарнитур',
+        materials: [
+            { id: 'ldsp_color', name: 'ЛДСП Цветной', unit: 'м²', norm: 4.0 },
+            { id: 'facade_mdf', name: 'Фасад МДФ', unit: 'м²', norm: 3.5 },
+            { id: 'fittings', name: 'Фурнитура (петли, ящики)', unit: 'компл', norm: 1 },
+            { id: 'countertop', name: 'Столешница', unit: 'м.п.', norm: 3.0 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Распил', hours: 2.5, role: 'operator' },
+            { stage: 'edge', name: 'Кромление', hours: 2.0, role: 'operator' },
+            { stage: 'milling', name: 'Фрезеровка', hours: 3.0, role: 'cnc' },
+            { stage: 'assemble', name: 'Сборка', hours: 6.0, role: 'assembler' },
+            { stage: 'install', name: 'Установка', hours: 4.0, role: 'installer' }
+        ]
+    },
+    'table': {
+        name: 'Обеденный стол',
+        materials: [
+            { id: 'wood', name: 'Массив дерева', unit: 'м³', norm: 0.05 },
+            { id: 'varnish', name: 'Лак', unit: 'л', norm: 0.5 },
+            { id: 'glue', name: 'Клей столярный', unit: 'мл', norm: 200 }
+        ],
+        operations: [
+            { stage: 'cut', name: 'Раскрой массива', hours: 1.0, role: 'operator' },
+            { stage: 'glue', name: 'Склейка щита', hours: 2.0, role: 'assembler' },
+            { stage: 'grind', name: 'Шлифовка', hours: 3.0, role: 'painter' },
+            { stage: 'paint', name: 'Покраска/Лакировка', hours: 4.0, role: 'painter' },
+            { stage: 'assemble', name: 'Сборка', hours: 1.5, role: 'assembler' }
+        ]
+    }
+};
+
+// Автоматическое выполнение заказа: списание материалов + создание задач
+async function autoFulfillOrder(orderId) {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    const techData = TECH_MAP[order.type];
+    if (!techData) {
+        console.log('Для типа', order.type, 'нет технологической карты');
+        return;
+    }
+
+    // 1. Автоматическое списание/бронирование материалов
+    let materialCost = 0;
+    const materialLog = [];
+    
+    techData.materials.forEach(mat => {
+        const totalQty = mat.norm * (order.quantity || 1);
+        const warehouseItem = materials.find(m => m.id === mat.id);
+        
+        if (warehouseItem) {
+            if (warehouseItem.amount >= totalQty) {
+                warehouseItem.amount -= totalQty;
+                materialCost += totalQty * warehouseItem.cost;
+                materialLog.push(`Списано: ${mat.name} - ${totalQty} ${mat.unit}`);
+            } else {
+                materialLog.push(`ВНИМАНИЕ: Недостаточно ${mat.name} (нужно ${totalQty}, есть ${warehouseItem.amount})`);
+                materialCost += totalQty * warehouseItem.cost;
+            }
+        } else {
+            materialLog.push(`Материал ${mat.name} не найден на складе!`);
+        }
+    });
+
+    // 2. Автоматическое создание задач для работников (Цех)
+    const tasksLog = [];
+    techData.operations.forEach(op => {
+        const totalHours = op.hours * (order.quantity || 1);
+        tasks.push({
+            id: Date.now() + Math.random(),
+            orderId: order.id,
+            title: `${techData.name} (#${order.id}): ${op.name}`,
+            stage: op.stage,
+            assignedTo: null,
+            requiredRole: op.role,
+            estHours: totalHours,
+            status: 'new',
+            created: new Date().toLocaleDateString()
+        });
+        tasksLog.push(`Создана задача: ${op.name} (${totalHours} ч.)`);
+    });
+
+    // 3. Обновление финансов и аналитики
+    order.materialCost = materialCost;
+    order.status = 'in_progress';
+    order.comment = `АВТО-РАСЧЕТ:\nМатериалы: ${materialLog.join('; ')}\nЗадачи: ${tasksLog.join('; ')}`;
+    
+    updateAnalytics();
+    saveData();
+    
+    console.log(`Заказ #${order.id} запущен в работу! Задач: ${tasksLog.length}`);
+}
+
 let curUser = null, curProc = null, editWId = null, editTgId = null;
 let botToken = '';
 
@@ -9637,6 +9751,12 @@ async function saveCRM() {
         
         await loadAllData();
         showToast("Заказ в CRM");
+        
+        // !!! ЗАПУСК АВТОМАТИЗАЦИИ ERP !!!
+        // После сохранения заказа CRM пытаемся применить технологическую карту
+        setTimeout(() => {
+            autoFulfillOrder(oid);
+        }, 200);
     } catch (err) { 
         showToast("Ошибка", "error"); console.error(err);
     }
@@ -10830,6 +10950,12 @@ function init() {
                         document.getElementById('page-worker-terminal').classList.remove('hidden');
                         document.getElementById('logout-btn').classList.remove('hidden');
                         document.getElementById('worker-title').innerText = worker.name;
+                        
+                        // Показываем кнопку Краска если у работника есть доступ
+                        if (workerHasPaintAccess(worker)) {
+                            document.getElementById('paint-access-btn').classList.remove('hidden');
+                        }
+                        
                         renderWorkerTasks();
                     } else {
                         handleLogout();

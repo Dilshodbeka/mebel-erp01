@@ -1185,6 +1185,9 @@
                     <div id="paint-access-btn" class="hidden">
                         <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
                     </div>
+                    <div id="assembly-access-btn" class="hidden">
+                        <button onclick="showAssemblyWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🔧 Сборка</button>
+                    </div>
                     <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
                     <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Выйти</button>
                 </div>
@@ -2026,6 +2029,62 @@ alter table paint_records disable row level security;</pre>
         <div id="pwt-controls" class="wt-controls">
             <button class="btn-blue wt-big-btn" onclick="submitPaintRecord()">✔ Отправить</button>
             <div id="pwt-done-msg" class="hidden wt-done-msg">✅ Записано!</div>
+        </div>
+    </div>
+</div>
+
+<!-- ======== WORKER: ASSEMBLY TERMINAL (reuse paint terminal structure) ======== -->
+<div id="page-assembly-worker" class="hidden">
+    <div class="wt-header">
+        <div class="wt-header-row">
+            <div>
+                <div class="wt-greeting">🔧 Сборка</div>
+                <div class="wt-subtitle" id="awt-subtitle">Выберите заказ</div>
+            </div>
+            <button class="btn-ghost" onclick="resetAssemblyWorkerFlow()" style="color:#fff; border-color:rgba(255,255,255,0.4);">← Назад</button>
+        </div>
+    </div>
+
+    <!-- Выбор заказа -->
+    <div id="awt-order-list" class="card">
+        <div class="wt-section-label">Заказы со сборкой</div>
+        <div id="awt-orders-container" class="wt-task-list"></div>
+    </div>
+
+    <!-- Выбор изделия для сборки -->
+    <div id="awt-item-picker" class="card hidden">
+        <button class="wt-back-btn" onclick="showAwtStep('order')">← К заказам</button>
+        <div class="wt-section-label">Заказ <span id="awt-cur-order"></span></div>
+
+        <div class="wt-section-label" style="margin-top:10px;">Категория изделия</div>
+        <div class="paint-cat-grid" id="awt-cat-grid"></div>
+
+        <div id="awt-items-section" class="hidden">
+            <div class="wt-section-label" style="margin-top:12px;">Выберите изделие для сборки</div>
+            <div class="paint-item-pick" id="awt-item-list"></div>
+        </div>
+    </div>
+
+    <!-- Ввод количества -->
+    <div id="awt-qty-input" class="card hidden">
+        <button class="wt-back-btn" onclick="showAwtStep('item')">← К изделиям</button>
+
+        <div class="wt-active-info">
+            <div class="wt-active-order" id="awt-item-title">Изделие</div>
+            <div class="wt-active-item" id="awt-recipe-preview"></div>
+        </div>
+
+        <div id="awt-shortage-warning" class="hidden" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 14px; font-size:12px; margin-bottom:12px;"></div>
+
+        <div class="paint-qty-controls">
+            <button class="paint-qty-btn" onclick="adjustAssemblyQty(-1)">−</button>
+            <div class="paint-qty-display" id="awt-qty-val">1</div>
+            <button class="paint-qty-btn" onclick="adjustAssemblyQty(1)">+</button>
+        </div>
+
+        <div id="awt-controls" class="wt-controls">
+            <button class="btn-blue wt-big-btn" onclick="submitAssemblyRecord()">✔ Собрать</button>
+            <div id="awt-done-msg" class="hidden wt-done-msg">✅ Собрано!</div>
         </div>
     </div>
 </div>
@@ -3316,6 +3375,12 @@ function workerHasPaintAccess(user) {
     return user.procs.some(p => PAINT_WORKER_TYPES[p]);
 }
 
+// Проверяет, имеет ли воркер доступ к сборке
+function workerHasAssemblyAccess(user) {
+    if (!user || !Array.isArray(user.procs)) return false;
+    return user.procs.some(p => isAssemblyProc(p));
+}
+
 // Определяет, какие stage_key доступны этому воркеру
 function getWorkerPaintStageKeys(user) {
     const allowed = new Set();
@@ -3326,7 +3391,7 @@ function getWorkerPaintStageKeys(user) {
 }
 
 function showPaintWorkerTerminal() {
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker')
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-assembly-worker')
         .forEach(p => p.classList.add('hidden'));
     document.getElementById('page-paint-worker').classList.remove('hidden');
     pwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
@@ -3337,6 +3402,35 @@ function resetPaintWorkerFlow() {
     document.getElementById('page-paint-worker').classList.add('hidden');
     document.getElementById('page-worker-terminal').classList.remove('hidden');
     renderWorkerTasks();
+}
+
+// Assembly worker terminal functions
+let awt = { orderId: null, itemId: null, qty: 1 };
+
+function showAssemblyWorkerTerminal() {
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-assembly-worker')
+        .forEach(p => p.classList.add('hidden'));
+    document.getElementById('page-assembly-worker').classList.remove('hidden');
+    awt = { orderId: null, itemId: null, qty: 1 };
+    showAwtStep('order');
+}
+
+function resetAssemblyWorkerFlow() {
+    document.getElementById('page-assembly-worker').classList.add('hidden');
+    document.getElementById('page-worker-terminal').classList.remove('hidden');
+    renderWorkerTasks();
+}
+
+function showAwtStep(step) {
+    ['order','item','qty'].forEach(s => {
+        const el = document.getElementById(`awt-${s === 'order' ? 'order-list' : s === 'item' ? 'item-picker' : 'qty-input'}`);
+        if (el) el.classList.add('hidden');
+    });
+    const map = { order: 'awt-order-list', item: 'awt-item-picker', qty: 'awt-qty-input' };
+    document.getElementById(map[step])?.classList.remove('hidden');
+    if (step === 'order') renderAwtOrders();
+    if (step === 'item')  renderAwtItems();
+    if (step === 'qty')   renderAwtQty();
 }
 
 function showPwtStep(step) {

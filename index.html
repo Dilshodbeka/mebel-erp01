@@ -1046,6 +1046,17 @@
 
     /* Admin tables -> stacked cards on mobile (CRM, Monitoring) */
     table.mobile-cards thead { display: none; }
+
+    /* Подсказка о возможности прокрутки широких таблиц вбок */
+    .table-wrapper { position: relative; }
+    .table-wrapper::after {
+        content: '⇢';
+        position: sticky; right: 0; float: right;
+        color: var(--text-faint); font-size: 18px;
+        pointer-events: none; opacity: 0.6;
+    }
+    /* Для таблиц-карточек подсказка не нужна — они и так в столбик */
+    .table-wrapper:has(table.mobile-cards)::after { content: none; }
     table.mobile-cards, table.mobile-cards tbody, table.mobile-cards tr, table.mobile-cards td { display: block; width: 100%; }
     table.mobile-cards tr {
         background: #fff;
@@ -1468,6 +1479,17 @@
 
         <!-- Detailed activity list -->
         <div id="detailed-activity-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+        <!-- Скорость процессов -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">⚡ Скорость процессов</h3>
+                <button class="btn-ghost" onclick="renderProcessSpeed()" style="font-size:12px; padding:6px 12px;">↻ Обновить</button>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Сколько времени занимает каждый этап и где заказы простаивают между этапами</p>
+            <div id="proc-speed-summary" style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;"></div>
+            <div id="proc-speed-list"></div>
+        </div>
     </div>
 </div><!-- end page-workers -->
 
@@ -2253,6 +2275,75 @@ alter table sanding_records disable row level security;</pre>
     </div>
 </div>
 <!-- ── МОДАЛЬ: КАРТОЧКА КЛИЕНТА ── -->
+<!-- ── МОДАЛЬ: СБОРКА ГОТОВОГО ИЗДЕЛИЯ ── -->
+<div id="assemble-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px;">
+    <div style="max-width:440px; width:100%; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+        <div style="background:linear-gradient(135deg,#3b27c1,#5446d9); color:#fff; padding:20px 24px;">
+            <div style="font-size:11px; text-transform:uppercase; opacity:0.85; font-weight:700;">🔨 Сборка изделия</div>
+            <div style="font-size:18px; font-weight:900; margin-top:3px;" id="asm-modal-name">—</div>
+        </div>
+        <div style="padding:20px 24px;">
+            <div class="paint-qty-controls" style="margin-top:0;">
+                <button class="paint-qty-btn" onclick="adjustAsmModalQty(-1)">−</button>
+                <div class="paint-qty-display" id="asm-modal-qty">1</div>
+                <button class="paint-qty-btn" onclick="adjustAsmModalQty(1)">+</button>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); text-align:center; margin-bottom:14px;">штук собрать</div>
+
+            <div style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:6px;">Будет списано со склада заготовок</div>
+            <div id="asm-modal-recipe" style="margin-bottom:12px;"></div>
+
+            <div id="asm-modal-warning" class="hidden" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 12px; font-size:12px; margin-bottom:12px;"></div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="btn-ghost" style="flex:1;" onclick="closeAssembleModal()">Отмена</button>
+                <button class="btn-blue" style="flex:1;" onclick="confirmAssemble()">🔨 Собрать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── МОДАЛЬ: РЕДАКТИРОВАНИЕ ЗАКАЗА CRM ── -->
+<div id="crm-edit-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+    <div style="max-width:560px; width:100%; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25); margin:auto;">
+        <div style="background:linear-gradient(135deg,#3b27c1,#5446d9); color:#fff; padding:20px 24px;">
+            <div style="font-size:11px; text-transform:uppercase; opacity:0.85; font-weight:700;">✏️ Изменить заказ</div>
+            <div style="font-size:20px; font-weight:900; margin-top:3px;">№ <span id="crm-edit-oid">—</span></div>
+        </div>
+        <div style="padding:20px 24px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="field-label">Клиент</label><input type="text" id="crm-edit-client" style="margin:0;"></div>
+                <div><label class="field-label">Телефон</label><input type="tel" id="crm-edit-phone" style="margin:0;"></div>
+            </div>
+            <label class="field-label">Изделие</label>
+            <input type="text" id="crm-edit-item" style="margin:0 0 12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="field-label">Сумма</label><input type="number" id="crm-edit-price" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Адрес / локация</label><input type="text" id="crm-edit-loc" style="margin:0;"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="field-label">Дата заказа</label><input type="date" id="crm-edit-date" style="margin:0;"></div>
+                <div><label class="field-label">📅 Дата сдачи</label><input type="date" id="crm-edit-due" style="margin:0;"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="field-label">🛠 Услугчик</label>
+                    <select id="crm-edit-svc-client" style="margin:0;"><option value="">— обычный заказ —</option></select>
+                </div>
+                <div><label class="field-label">Материал</label>
+                    <select id="crm-edit-svc-material" style="margin:0;">
+                        <option value="client">Клиента</option>
+                        <option value="ours">Наш</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:8px;">
+                <button class="btn-ghost" style="flex:1;" onclick="closeCrmEditModal()">Отмена</button>
+                <button class="btn-blue" style="flex:1;" onclick="saveCrmEdit()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── МОДАЛЬ: РЕДАКТИРОВАНИЕ ОПЕРАЦИИ УСЛУГ ── -->
 <div id="svc-edit-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px;">
     <div style="max-width:460px; width:100%; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
@@ -4308,22 +4399,8 @@ async function deleteSandingItem(id, name) {
 }
 
 // Ручная корректировка остатка на мини-складе (например, передали в грунтовку)
-async function sandingStockAdjust(id, type) {
-    const item = sanding_items.find(i => i.id === id);
-    if (!item) return;
-    const qty = parseFloat(prompt(
-        `${type === 'in' ? 'Приход' : 'Списание'} — «${item.name}»\nСейчас на складе: ${item.qty_in_stock} ${item.unit}\nКоличество:`
-    ));
-    if (!qty || qty <= 0) return;
-    const delta = type === 'in' ? qty : -qty;
-    try {
-        await _supabase.from('sanding_items')
-            .update({ qty_in_stock: (item.qty_in_stock || 0) + delta }).eq('id', id);
-        item.qty_in_stock = (item.qty_in_stock || 0) + delta;
-        renderSandingItems();
-        renderSandingKpi();
-        showToast(`${type === 'in' ? '+' : '−'}${qty} ${item.unit} — ${item.name}`);
-    } catch(e) { showToast('Ошибка', 'error'); }
+function sandingStockAdjust(id, type) {
+    openStockMoveModal('sanding', id, type);
 }
 
 function renderSandingKpi() {
@@ -6813,14 +6890,16 @@ function warehouseStockOut(itemId) {
 let _stockMoveState = { kind: null, itemId: null, type: null, item: null };
 
 function openStockMoveModal(kind, itemId, type) {
-    const item = kind === 'warehouse' ? warehouse_items.find(i => i.id === itemId) : blank_items.find(i => i.id === itemId);
+    const item = kind === 'warehouse' ? warehouse_items.find(i => i.id === itemId)
+        : kind === 'sanding' ? sanding_items.find(i => i.id === itemId)
+        : blank_items.find(i => i.id === itemId);
     if (!item) return;
     _stockMoveState = { kind, itemId, type, item };
 
     const header = document.getElementById('stock-move-header');
     const typeLabel = document.getElementById('stock-move-type-label');
     const confirmBtn = document.getElementById('stock-move-confirm-btn');
-    const name = kind === 'warehouse' ? item.name : blankDisplayName(item);
+    const name = (kind === 'warehouse' || kind === 'sanding') ? item.name : blankDisplayName(item);
 
     document.getElementById('stock-move-item-name').innerText = name;
     document.getElementById('stock-move-current-qty').innerText = item.qty_in_stock || 0;
@@ -6885,8 +6964,16 @@ async function confirmStockMove() {
         if (!confirm(`Списываемое количество (${qty}) больше остатка (${item.qty_in_stock}). Продолжить?`)) return;
     }
 
-    const displayName = kind === 'warehouse' ? item.name : blankDisplayName(item);
-    if (kind === 'warehouse') {
+    const displayName = (kind === 'warehouse' || kind === 'sanding') ? item.name : blankDisplayName(item);
+    if (kind === 'sanding') {
+        // Мини-склад шлиповки: корректируем остаток напрямую
+        const delta = type === 'in' ? qty : -qty;
+        await _supabase.from('sanding_items')
+            .update({ qty_in_stock: (item.qty_in_stock || 0) + delta }).eq('id', itemId);
+        item.qty_in_stock = (item.qty_in_stock || 0) + delta;
+        renderSandingItems();
+        renderSandingKpi();
+    } else if (kind === 'warehouse') {
         await logWarehouseMovement(itemId, item.name, type, qty, reason, orderId);
         renderWarehouseItems();
     } else {
@@ -7469,28 +7556,79 @@ function getFnRecipeComponentCount(itemId) {
 }
 
 // ── СБОРКА ──
-async function assembleFinishedItem(itemId) {
+// Модалка вместо prompt(): сразу видно рецепт, что спишется и чего не хватает
+let _asmModal = { itemId: null, qty: 1 };
+
+function assembleFinishedItem(itemId) {
     const item = finished_items.find(i => i.id === itemId);
     if (!item) return;
     const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
     if (!recipe.length) return showToast('Сначала настройте рецепт для этого изделия', 'error');
 
-    const qty = parseFloat(prompt(`Сборка «${item.name}»\nРецепт:\n${recipe.map(r => `— ${r.blank_item_name} × ${r.qty_per_unit}`).join('\n')}\n\nСколько штук собрать:`));
-    if (!qty || qty <= 0) return;
+    _asmModal = { itemId, qty: 1 };
+    document.getElementById('asm-modal-name').innerText = item.name;
+    renderAsmModalBody();
+    document.getElementById('assemble-modal').classList.remove('hidden');
+}
 
-    // Проверяем достаточность заготовок
-    const shortages = [];
-    const consumption = [];
-    recipe.forEach(r => {
+function closeAssembleModal() {
+    document.getElementById('assemble-modal').classList.add('hidden');
+    _asmModal = { itemId: null, qty: 1 };
+}
+
+function adjustAsmModalQty(d) {
+    _asmModal.qty = Math.max(1, _asmModal.qty + d);
+    renderAsmModalBody();
+}
+
+function renderAsmModalBody() {
+    const item = finished_items.find(i => i.id === _asmModal.itemId);
+    if (!item) return;
+    const recipe = finished_recipe.filter(r => r.finished_item_id === _asmModal.itemId);
+    const qty = _asmModal.qty;
+
+    const qtyEl = document.getElementById('asm-modal-qty');
+    if (qtyEl) qtyEl.innerText = qty;
+
+    const rows = recipe.map(r => {
         const blank = blank_items.find(b => b.id === r.blank_item_id);
-        const needed = r.qty_per_unit * qty;
-        consumption.push(`${r.blank_item_name} × ${needed}`);
-        if (!blank || blank.qty_in_stock < needed) {
-            shortages.push(`${r.blank_item_name}: нужно ${needed}, есть ${blank?.qty_in_stock || 0}`);
-        }
+        const need = r.qty_per_unit * qty;
+        const have = blank?.qty_in_stock || 0;
+        const lack = have < need;
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid var(--border-light); font-size:12px;">
+            <span style="${lack?'color:#b91c1c; font-weight:700;':''}">${lack?'⚠ ':''}${r.blank_item_name}</span>
+            <span style="white-space:nowrap;">
+                <b style="color:${lack?'#ef4444':'var(--text)'};">−${need}</b>
+                <span style="color:var(--text-muted); font-size:11px;"> из ${have}</span>
+            </span>
+        </div>`;
+    }).join('');
+
+    const shortages = recipe.filter(r => {
+        const blank = blank_items.find(b => b.id === r.blank_item_id);
+        return (blank?.qty_in_stock || 0) < r.qty_per_unit * qty;
     });
 
-    if (!confirm(`Подтвердите сборку «${item.name}» × ${qty}\n\nБудет списано:\n${consumption.join('\n')}${shortages.length ? '\n\n⚠️ НЕ ХВАТАЕТ:\n'+shortages.join('\n') : ''}`)) return;
+    const body = document.getElementById('asm-modal-recipe');
+    if (body) body.innerHTML = rows;
+
+    const warn = document.getElementById('asm-modal-warning');
+    if (warn) {
+        if (shortages.length) {
+            warn.innerHTML = `⚠️ Не хватает заготовок: ${shortages.length}. Можно собрать, но остаток уйдёт в минус.`;
+            warn.classList.remove('hidden');
+        } else {
+            warn.classList.add('hidden');
+        }
+    }
+}
+
+async function confirmAssemble() {
+    const itemId = _asmModal.itemId;
+    const qty = _asmModal.qty;
+    const item = finished_items.find(i => i.id === itemId);
+    if (!item || qty <= 0) return;
+    const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
 
     // Списываем заготовки
     for (const r of recipe) {
@@ -7504,6 +7642,7 @@ async function assembleFinishedItem(itemId) {
 
     renderBlankItems();
     renderFinishedItems();
+    closeAssembleModal();
     showToast(`✔ Собрано: ${item.name} × ${qty}`);
 }
 
@@ -9116,14 +9255,23 @@ function renderWorkerTasks() {
         );
         const isActive   = task.status === 'active';
         const statusText = isActive ? '● В работе' : 'Ожидает';
+        const dueSt = getOrderDueStatus(task.order.id);
+        const dueChip = dueSt.state === 'overdue'
+            ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800;">⚠️ ${dueSt.label}</span>`
+            : dueSt.state === 'soon'
+            ? `<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800;">⏰ ${dueSt.label}</span>`
+            : '';
 
         const el = document.createElement('div');
         el.className = 'wt-task-card' + (isActive ? ' active' : '');
+        if (dueSt.state === 'overdue') el.style.borderLeftColor = '#ef4444';
+        else if (dueSt.state === 'soon') el.style.borderLeftColor = '#f59e0b';
         el.innerHTML = `
             <div class="wt-task-main">
                 <div class="wt-task-top">
                     <span class="wt-order-num">№ ${task.order.id}</span>
                     <span class="wt-code-chip">${code}</span>
+                    ${dueChip}
                 </div>
                 <div class="wt-task-proc">${task.isPaint ? '🎨 ' : ''}${task.proc}</div>
                 ${crmData?.item ? `<div class="wt-task-item">${crmData.item}</div>` : ''}
@@ -9316,6 +9464,54 @@ function refreshFinishBtnLabel() {
     btnEl.style.background = willComplete ? '#22c55e' : '#3b82f6';
 }
 
+// Отмена ошибочной сдачи объёма.
+// Работник может убрать только свою запись и только пока процесс не закрыт,
+// админ — любую. Всё пишется в журнал активности, чтобы не было тихих правок.
+async function cancelProcEntry(orderId, procName, entryIndex) {
+    const o = orders.find(x => x.id === orderId);
+    if (!o || !o.history || !o.history[procName]) return;
+    const h = o.history[procName];
+    if (!Array.isArray(h.entries) || !h.entries[entryIndex]) return;
+
+    const entry = h.entries[entryIndex];
+    const isAdmin = curUser && curUser.name === 'admin939291';
+
+    if (!isAdmin) {
+        if (entry.worker !== curUser.name) return showToast('Можно отменить только свою сдачу', 'error');
+        if (h.end) return showToast('Процесс уже завершён — обратитесь к администратору', 'error');
+    }
+
+    if (!confirm(`Отменить сдачу ${entry.qty} ${h.unit || 'шт'} (${entry.worker})?`)) return;
+
+    h.entries.splice(entryIndex, 1);
+    const totalDone = getProcDoneQty(h);
+    h.qty_done = totalDone;
+
+    // Если объём стал меньше плана — процесс снова открывается
+    const planned = getProcPlannedQty(h);
+    if (planned && totalDone < planned && h.end) {
+        delete h.end;
+        delete h.completed_by;
+    }
+    if (!h.entries.length && !h.end) {
+        // Совсем ничего не сдано — процесс остаётся начатым, но без объёма
+        h.qty_done = 0;
+    }
+
+    try {
+        const { error } = await _supabase.from('orders').upsert(o);
+        if (error) throw error;
+        await logActivity(curUser.name, 'Отменил сдачу объёма',
+            `Заказ #${orderId}, процесс: ${procName}, снято: ${entry.qty} ${h.unit || 'шт'} (автор: ${entry.worker})`, 'process');
+        showToast(`Сдача ${entry.qty} ${h.unit || 'шт'} отменена`);
+        await loadAllData();
+        if (typeof workerFindOrder === 'function' && curProc === procName) workerFindOrder();
+        if (_monModalOrderId === orderId) renderMonModalSteps();
+    } catch(e) {
+        showToast('Ошибка сети', 'error');
+    }
+}
+
 // Показывает список частичных сдач под полем количества
 function renderPartialEntries(h, unit) {
     let box = document.getElementById('wt-partial-list');
@@ -9330,14 +9526,19 @@ function renderPartialEntries(h, unit) {
     const entries = Array.isArray(h?.entries) ? h.entries : [];
     if (!entries.length) { box.innerHTML = ''; return; }
 
+    const oidNow = (document.getElementById('worker-order-input')?.value || '').trim();
     box.innerHTML = `
         <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:12px;">
             <div style="font-size:11px; font-weight:800; color:#15803d; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Уже сдано по этому процессу</div>
-            ${entries.map(e => {
+            ${entries.map((e, idx) => {
                 const t = e.at ? new Date(e.at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-                return `<div style="display:flex; justify-content:space-between; font-size:12px; padding:3px 0;">
+                const canCancel = !h.end && e.worker === curUser?.name;
+                return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; padding:3px 0; gap:8px;">
                     <span style="color:#166534;">${e.worker || '—'} · ${t}</span>
-                    <b style="color:#15803d;">+${e.qty} ${unit}</b>
+                    <span style="display:flex; align-items:center; gap:8px;">
+                        <b style="color:#15803d;">+${e.qty} ${unit}</b>
+                        ${canCancel ? `<button onclick="cancelProcEntry('${esc(oidNow)}','${esc(curProc)}',${idx})" title="Отменить эту сдачу" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:6px; padding:2px 7px; font-size:11px; font-weight:800; cursor:pointer; min-height:auto;">✖</button>` : ''}
+                    </span>
                 </div>`;
             }).join('')}
         </div>`;
@@ -10230,6 +10431,139 @@ async function renderMyWorkerStats() {
 // ═══════════════════════════════════════════════════════
 // ПЕРЕКЛЮЧЕНИЕ СЕКЦИЙ ПЕРСОНАЛА (Сотрудники / Аналитика)
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// СКОРОСТЬ ПРОЦЕССОВ — где производство теряет время
+// Данные уже собираются (start/end у каждого процесса), просто не показывались.
+// ═══════════════════════════════════════════════════════
+function renderProcessSpeed() {
+    const listEl = document.getElementById('proc-speed-list');
+    const sumEl = document.getElementById('proc-speed-summary');
+    if (!listEl) return;
+
+    const byProc = {};   // время выполнения этапа
+    const idleByProc = {}; // простой ПЕРЕД этапом (ожидание после предыдущего)
+    const byWorkerProc = {}; // «процесс::работник» -> длительности
+
+    orders.forEach(o => {
+        if (!o.path || !o.history) return;
+        let prevEnd = null;
+        o.path.forEach(p => {
+            const h = o.history[p];
+            if (!h) { prevEnd = null; return; }
+
+            // Простой: сколько заказ ждал начала этого этапа после конца предыдущего
+            if (prevEnd && h.start) {
+                const idle = new Date(h.start) - new Date(prevEnd);
+                if (idle > 0) {
+                    if (!idleByProc[p]) idleByProc[p] = [];
+                    idleByProc[p].push(idle);
+                }
+            }
+
+            if (h.start && h.end) {
+                const dur = new Date(h.end) - new Date(h.start);
+                if (dur >= 0) {
+                    if (!byProc[p]) byProc[p] = [];
+                    byProc[p].push(dur);
+
+                    const w = h.completed_by || h.worker;
+                    if (w) {
+                        const key = p + '::' + w;
+                        if (!byWorkerProc[key]) byWorkerProc[key] = [];
+                        byWorkerProc[key].push(dur);
+                    }
+                }
+                prevEnd = h.end;
+            } else {
+                prevEnd = null;
+            }
+        });
+    });
+
+    const procNames = Object.keys(byProc);
+    if (!procNames.length) {
+        if (sumEl) sumEl.innerHTML = '';
+        listEl.innerHTML = '<div style="color:var(--text-muted); text-align:center; padding:24px;">Нет завершённых процессов для анализа</div>';
+        return;
+    }
+
+    const avg = arr => arr.reduce((s,v)=>s+v,0) / arr.length;
+    const stats = procNames.map(p => {
+        const arr = byProc[p];
+        const idleArr = idleByProc[p] || [];
+        return {
+            proc: p,
+            count: arr.length,
+            avg: avg(arr),
+            min: Math.min(...arr),
+            max: Math.max(...arr),
+            idleAvg: idleArr.length ? avg(idleArr) : 0,
+            idleTotal: idleArr.reduce((s,v)=>s+v,0)
+        };
+    }).sort((a,b) => b.avg - a.avg);
+
+    const slowest = stats[0];
+    const mostIdle = [...stats].sort((a,b) => b.idleTotal - a.idleTotal)[0];
+    const totalWork = stats.reduce((s,x) => s + x.avg * x.count, 0);
+    const totalIdle = stats.reduce((s,x) => s + x.idleTotal, 0);
+
+    if (sumEl) {
+        sumEl.innerHTML = `
+            <div class="svc-stat-card" style="flex:1; min-width:150px;">
+                <div class="svc-stat-val" style="font-size:15px;">${slowest.proc}</div>
+                <div class="svc-stat-label">Самый долгий этап · ${formatDuration(slowest.avg)}</div>
+            </div>
+            <div class="svc-stat-card" style="flex:1; min-width:150px;">
+                <div class="svc-stat-val" style="font-size:15px; color:#f59e0b;">${mostIdle && mostIdle.idleTotal ? mostIdle.proc : '—'}</div>
+                <div class="svc-stat-label">Больше всего простоя${mostIdle && mostIdle.idleTotal ? ' · ' + formatDuration(mostIdle.idleTotal) : ''}</div>
+            </div>
+            <div class="svc-stat-card" style="flex:1; min-width:130px;">
+                <div class="svc-stat-val">${formatDuration(totalWork)}</div>
+                <div class="svc-stat-label">Всего в работе</div>
+            </div>
+            <div class="svc-stat-card" style="flex:1; min-width:130px;">
+                <div class="svc-stat-val" style="color:#ef4444;">${formatDuration(totalIdle)}</div>
+                <div class="svc-stat-label">Всего простоя</div>
+            </div>`;
+    }
+
+    const maxAvg = stats[0].avg || 1;
+
+    listEl.innerHTML = stats.map(s => {
+        // Сравнение работников на этом процессе
+        const workers = Object.keys(byWorkerProc)
+            .filter(k => k.startsWith(s.proc + '::'))
+            .map(k => ({ name: k.split('::')[1], avg: avg(byWorkerProc[k]), count: byWorkerProc[k].length }))
+            .sort((a,b) => a.avg - b.avg);
+
+        return `<div style="background:var(--surface); border-radius:14px; padding:14px; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <b style="font-size:14px;">${s.proc}</b>
+                <span style="font-size:12px; color:var(--text-secondary);">${s.count} раз · мин ${formatDuration(s.min)} · макс ${formatDuration(s.max)}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <div style="flex:1; height:10px; background:var(--border-light); border-radius:5px; overflow:hidden;">
+                    <div style="width:${Math.round(s.avg/maxAvg*100)}%; height:100%; background:var(--primary);"></div>
+                </div>
+                <b style="font-size:13px; min-width:80px; text-align:right; color:var(--primary);">${formatDuration(s.avg)}</b>
+            </div>
+            ${s.idleAvg ? `<div style="font-size:11px; color:#f59e0b; font-weight:700;">⏳ Простой перед этапом в среднем: ${formatDuration(s.idleAvg)}</div>` : ''}
+            ${workers.length > 1 ? `
+                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-light);">
+                    <div style="font-size:10px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:5px;">Кто быстрее на этом этапе</div>
+                    ${workers.map((w,i) => `<div style="display:flex; justify-content:space-between; font-size:11px; padding:2px 0;">
+                        <span>${i===0?'🥇 ':''}${w.name} <span style="color:var(--text-muted);">(${w.count})</span></span>
+                        <b style="color:${i===0?'var(--success)':'var(--text-secondary)'};">${formatDuration(w.avg)}</b>
+                    </div>`).join('')}
+                </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// СКОРОСТЬ ПРОЦЕССОВ — конец
+// ═══════════════════════════════════════════════════════
+
 function showPersonnelSection(name) {
     // Hide all sections
     var sections = document.querySelectorAll('#page-workers .wh-section');
@@ -10258,6 +10592,7 @@ function showPersonnelSection(name) {
     // Trigger render on section switch
     if (name === 'analytics') {
         renderDetailedActivity();
+        renderProcessSpeed();
     } else {
         renderPersonnelStats();
     }
@@ -11077,9 +11412,18 @@ function renderMonitor() {
         const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
         const barColor = progress >= 100 ? 'var(--success)' : 'var(--primary)';
 
-        return `<div class="mon-card" onclick="openMonitorOrderModal('${esc(o.id)}')">
+        const due = getOrderDueStatus(o.id);
+        const dueBadge = due.state === 'overdue'
+            ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800; margin-left:6px;">⚠️ ${due.label}</span>`
+            : due.state === 'soon'
+            ? `<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800; margin-left:6px;">⏰ ${due.label}</span>`
+            : '';
+        const cardStyle = due.state === 'overdue' ? 'border-left:4px solid #ef4444;'
+            : due.state === 'soon' ? 'border-left:4px solid #f59e0b;' : '';
+
+        return `<div class="mon-card" style="${cardStyle}" onclick="openMonitorOrderModal('${esc(o.id)}')">
             <div>
-                <div class="mon-card-id">#${o.id}</div>
+                <div class="mon-card-id">#${o.id}${dueBadge}</div>
                 <div class="mon-card-client">${crmData.client || 'Без клиента'}${crmData.due_date ? ' · ' + renderDueDateCell(crmData) : ''}</div>
             </div>
             <div class="mon-card-progress">
@@ -11348,9 +11692,32 @@ function renderMonModalSteps() {
         const detail = status.status === 'done' ? `✔ Завершил: ${h?.completed_by || h?.worker || '—'}`
             : status.status === 'active' ? `● В работе: ${h?.worker || '—'}` : '⏳ Ожидает';
         const cls = status.status === 'done' ? 'done' : status.status === 'active' ? 'active' : '';
-        return `<div class="oc-step-row ${cls}" ${status.status !== 'done' ? `style="cursor:pointer;" onclick="adminCompleteProcess('${esc(order.id)}','${esc(p)}'); setTimeout(()=>{ openMonitorOrderModal('${esc(order.id)}'); setMonModalTab('${_monModalCurrentTab}'); },400);"` : ''}>
-            <div><span class="wt-code-chip">${code}</span> <b style="margin-left:8px;">${p}</b>${qtyInfo}</div>
-            <div style="font-size:12px; color:var(--text-secondary);">${detail}</div>
+
+        // Список частичных сдач с возможностью отмены (админу — любую)
+        const entries = Array.isArray(h?.entries) ? h.entries : [];
+        const entriesHtml = entries.length ? `
+            <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--border-light);">
+                ${entries.map((e, idx) => {
+                    const t = e.at ? new Date(e.at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+                    return `<div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; padding:2px 0; gap:8px;">
+                        <span style="color:var(--text-secondary);">${e.worker || '—'} · ${t}</span>
+                        <span style="display:flex; align-items:center; gap:6px;">
+                            <b style="color:var(--success);">+${e.qty} ${unit}</b>
+                            <button onclick="event.stopPropagation(); cancelProcEntry('${esc(order.id)}','${esc(p)}',${idx})" title="Отменить сдачу" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:800; cursor:pointer; min-height:auto;">✖</button>
+                        </span>
+                    </div>`;
+                }).join('')}
+            </div>` : '';
+
+        return `<div class="oc-step-row ${cls}" style="flex-direction:column; align-items:stretch;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div><span class="wt-code-chip">${code}</span> <b style="margin-left:8px;">${p}</b>${qtyInfo}</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="font-size:12px; color:var(--text-secondary);">${detail}</div>
+                    ${status.status !== 'done' ? `<button class="btn-admin-complete" style="padding:4px 10px; font-size:11px;" onclick="event.stopPropagation(); adminCompleteProcess('${esc(order.id)}','${esc(p)}'); setTimeout(()=>{ openMonitorOrderModal('${esc(order.id)}'); setMonModalTab('${_monModalCurrentTab}'); },400);">✔</button>` : ''}
+                </div>
+            </div>
+            ${entriesHtml}
         </div>`;
     }).join('');
 }
@@ -11389,8 +11756,15 @@ function renderCRM() {
         const svcClient = c.svc_client_id ? svc_clients.find(sc => sc.id == c.svc_client_id) : null;
         const svcBadge  = svcClient ? `<span style="background:var(--primary-container); color:var(--primary); padding:2px 8px; border-radius:8px; font-size:10px; font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); openSvcClientModal(${svcClient.id})">🛠 ${svcClient.name}</span>` : '';
 
+        const due = getOrderDueStatus(c.oid);
+        const rowStyle = due.state === 'overdue'
+            ? 'cursor:pointer; background:#fef2f2; border-left:4px solid #ef4444;'
+            : due.state === 'soon'
+            ? 'cursor:pointer; background:#fffbeb; border-left:4px solid #f59e0b;'
+            : 'cursor:pointer;';
+
         return `
-        <tr style="cursor:pointer;" onclick="copyToProduction('${esc(c.oid)}')">
+        <tr style="${rowStyle}" onclick="copyToProduction('${esc(c.oid)}')">
             <td data-label="№">#${c.oid}</td>
             <td data-label="Клиент">
                 <div style="font-weight:600;">${c.client || '-'} ${telegramBadge} ${svcBadge}</div>
@@ -11404,6 +11778,7 @@ function renderCRM() {
             <td data-label="Telegram">${hasTelegram ? '✅' : '—'}</td>
             <td data-label="Действия">
                 <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    <button class="btn-ghost" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openCrmEditModal('${esc(c.oid)}')">✏️</button>
                     <button class="btn-green" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openOrderCalc('${esc(c.oid)}')">🧮</button>
                     <button class="btn-red" onclick="event.stopPropagation(); delCRM('${esc(c.oid)}')">✖</button>
                 </div>
@@ -11413,6 +11788,25 @@ function renderCRM() {
 }
 
 // Ячейка даты сдачи с подсветкой просрочки
+// Единый расчёт статуса срока по заказу (срок задаётся на весь заказ в CRM)
+// Возвращает: {state:'none'|'ok'|'soon'|'overdue', days, label, color, icon}
+function getOrderDueStatus(orderId) {
+    const c = crm_orders.find(x => x.oid === orderId);
+    if (!c || !c.due_date) return { state: 'none', days: 0, label: '', color: '#94a3b8', icon: '' };
+
+    const order = orders.find(o => o.id === orderId);
+    const isFinished = order ? isOrderFinished(order) : false;
+    const due = new Date(c.due_date); due.setHours(0,0,0,0);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const days = Math.round((due - today) / 86400000);
+
+    if (isFinished) return { state: 'ok', days, label: 'Сдан', color: '#16a34a', icon: '✔' };
+    if (days < 0)   return { state: 'overdue', days: -days, label: `Просрочен на ${-days} дн.`, color: '#ef4444', icon: '⚠️' };
+    if (days === 0) return { state: 'soon', days: 0, label: 'Срок сегодня', color: '#f59e0b', icon: '⏰' };
+    if (days <= 2)  return { state: 'soon', days, label: `Осталось ${days} дн.`, color: '#f59e0b', icon: '⏰' };
+    return { state: 'ok', days, label: `Осталось ${days} дн.`, color: '#64748b', icon: '' };
+}
+
 function renderDueDateCell(c) {
     if (!c.due_date) return '<span style="color:#cbd5e1;">—</span>';
     const isFinished = isOrderFinished(orders.find(o => o.id === c.oid) || {});
@@ -11907,6 +12301,75 @@ async function delO(id) {
         await _supabase.from('orders').delete().eq('id', id);
         await loadAllData(); 
     } 
+}
+
+// ── РЕДАКТИРОВАНИЕ ЗАКАЗА CRM ──────────────────────────────
+// Раньше исправить опечатку в заказе было нельзя — только удалить и завести заново,
+// теряя привязку к производству и услугам.
+let _crmEditOid = null;
+
+function openCrmEditModal(oid) {
+    const c = crm_orders.find(x => x.oid === oid);
+    if (!c) return;
+    _crmEditOid = oid;
+
+    document.getElementById('crm-edit-oid').innerText = oid;
+    document.getElementById('crm-edit-client').value = c.client || '';
+    document.getElementById('crm-edit-phone').value = c.phone || '';
+    document.getElementById('crm-edit-item').value = c.item || '';
+    document.getElementById('crm-edit-price').value = c.price || '';
+    document.getElementById('crm-edit-loc').value = c.loc || '';
+    document.getElementById('crm-edit-date').value = c.date || '';
+    document.getElementById('crm-edit-due').value = c.due_date || '';
+
+    const svcSel = document.getElementById('crm-edit-svc-client');
+    svcSel.innerHTML = '<option value="">— обычный заказ —</option>' +
+        svc_clients.map(sc => `<option value="${sc.id}" ${String(sc.id)===String(c.svc_client_id)?'selected':''}>${sc.name}</option>`).join('');
+    document.getElementById('crm-edit-svc-material').value = c.svc_material || 'client';
+
+    document.getElementById('crm-edit-modal').classList.remove('hidden');
+}
+
+function closeCrmEditModal() {
+    document.getElementById('crm-edit-modal').classList.add('hidden');
+    _crmEditOid = null;
+}
+
+async function saveCrmEdit() {
+    if (!_crmEditOid) return;
+    const client = document.getElementById('crm-edit-client').value.trim();
+    if (!client) return showToast('Укажите клиента', 'error');
+
+    const svcId = document.getElementById('crm-edit-svc-client').value;
+    const payload = {
+        client,
+        phone: document.getElementById('crm-edit-phone').value.trim(),
+        item: document.getElementById('crm-edit-item').value.trim(),
+        price: parseFloat(document.getElementById('crm-edit-price').value) || 0,
+        loc: document.getElementById('crm-edit-loc').value.trim(),
+        date: document.getElementById('crm-edit-date').value || null,
+        due_date: document.getElementById('crm-edit-due').value || null,
+        svc_client_id: svcId ? parseInt(svcId) : null,
+        svc_material: document.getElementById('crm-edit-svc-material').value
+    };
+
+    try {
+        let { error } = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
+        if (error && /svc_client_id|svc_material|due_date/.test(error.message || '')) {
+            // Каких-то колонок может не быть в таблице — сохраняем основное
+            delete payload.svc_client_id; delete payload.svc_material; delete payload.due_date;
+            const retry = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
+            error = retry.error;
+        }
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+
+        await logActivity(curUser.name, 'Изменил заказ CRM', `Заказ #${_crmEditOid}, клиент: ${client}`, 'crm');
+        closeCrmEditModal();
+        await loadAllData();
+        showToast(`Заказ №${_crmEditOid} обновлён`);
+    } catch(e) {
+        showToast('Ошибка сети', 'error');
+    }
 }
 
 async function delCRM(id) { 
@@ -12416,13 +12879,27 @@ function createKanbanCard(order) {
         const paddingCard = tvMode ? '6px' : '10px';
         const progressHeight = tvMode ? '3px' : '5px';
         
+        const dueSt = getOrderDueStatus(order.id);
+        const dueBorder = dueSt.state === 'overdue' ? 'border-left:4px solid #ef4444 !important;'
+            : dueSt.state === 'soon' ? 'border-left:4px solid #f59e0b !important;' : '';
+
         return `
             <div class="${cardClass}" 
                  data-order-id="${order.id}"
                  draggable="true"
                  ondragstart="startDrag(event)"
                  ondragend="endDrag(event)"
-                 style="padding: ${paddingCard} !important;">
+                 style="padding: ${paddingCard} !important; ${dueBorder}">
+
+                ${dueSt.state === 'overdue' ? `
+                    <div style="background:#fee2e2; color:#991b1b; font-size:${tvMode ? '9px' : '10px'}; font-weight:900; padding:2px 6px; border-radius:6px; margin-bottom:4px; display:inline-block;">
+                        ⚠️ ${dueSt.label}
+                    </div>
+                ` : dueSt.state === 'soon' ? `
+                    <div style="background:#fef3c7; color:#92400e; font-size:${tvMode ? '9px' : '10px'}; font-weight:900; padding:2px 6px; border-radius:6px; margin-bottom:4px; display:inline-block;">
+                        ⏰ ${dueSt.label}
+                    </div>
+                ` : ''}
                 
                 ${isDelayed ? `
                     <div class="kanban-card-duration" style="

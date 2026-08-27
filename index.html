@@ -1630,21 +1630,8 @@
                     <input type="date" id="crm-due-date">
                 </div>
                 <div>
-                    <label class="field-label">🛠 Услугчик (необязательно)</label>
-                    <select id="crm-svc-client">
-                        <option value="">— обычный заказ —</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="field-label">Материал</label>
-                    <select id="crm-svc-material">
-                        <option value="client">Клиента</option>
-                        <option value="ours">Наш</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="field-label">Кол-во (для автосписания в Услуги)</label>
-                    <input type="number" id="crm-svc-qty" placeholder="1" min="0" step="0.01" value="1">
+                    <label class="field-label">Количество (шт)</label>
+                    <input type="number" id="crm-qty" placeholder="1" min="1" step="1" value="1">
                 </div>
             </div>
             <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
@@ -2297,7 +2284,7 @@ alter table sanding_records disable row level security;</pre>
 
             <div style="display:flex; gap:10px;">
                 <button class="btn-ghost" style="flex:1;" onclick="closeAssembleModal()">Отмена</button>
-                <button class="btn-blue" style="flex:1;" onclick="confirmAssemble()">🔨 Собрать</button>
+                <button class="btn-blue" id="asm-modal-confirm-btn" style="flex:1;" onclick="confirmAssemble()">🔨 Собрать</button>
             </div>
         </div>
     </div>
@@ -2325,16 +2312,9 @@ alter table sanding_records disable row level security;</pre>
                 <div><label class="field-label">Дата заказа</label><input type="date" id="crm-edit-date" style="margin:0;"></div>
                 <div><label class="field-label">📅 Дата сдачи</label><input type="date" id="crm-edit-due" style="margin:0;"></div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div><label class="field-label">🛠 Услугчик</label>
-                    <select id="crm-edit-svc-client" style="margin:0;"><option value="">— обычный заказ —</option></select>
-                </div>
-                <div><label class="field-label">Материал</label>
-                    <select id="crm-edit-svc-material" style="margin:0;">
-                        <option value="client">Клиента</option>
-                        <option value="ours">Наш</option>
-                    </select>
-                </div>
+            <div>
+                <label class="field-label">Количество (шт)</label>
+                <input type="number" id="crm-edit-qty" min="1" step="1" style="margin:0;">
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button class="btn-ghost" style="flex:1;" onclick="closeCrmEditModal()">Отмена</button>
@@ -3377,22 +3357,25 @@ function findProcessByCode(code) {
 // --- PAINT SYSTEM ---
 
 // Последовательность этапов покраски
+// Последовательность этапов покрасочного цикла для заказа:
+// шлиповка 1 → грунтовка 1 → шлиповка 2 → грунтовка 2 → шлиповка 3 → краска
+// Этапы идут строго по очереди: следующий доступен только после завершения предыдущего.
 const PAINT_STAGES_DEF = [
     { key: 'шлиф_1',  label: 'Шлиповка 1',  type: 'шлиповка' },
     { key: 'грунт_1', label: 'Грунтовка 1', type: 'грунтовка' },
     { key: 'шлиф_2',  label: 'Шлиповка 2',  type: 'шлиповка' },
     { key: 'грунт_2', label: 'Грунтовка 2', type: 'грунтовка' },
-    { key: 'краска_1',label: 'Краска 1',    type: 'краска' },
-    { key: 'краска_2',label: 'Краска 2',    type: 'краска' },
+    { key: 'шлиф_3',  label: 'Шлиповка 3',  type: 'шлиповка' },
+    { key: 'краска_1',label: 'Краска',      type: 'краска' },
 ];
 
 // Работник видит только этапы своего типа.
 // Ключи в нижнем регистре — доступ определяется независимо от того, как записан процесс
 // ("краска" в маршруте заказа и "Краска" в правах сотрудника — это одно и то же).
 const PAINT_WORKER_TYPES_RAW = {
-    'шлиповка':  ['шлиф_1', 'шлиф_2'],
+    'шлиповка':  ['шлиф_1', 'шлиф_2', 'шлиф_3'],
     'грунтовка': ['грунт_1', 'грунт_2'],
-    'краска':    ['краска_1', 'краска_2'],
+    'краска':    ['краска_1'],
 };
 const PAINT_WORKER_TYPES = new Proxy(PAINT_WORKER_TYPES_RAW, {
     get(target, prop) {
@@ -3724,10 +3707,53 @@ function selectPwtOrder(orderId) {
 
 function isStageActive(stageKey, cfg) {
     const layers = cfg?.layers ?? 2;
-    const coats  = cfg?.coats  ?? 2;
+    // Второй круг шлиповки+грунтовки выполняется только если задано 2 слоя
     if (stageKey === 'шлиф_2' || stageKey === 'грунт_2') return layers >= 2;
-    if (stageKey === 'краска_2') return coats >= 2;
     return true;
+}
+
+// Сколько всего изделий в заказе нужно обработать на каждом этапе
+function getPaintOrderTotalQty(orderId) {
+    return paint_order_items
+        .filter(i => i.order_id === orderId)
+        .reduce((s, i) => s + (Number(i.qty) || 0), 0);
+}
+
+// Сколько уже сделано на конкретном этапе
+function getPaintStageDoneQty(orderId, stageKey) {
+    return paint_records
+        .filter(r => r.order_id === orderId && r.stage_key === stageKey)
+        .reduce((s, r) => s + (Number(r.qty_done) || 0), 0);
+}
+
+// Этап завершён, когда обработаны все изделия заказа
+function isPaintStageDone(orderId, stageKey) {
+    const total = getPaintOrderTotalQty(orderId);
+    if (!total) return false;
+    return getPaintStageDoneQty(orderId, stageKey) >= total;
+}
+
+// Этапы идут строго по очереди: шлиповка 1 → грунтовка 1 → шлиповка 2 →
+// грунтовка 2 → шлиповка 3 → краска. Этап открыт только когда все предыдущие
+// (из тех, что не пропущены настройкой слоёв) полностью завершены.
+function isPaintStageUnlocked(orderId, stageKey, cfg) {
+    const idx = PAINT_STAGES_DEF.findIndex(s => s.key === stageKey);
+    if (idx <= 0) return true;
+    for (let i = 0; i < idx; i++) {
+        const prev = PAINT_STAGES_DEF[i];
+        if (!isStageActive(prev.key, cfg)) continue; // пропущенные слои не блокируют
+        if (!isPaintStageDone(orderId, prev.key)) return false;
+    }
+    return true;
+}
+
+// Возвращает название этапа, который сейчас нужно выполнить по заказу
+function getCurrentPaintStage(orderId, cfg) {
+    for (const s of PAINT_STAGES_DEF) {
+        if (!isStageActive(s.key, cfg)) continue;
+        if (!isPaintStageDone(orderId, s.key)) return s;
+    }
+    return null;
 }
 
 function renderPwtStages() {
@@ -3741,10 +3767,21 @@ function renderPwtStages() {
         if (!active) {
             return `<div class="paint-stage-btn skipped" title="Этот слой пропускается">${s.label}<br><small>пропущен</small></div>`;
         }
-        const recs = paint_records.filter(r => r.order_id === pwt.orderId && r.stage_key === s.key);
-        const doneQty = recs.reduce((sum,r) => sum + (r.qty_done||0), 0);
-        const totalQty = paint_order_items.filter(i => i.order_id === pwt.orderId).reduce((s,i)=>s+i.qty,0);
+        const doneQty = getPaintStageDoneQty(pwt.orderId, s.key);
+        const totalQty = getPaintOrderTotalQty(pwt.orderId);
         const isDone = doneQty >= totalQty && totalQty > 0;
+        const unlocked = isPaintStageUnlocked(pwt.orderId, s.key, cfg);
+
+        // Пока предыдущий этап не закончен — этот брать нельзя
+        if (!unlocked) {
+            const cur = getCurrentPaintStage(pwt.orderId, cfg);
+            return `<div class="paint-stage-btn" style="opacity:0.45; cursor:not-allowed; background:#f1f5f9; color:#94a3b8;"
+                 title="Сначала завершите: ${cur ? cur.label : 'предыдущий этап'}">
+                🔒 ${s.label}
+                <div style="font-size:10px; margin-top:4px; font-weight:400;">ждёт ${cur ? cur.label : ''}</div>
+            </div>`;
+        }
+
         return `<div class="paint-stage-btn ${isDone?'done':''}" onclick="selectPwtStage('${s.key}', '${s.label}')">
             ${s.label}
             <div style="font-size:11px; margin-top:4px; font-weight:400; opacity:0.8;">${doneQty}/${totalQty} шт</div>
@@ -4181,6 +4218,17 @@ function renderInlinePaintStages(orderId) {
             const pct    = totalPerStage > 0 ? Math.min(100, Math.round(done/totalPerStage*100)) : 0;
             const isDone = done >= totalPerStage && totalPerStage > 0;
             const act    = s.key === ipt.stageKey;
+            const unlocked = isPaintStageUnlocked(orderId, s.key, cfg);
+
+            // Этап ещё не открыт — предыдущий по цепочке не завершён
+            if (!unlocked) {
+                const cur = getCurrentPaintStage(orderId, cfg);
+                return `<div title="Сначала завершите: ${cur ? cur.label : 'предыдущий этап'}" style="text-align:center;min-width:74px;padding:9px 7px;border-radius:11px;border:2px solid #e2e8f0;background:#f8fafc;opacity:0.5;cursor:not-allowed;flex:1;">
+                    <div style="font-size:11px;font-weight:800;color:#94a3b8;">🔒 ${s.label}</div>
+                    <div style="font-size:9px;font-weight:600;color:#cbd5e1;margin-top:5px;">ждёт очереди</div>
+                </div>`;
+            }
+
             const bord   = act ? 'var(--primary)' : isDone ? '#16a34a' : '#e2e8f0';
             const bg     = act ? '#eef2ff' : isDone ? '#ecfdf5' : '#fff';
             const col    = act ? 'var(--primary)' : isDone ? '#16a34a' : '#64748b';
@@ -4197,7 +4245,9 @@ function renderInlinePaintStages(orderId) {
     window._refreshInlineStageChips = draw;
 
     if (!ipt.stageKey) {
-        const next = myStages.find(s => stageDone(orderId, s.key) < totalPerStage);
+        // Автоматически выбираем первый доступный (открытый и незавершённый) этап
+        const next = myStages.find(s =>
+            stageDone(orderId, s.key) < totalPerStage && isPaintStageUnlocked(orderId, s.key, cfg));
         if (next) selectInlineStage(next.key, next.label);
         else {
             const cur = document.getElementById('paint-inline-cur-stage');
@@ -4294,6 +4344,15 @@ function adjustInlineQty(delta) {
 
 async function submitInlinePaint() {
     if (ipt.qty < 1) return showToast('Введите количество больше 0', 'error');
+
+    // Страховка от обхода очерёдности (например, если экран открыт давно
+    // и за это время другой работник изменил состояние заказа)
+    const cfgChk = paint_order_layers[ipt.orderId] || { layers: 2, coats: 2 };
+    if (!isPaintStageUnlocked(ipt.orderId, ipt.stageKey, cfgChk)) {
+        const cur = getCurrentPaintStage(ipt.orderId, cfgChk);
+        return showToast(`Сначала нужно завершить: ${cur ? cur.label : 'предыдущий этап'}`, 'error');
+    }
+
     try {
         const cat = paint_order_items.find(i => i.item_name === ipt.itemName);
         const rec = { order_id:ipt.orderId, stage_key:ipt.stageKey, category:cat?.category||'',
@@ -7613,13 +7672,28 @@ function renderAsmModalBody() {
     if (body) body.innerHTML = rows;
 
     const warn = document.getElementById('asm-modal-warning');
+    const btn = document.getElementById('asm-modal-confirm-btn');
     if (warn) {
         if (shortages.length) {
-            warn.innerHTML = `⚠️ Не хватает заготовок: ${shortages.length}. Можно собрать, но остаток уйдёт в минус.`;
+            const details = shortages.map(r => {
+                const blank = blank_items.find(b => b.id === r.blank_item_id);
+                const need = r.qty_per_unit * qty;
+                const have = blank?.qty_in_stock || 0;
+                return `${r.blank_item_name}: нужно ${need}, есть ${have} (не хватает ${need - have})`;
+            }).join('<br>');
+            warn.innerHTML = `<b>⛔ Не хватает заготовок — собрать нельзя:</b><br>${details}<br><br>
+                <span style="font-size:11px;">Оприходуйте заготовки на складе, затем повторите сборку.</span>`;
             warn.classList.remove('hidden');
         } else {
             warn.classList.add('hidden');
         }
+    }
+    // Кнопка блокируется, пока заготовок не хватает
+    if (btn) {
+        btn.disabled = shortages.length > 0;
+        btn.style.opacity = shortages.length ? '0.45' : '1';
+        btn.style.cursor = shortages.length ? 'not-allowed' : 'pointer';
+        btn.innerText = shortages.length ? '⛔ Недостаточно заготовок' : '🔨 Собрать';
     }
 }
 
@@ -7629,6 +7703,15 @@ async function confirmAssemble() {
     const item = finished_items.find(i => i.id === itemId);
     if (!item || qty <= 0) return;
     const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
+
+    // Страховка: не собираем, если заготовок не хватает
+    const lack = recipe.filter(r => {
+        const blank = blank_items.find(b => b.id === r.blank_item_id);
+        return (blank?.qty_in_stock || 0) < r.qty_per_unit * qty;
+    });
+    if (lack.length) {
+        return showToast(`Не хватает заготовок: ${lack.map(r => r.blank_item_name).join(', ')}`, 'error');
+    }
 
     // Списываем заготовки
     for (const r of recipe) {
@@ -11770,7 +11853,7 @@ function renderCRM() {
                 <div style="font-weight:600;">${c.client || '-'} ${telegramBadge} ${svcBadge}</div>
                 ${c.phone ? `<div style="font-size:12px; color:var(--text-secondary);">${c.phone}</div>` : ''}
             </td>
-            <td data-label="Изделие">${c.item || '-'}</td>
+            <td data-label="Изделие">${c.item || '-'}${(c.qty && c.qty > 1) ? ` <span class="wh-tag">× ${c.qty} шт</span>` : ''}</td>
             <td data-label="Сумма">${formatMoney(c.price)}</td>
             <td data-label="Дата" style="font-size:12px; white-space:nowrap;">${c.date || '-'}</td>
             <td data-label="Сдача" style="font-size:12px; white-space:nowrap;">${renderDueDateCell(c)}</td>
@@ -11922,9 +12005,7 @@ function autoFillSvcOrderNumber() {
 async function saveCRM() {
     const oid    = document.getElementById('crm-oid').value.trim();
     const client = document.getElementById('crm-client-select').value || document.getElementById('crm-client').value.trim();
-    const svcClientId  = document.getElementById('crm-svc-client')?.value  || null;
-    const svcMaterial  = document.getElementById('crm-svc-material')?.value || 'client';
-    const svcQty       = parseFloat(document.getElementById('crm-svc-qty')?.value) || 1;
+    const qty    = parseInt(document.getElementById('crm-qty')?.value) || 1;
     
     if(!oid) return showToast("Введите №", "error");
     if(!client) return showToast("Укажите клиента", "error");
@@ -11938,26 +12019,22 @@ async function saveCRM() {
             loc:         document.getElementById('crm-loc').value.trim(),
             date:        document.getElementById('crm-date').value || null,
             due_date:    document.getElementById('crm-due-date')?.value || null,
-            svc_client_id: svcClientId ? parseInt(svcClientId) : null,
-            svc_material:  svcMaterial,
-            svc_qty:       svcQty
+            qty
         };
         let { error: crmSaveErr } = await _supabase.from('crm_orders').upsert(crmPayload);
-        if (crmSaveErr && /svc_qty|svc_material|svc_client_id/.test(crmSaveErr.message || '')) {
-            // В таблице ещё нет новых колонок — сохраняем без них, чтобы не блокировать создание заказа
-            delete crmPayload.svc_qty; delete crmPayload.svc_material; delete crmPayload.svc_client_id;
+        if (crmSaveErr && /qty/.test(crmSaveErr.message || '')) {
+            // Колонки qty ещё нет в таблице — сохраняем без неё, чтобы не блокировать создание заказа
+            delete crmPayload.qty;
             await _supabase.from('crm_orders').upsert(crmPayload);
-            showToast('Заказ сохранён, но привязка к услугчику требует новых колонок в таблице crm_orders (svc_client_id, svc_material, svc_qty)', 'error');
+            showToast('Заказ сохранён. Чтобы работало количество, добавьте колонку qty в таблицу crm_orders', 'error');
         }
         
         await logActivity(curUser.name, 'Создал заказ CRM', 
-            `Заказ #${oid}, клиент: ${client}${svcClientId ? ', услугчик привязан' : ''}`, 'crm');
+            `Заказ #${oid}, клиент: ${client}, кол-во: ${qty}`, 'crm');
             
         ['crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
         const csc=document.getElementById('crm-client-select'); if(csc) csc.value='';
-        const css=document.getElementById('crm-svc-client'); if(css) css.value='';
-        const csm=document.getElementById('crm-svc-material'); if(csm) csm.value='client';
-        const csq=document.getElementById('crm-svc-qty'); if(csq) csq.value='1';
+        const cq=document.getElementById('crm-qty'); if(cq) cq.value='1';
         setCRMDateDefault();
         autoFillCRMOrderNumber();
         
@@ -12322,10 +12399,7 @@ function openCrmEditModal(oid) {
     document.getElementById('crm-edit-date').value = c.date || '';
     document.getElementById('crm-edit-due').value = c.due_date || '';
 
-    const svcSel = document.getElementById('crm-edit-svc-client');
-    svcSel.innerHTML = '<option value="">— обычный заказ —</option>' +
-        svc_clients.map(sc => `<option value="${sc.id}" ${String(sc.id)===String(c.svc_client_id)?'selected':''}>${sc.name}</option>`).join('');
-    document.getElementById('crm-edit-svc-material').value = c.svc_material || 'client';
+    document.getElementById('crm-edit-qty').value = c.qty || 1;
 
     document.getElementById('crm-edit-modal').classList.remove('hidden');
 }
@@ -12340,7 +12414,6 @@ async function saveCrmEdit() {
     const client = document.getElementById('crm-edit-client').value.trim();
     if (!client) return showToast('Укажите клиента', 'error');
 
-    const svcId = document.getElementById('crm-edit-svc-client').value;
     const payload = {
         client,
         phone: document.getElementById('crm-edit-phone').value.trim(),
@@ -12349,15 +12422,14 @@ async function saveCrmEdit() {
         loc: document.getElementById('crm-edit-loc').value.trim(),
         date: document.getElementById('crm-edit-date').value || null,
         due_date: document.getElementById('crm-edit-due').value || null,
-        svc_client_id: svcId ? parseInt(svcId) : null,
-        svc_material: document.getElementById('crm-edit-svc-material').value
+        qty: parseInt(document.getElementById('crm-edit-qty').value) || 1
     };
 
     try {
         let { error } = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
-        if (error && /svc_client_id|svc_material|due_date/.test(error.message || '')) {
+        if (error && /qty|due_date/.test(error.message || '')) {
             // Каких-то колонок может не быть в таблице — сохраняем основное
-            delete payload.svc_client_id; delete payload.svc_material; delete payload.due_date;
+            delete payload.qty; delete payload.due_date;
             const retry = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
             error = retry.error;
         }

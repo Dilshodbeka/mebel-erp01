@@ -1147,7 +1147,12 @@
     
     <div style="display: flex; gap: 10px; align-items:center;" class="nav-right-desktop">
         <button class="btn-ghost hidden" id="pwa-install-btn-desktop" onclick="installPwaApp()">📲 Установить</button>
-        <button class="btn-red hidden" id="logout-btn" onclick="handleLogout()">Выйти</button>
+    </div>
+
+    <!-- Профиль и выход — видны всегда, включая мобильный -->
+    <div id="nav-user-box" class="hidden" style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+        <span id="nav-user-name" style="font-size:12px; font-weight:700; color:var(--text-secondary); background:var(--surface-container); padding:6px 10px; border-radius:10px; white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis;"></span>
+        <button class="btn-red" id="logout-btn" onclick="handleLogout()" style="padding:8px 14px; font-size:13px;">Выйти</button>
     </div>
 </nav>
 
@@ -1169,6 +1174,13 @@
         <input type="text" id="login-input" placeholder="Введите логин" autocomplete="off" onkeypress="if(event.key==='Enter') handleLogin()">
         <button class="btn-blue" style="width: 100%; padding: 14px;" onclick="handleLogin()">Войти</button>
     </div>
+    <script>
+        // Если сессия сохранена — прячем форму логина сразу, ещё до загрузки данных,
+        // чтобы она не мелькала перед автоматическим входом
+        if (localStorage.getItem('erp_user')) {
+            document.getElementById('page-login')?.classList.add('hidden');
+        }
+    </script>
 
     <!-- WORKER TERMINAL -->
     <div id="page-worker-terminal" class="hidden">
@@ -1187,7 +1199,6 @@
                         <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
                     </div>
                     <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
-                    <button onclick="handleLogout()" style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.35); color:#fff; border-radius:10px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer;">Выйти</button>
                 </div>
             </div>
         </div>
@@ -4585,7 +4596,54 @@ function renderInlineSanding() {
                 <b style="color:#15803d;">+${r.qty_done}</b>
             </div>`).join('')}
         </div>` : ''}
+
+        <div style="margin-top:16px; padding-top:14px; border-top:1px dashed var(--border);">
+            <div style="font-size:12px; color:var(--text-secondary); margin-bottom:8px; text-align:center;">
+                Когда шлиповка по заказу №${sdt.orderId || '—'} полностью закончена
+            </div>
+            <button class="btn-green wt-big-btn" onclick="finishSandingProcess()">✔ ЗАВЕРШИТЬ ШЛИПОВКУ ПО ЗАКАЗУ</button>
+        </div>
     `;
+}
+
+// Закрывает процесс «Шлиповка» в заказе — иначе задача висела бы у работника бесконечно,
+// так как отдельные сдачи деталей не проставляют end процессу
+async function finishSandingProcess() {
+    const oid = sdt.orderId;
+    const o = orders.find(x => x.id === oid);
+    if (!o) return showToast('Заказ не найден', 'error');
+
+    const procName = (o.path || []).find(p => isSandingProc(p)) || 'Шлиповка';
+    if (!o.history) o.history = {};
+    if (!o.history[procName]) o.history[procName] = {};
+    const h = o.history[procName];
+    if (h.end) return showToast('Процесс уже завершён', 'error');
+
+    if (!confirm(`Завершить шлиповку по заказу №${oid}?`)) return;
+
+    const now = new Date().toISOString();
+    if (!h.start) { h.start = now; h.worker = curUser.name; }
+    h.end = now;
+    h.completed_by = curUser.name;
+    h.unit = 'шт';
+
+    // Считаем, сколько всего деталей отшлифовано по этому заказу
+    const doneForOrder = sanding_records
+        .filter(r => r.order_id === oid)
+        .reduce((s, r) => s + (Number(r.qty_done) || 0), 0);
+    if (doneForOrder) h.qty_done = doneForOrder;
+
+    try {
+        const { error } = await _supabase.from('orders').upsert(o);
+        if (error) throw error;
+        await logActivity(curUser.name, 'Завершил процесс',
+            `Заказ #${oid}, процесс: ${procName}, деталей: ${doneForOrder}`, 'process');
+        showToast(`✔ Шлиповка по заказу №${oid} завершена`);
+        await loadAllData();
+        resetWorkerFlow();
+    } catch(e) {
+        showToast('Ошибка сети', 'error');
+    }
 }
 
 function selectSandingItem(id) { sdt.itemId = id; sdt.qty = 1; renderInlineSanding(); }
@@ -4611,6 +4669,23 @@ async function submitSanding() {
 
         await logActivity(curUser.name, 'Шлиповка',
             `${item.name} × ${sdt.qty}${sdt.orderId ? `, заказ #${sdt.orderId}` : ''}`, 'process');
+
+        // Помечаем процесс начатым, чтобы в Мониторинге и Kanban он не висел как «Ожидает»
+        if (sdt.orderId) {
+            const o = orders.find(x => x.id === sdt.orderId);
+            if (o) {
+                const procName = (o.path || []).find(p => isSandingProc(p));
+                if (procName) {
+                    if (!o.history) o.history = {};
+                    if (!o.history[procName]) o.history[procName] = {};
+                    if (!o.history[procName].start) {
+                        o.history[procName].start = new Date().toISOString();
+                        o.history[procName].worker = curUser.name;
+                        try { await _supabase.from('orders').upsert(o); } catch(e) { /* не критично */ }
+                    }
+                }
+            }
+        }
 
         showToast(`✅ Записано: ${item.name} — ${sdt.qty} ${item.unit}`);
         sdt.itemId = null; sdt.qty = 1;
@@ -8563,14 +8638,16 @@ function getOrderStatus(order, processName) {
 // --- DATA LOADING ---
 async function loadAllData() {
     try {
-        const [wRes, oRes, cRes, svcClRes, svcTxRes, whRes, blRes] = await Promise.all([
+        const [wRes, oRes, cRes, svcClRes, svcTxRes, whRes, blRes, sdItRes, sdRecRes] = await Promise.all([
             _supabase.from('workers').select('*'),
             _supabase.from('orders').select('*'),
             _supabase.from('crm_orders').select('*'),
             _supabase.from('svc_clients').select('*'),
             _supabase.from('svc_transactions').select('*'),
             _supabase.from('warehouse_items').select('*'),
-            _supabase.from('blank_items').select('*')
+            _supabase.from('blank_items').select('*'),
+            _supabase.from('sanding_items').select('*'),
+            _supabase.from('sanding_records').select('*').order('created_at', { ascending: false }).limit(500)
         ]);
 
         // Обновляем кеш услугчиков и склада для дашборда/алертов, даже если разделы Услуги/Склад ещё не открывали
@@ -8578,6 +8655,9 @@ async function loadAllData() {
         if (!svcTxRes.error) svc_transactions = svcTxRes.data || [];
         if (!whRes.error) warehouse_items = whRes.data || [];
         if (!blRes.error) blank_items = blRes.data || [];
+        // Данные шлиповки нужны для статистики персонала и терминала работника
+        if (!sdItRes.error) sanding_items = sdItRes.data || [];
+        if (!sdRecRes.error) sanding_records = sdRecRes.data || [];
 
         workers = (wRes.data || []).map(w => {
             let cleanProcs = [];
@@ -8783,7 +8863,7 @@ async function handleLogin(forceLogin = false) {
         document.getElementById('page-login').classList.add('hidden');
         document.getElementById('admin-nav').style.display = 'none';
         document.getElementById('page-kanban').classList.remove('hidden');
-        document.getElementById('logout-btn').classList.remove('hidden');
+        showNavUserBox();
         
         localStorage.setItem('erp_user', 'kanban');
         localStorage.setItem('erp_user_type', 'kanban');
@@ -8798,7 +8878,7 @@ async function handleLogin(forceLogin = false) {
         
         document.getElementById('page-login').classList.add('hidden');
         document.getElementById('admin-nav').style.display = 'flex';
-        document.getElementById('logout-btn').classList.remove('hidden');
+        showNavUserBox();
         showPage('page-dashboard');
         
         localStorage.setItem('erp_user', 'admin939291');
@@ -8819,7 +8899,7 @@ async function handleLogin(forceLogin = false) {
             document.getElementById('page-login').classList.add('hidden');
             document.getElementById('admin-nav').style.display = 'none';
             document.getElementById('page-worker-terminal').classList.remove('hidden');
-            document.getElementById('logout-btn').classList.remove('hidden');
+            showNavUserBox();
             document.getElementById('worker-title').innerText = worker.name;
             
             // Показываем кнопку Краска если у работника есть доступ
@@ -8841,6 +8921,17 @@ async function handleLogin(forceLogin = false) {
                 showToast("Неверный логин или пароль", "error");
             }
         }
+    }
+}
+
+// Показывает в навбаре имя вошедшего и кнопку выхода (видно всем ролям, в т.ч. на мобильном)
+function showNavUserBox() {
+    const box = document.getElementById('nav-user-box');
+    const nameEl = document.getElementById('nav-user-name');
+    if (box) box.classList.remove('hidden');
+    if (nameEl && curUser) {
+        nameEl.innerText = curUser.name === 'admin939291' ? 'Админ'
+            : curUser.name === 'kanban' ? 'Kanban' : curUser.name;
     }
 }
 
@@ -8907,6 +8998,30 @@ function renderWorkerTasks() {
     let myTasks = [];
 
     myProcs.forEach(proc => {
+        // ── ШЛИПОВКА ──
+        // Отдельная ветка: детали берутся из своего справочника и не привязаны к заказу,
+        // поэтому задача показывается всегда, когда процесс есть в маршруте.
+        // Раньше шлиповка шла по покрасочной ветке и отсеивалась, если админ не добавил
+        // к заказу изделия покраски — работник вообще не видел задачу.
+        if (isSandingProc(proc)) {
+            orders.forEach(o => {
+                if (!o.path) return;
+                const procInPath = o.path.some(p => p.toLowerCase() === proc.toLowerCase());
+                if (!procInPath) return;
+                const h = o.history && o.history[proc];
+                if (h && h.end) return; // процесс уже закрыт
+                const exists = myTasks.some(t => t.order.id === o.id && t.proc === proc);
+                if (!exists) {
+                    myTasks.push({
+                        order: o, proc,
+                        status: (h && h.start) ? 'active' : 'pending',
+                        isPaint: false, isSanding: true
+                    });
+                }
+            });
+            return;
+        }
+
         if (isPaintProc(proc)) {
             const stageKeys = PAINT_WORKER_TYPES[proc] || [];
             if (!stageKeys.length) return;
@@ -9111,10 +9226,12 @@ function selectWorkerProc(p) {
             updateActiveOrderInfo(o, p);
             if (mb) mb.classList.add('hidden');
 
-            if (isPaintProc(p)) {
-                showInlinePaint(o.id);
-            } else if (isSandingProc(p)) {
+            // ВАЖНО: шлиповку проверяем раньше покраски — isPaintProc() возвращает true
+            // и для «Шлиповка», из-за чего она раньше открывалась в покрасочном терминале
+            if (isSandingProc(p)) {
                 showInlineSanding(o.id);
+            } else if (isPaintProc(p)) {
+                showInlinePaint(o.id);
             } else if (isAssemblyProc(p)) {
                 showInlineAssembly(o.id);
             } else {
@@ -9237,10 +9354,10 @@ function workerFindOrder() {
     var mb = document.getElementById('wt-manual-box');
     if (mb) mb.classList.add('hidden');
 
-    if (isPaintProc(curProc)) {
-        showInlinePaint(o.id);
-    } else if (isSandingProc(curProc)) {
+    if (isSandingProc(curProc)) {
         showInlineSanding(o.id);
+    } else if (isPaintProc(curProc)) {
+        showInlinePaint(o.id);
     } else if (isAssemblyProc(curProc)) {
         showInlineAssembly(o.id);
     } else {
@@ -9982,6 +10099,28 @@ async function renderMyWorkerStats() {
         });
     }
 
+    // Собираем записи шлиповки этого работника
+    if (sanding_records.length) {
+        sanding_records.forEach(function(r) {
+            if (r.worker !== workerName) return;
+            if (!isInMyStatsPeriod(r.created_at)) return;
+            var crmDataS = crm_orders.find(function(c) { return c.oid === r.order_id; });
+            var at = r.created_at ? new Date(r.created_at) : null;
+            records.push({
+                orderId: r.order_id || '—',
+                proc: 'Шлиповка — ' + (r.item_name || ''),
+                qty: Number(r.qty_done) || 0,
+                unit: 'шт',
+                startTime: at,
+                endTime: at,
+                duration: 0,
+                item: r.item_name || '',
+                client: crmDataS ? crmDataS.client : '',
+                sum: 0
+            });
+        });
+    }
+
     // Собираем строки "Работа/монтаж" из калькуляции заказа (order_labor), назначенные на этого
     // работника — раньше эти суммы нигде не были видны самому работнику
     try {
@@ -10251,7 +10390,33 @@ function _psCollectRecords() {
             source: 'paint'
         });
     }
-    // 3) Работа/монтаж из калькуляции заказа (order_labor) — раньше эти строки нигде не
+    // 3) Записи шлиповки (sanding_records) — раньше выработка шлиповщиков
+    // вообще не попадала в статистику персонала
+    for (var si = 0; si < sanding_records.length; si++) {
+        var sr = sanding_records[si];
+        if (!sr.created_at || !isInPsPeriod(sr.created_at)) continue;
+        var crmDataS = null;
+        for (var csi = 0; csi < crm_orders.length; csi++) {
+            if (crm_orders[csi].oid === sr.order_id) { crmDataS = crm_orders[csi]; break; }
+        }
+        var srAt = new Date(sr.created_at);
+        records.push({
+            date: (sr.created_at || '').slice(0,10),
+            worker: sr.worker || '?',
+            orderId: sr.order_id || '—',
+            proc: 'Шлиповка — ' + (sr.item_name || ''),
+            qty: Number(sr.qty_done) || 0,
+            unit: 'шт',
+            startTime: srAt,
+            endTime: srAt,
+            duration: 0,
+            item: crmDataS ? crmDataS.item : '',
+            client: crmDataS ? crmDataS.client : '',
+            sum: 0,
+            source: 'sanding'
+        });
+    }
+    // 4) Работа/монтаж из калькуляции заказа (order_labor) — раньше эти строки нигде не
     // засчитывались работнику, даже если админ явно указал кол-во, цену и исполнителя
     for (var lai = 0; lai < all_order_labor.length; lai++) {
         var lab = all_order_labor[lai];
@@ -12575,7 +12740,7 @@ function init() {
                     document.getElementById('page-login').classList.add('hidden');
                     document.getElementById('admin-nav').style.display = 'none';
                     document.getElementById('page-kanban').classList.remove('hidden');
-                    document.getElementById('logout-btn').classList.remove('hidden');
+                    showNavUserBox();
                     
                     loadKanbanData().then(() => {
                         startKanbanAutoRefresh();
@@ -12586,20 +12751,51 @@ function init() {
                     curUser = { name: 'admin939291' };
                     document.getElementById('page-login').classList.add('hidden');
                     document.getElementById('admin-nav').style.display = 'flex';
-                    document.getElementById('logout-btn').classList.remove('hidden');
+                    showNavUserBox();
                     showPage('page-dashboard');
                 } else if (savedUserType === 'worker') {
-                    const worker = workers.find(w => w.name === savedUser);
-                    if (worker) {
-                        curUser = worker;
+                    let worker = workers.find(w => (w.name||'').toLowerCase() === savedUser.toLowerCase());
+
+                    const applyWorkerSession = (w) => {
+                        curUser = w;
                         document.getElementById('page-login').classList.add('hidden');
                         document.getElementById('admin-nav').style.display = 'none';
                         document.getElementById('page-worker-terminal').classList.remove('hidden');
-                        document.getElementById('logout-btn').classList.remove('hidden');
-                        document.getElementById('worker-title').innerText = worker.name;
+                        showNavUserBox();
+                        document.getElementById('worker-title').innerText = w.name;
+                        // При восстановлении сессии тоже показываем доступ к покраске
+                        if (workerHasPaintAccess(w)) {
+                            document.getElementById('paint-access-btn')?.classList.remove('hidden');
+                            loadPaintData();
+                        }
                         renderWorkerTasks();
+                    };
+
+                    if (worker) {
+                        applyWorkerSession(worker);
                     } else {
-                        handleLogout();
+                        // Список мог не догрузиться — пробуем достать работника напрямую,
+                        // но НЕ вызываем handleLogout(): он делает location.reload() и раньше
+                        // мог зациклить перезагрузку страницы при проблемах с сетью
+                        _supabase.from('workers').select('*').ilike('name', savedUser).maybeSingle()
+                            .then(({ data }) => {
+                                if (data) {
+                                    let procs = [];
+                                    try {
+                                        if (typeof data.procs === 'string') procs = JSON.parse(data.procs);
+                                        else if (Array.isArray(data.procs)) procs = data.procs;
+                                    } catch(e) { procs = []; }
+                                    applyWorkerSession({ ...data, procs });
+                                } else {
+                                    localStorage.removeItem('erp_user');
+                                    localStorage.removeItem('erp_user_type');
+                                    document.getElementById('page-login')?.classList.remove('hidden');
+                                }
+                            })
+                            .catch(() => {
+                                document.getElementById('page-login')?.classList.remove('hidden');
+                                showToast('Не удалось восстановить сессию — войдите заново', 'error');
+                            });
                     }
                 }
             }

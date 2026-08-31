@@ -1928,12 +1928,43 @@
 <div id="page-monitor" class="page hidden">
 
     <div class="mon-subnav">
-        <button class="mon-subnav-btn active" onclick="showMonSection('orders')">📡 Заказы</button>
-        <button class="mon-subnav-btn" onclick="showMonSection('attendance')">👥 Посещаемость</button>
-        <button class="mon-subnav-btn" onclick="showMonSection('processes')">📋 Процессы</button>
+        <button class="mon-subnav-btn" data-section="blockers" onclick="showMonSection('blockers')">🚨 Что мешает</button>
+        <button class="mon-subnav-btn active" data-section="orders" onclick="showMonSection('orders')">📡 Заказы</button>
+        <button class="mon-subnav-btn" data-section="attendance" onclick="showMonSection('attendance')">👥 Посещаемость</button>
+        <button class="mon-subnav-btn" data-section="processes" onclick="showMonSection('processes')">📋 Процессы</button>
     </div>
 
     <!-- ══════════ ЗАКАЗЫ ══════════ -->
+    <!-- ── ЧТО МЕШАЕТ ПРОИЗВОДСТВУ ──
+         Один экран вместо поисков по Мониторингу и Kanban: заказы, которые встали. -->
+    <div id="mon-sec-blockers" class="mon-section">
+        <div class="card" style="background:linear-gradient(135deg,#dc2626,#ef4444); color:#fff; border:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h2 style="margin:0; font-size:22px; font-weight:900;">🚨 Что мешает производству</h2>
+                    <p style="margin:4px 0 0 0; font-size:13px; opacity:0.9;">Заказы, которые встали или вот-вот встанут</p>
+                </div>
+                <div id="blockers-kpi" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">Требуют внимания</h3>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:12px; color:var(--text-secondary);">Простой более</span>
+                    <select id="blockers-idle-days" onchange="renderBlockers()" style="margin:0; width:auto; padding:6px 10px; font-size:12px;">
+                        <option value="1">1 дня</option>
+                        <option value="2" selected>2 дней</option>
+                        <option value="3">3 дней</option>
+                        <option value="7">недели</option>
+                    </select>
+                    <button class="btn-ghost" onclick="renderBlockers()" style="padding:6px 12px; font-size:12px;">↻</button>
+                </div>
+            </div>
+            <div id="blockers-list"></div>
+        </div>
+    </div>
+
     <div id="mon-sec-orders" class="mon-section active">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
@@ -3117,9 +3148,10 @@ alter table sanding_records disable row level security;</pre>
 <!-- ======== FINANCE / ФИНАНСЫ ======== -->
 <div id="page-finance" class="page hidden">
     <div class="fin-subnav">
-        <button class="fin-subnav-btn active" onclick="showFinSection('summary')">📊 Сводка</button>
-        <button class="fin-subnav-btn" onclick="showFinSection('monthly')">📅 По месяцам</button>
-        <button class="fin-subnav-btn" onclick="showFinSection('expenses')">💸 Расходы</button>
+        <button class="fin-subnav-btn active" data-section="summary" onclick="showFinSection('summary')">📊 Сводка</button>
+        <button class="fin-subnav-btn" data-section="monthly" onclick="showFinSection('monthly')">📅 По месяцам</button>
+        <button class="fin-subnav-btn" data-section="expenses" onclick="showFinSection('expenses')">💸 Расходы</button>
+        <button class="fin-subnav-btn" data-section="debts" onclick="showFinSection('debts')">🧾 Долги</button>
     </div>
 
     <!-- ── СВОДКА ── -->
@@ -3156,6 +3188,28 @@ alter table sanding_records disable row level security;</pre>
     </div>
 
     <!-- ── РАСХОДЫ ── -->
+    <!-- ── ДОЛГИ ── Кто и сколько должен: по заказам CRM и по услугчикам -->
+    <div id="fin-sec-debts" class="fin-section">
+        <div class="card" style="background:linear-gradient(135deg,#0e7fa8,#0891b2); color:#fff; border:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h2 style="margin:0; font-size:22px; font-weight:900;">🧾 Незакрытые долги</h2>
+                    <p style="margin:4px 0 0 0; font-size:13px; opacity:0.9;">Сколько денег зависло и у кого</p>
+                </div>
+                <div id="debts-kpi" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">По клиентам</h3>
+                <input type="text" id="debts-search" placeholder="🔍 Клиент или № заказа..." style="margin:0; padding:8px 12px; font-size:13px; width:230px;" oninput="renderDebts()">
+            </div>
+            <div id="debts-filter-bar" style="margin-bottom:12px;"></div>
+            <div id="debts-list"></div>
+        </div>
+    </div>
+
     <div id="fin-sec-expenses" class="fin-section">
         <div class="card">
             <h3>💸 Добавить расход</h3>
@@ -7252,12 +7306,13 @@ function showFinSection(name) {
     document.querySelectorAll('.fin-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.fin-subnav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('fin-sec-' + name)?.classList.add('active');
-    const map = { summary:'сводк', monthly:'месяц', expenses:'расход' };
+    // Подсветка по data-атрибуту — надёжнее сравнения текста кнопки
     document.querySelectorAll('.fin-subnav-btn').forEach(b => {
-        if (b.textContent.toLowerCase().includes(map[name])) b.classList.add('active');
+        if (b.dataset.section === name) b.classList.add('active');
     });
     if (name === 'monthly') renderFinanceMonthly();
     if (name === 'expenses') renderExpenses();
+    if (name === 'debts') renderDebts();
 }
 
 // Возвращает себестоимость (материалы+работа+доставка) заказа по его id
@@ -12891,13 +12946,13 @@ function showMonSection(name) {
     document.querySelectorAll('.mon-section').forEach(s => s.classList.remove('active'));
     document.querySelectorAll('.mon-subnav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('mon-sec-' + name)?.classList.add('active');
-    const map = { orders:'заказы', attendance:'посещаем', processes:'процесс' };
     document.querySelectorAll('.mon-subnav-btn').forEach(b => {
-        if (b.textContent.toLowerCase().includes(map[name])) b.classList.add('active');
+        if (b.dataset.section === name) b.classList.add('active');
     });
     if (name === 'orders') renderMonitor();
     if (name === 'attendance') renderAttendance();
     if (name === 'processes') renderProcessesTable();
+    if (name === 'blockers') renderBlockers();
 }
 
 function renderMonitor() {
@@ -14119,6 +14174,289 @@ function getOrderShipmentStatus(oid) {
         return { state: 'ready', label: 'Готово к выдаче', qty: pendingQty,
                  color: '#0891b2', bg: '#e0f5fb', icon: '📦' };
     return { state: 'none', label: 'Не отгружено', qty: 0, color: '#94a3b8', bg: 'var(--surface-container)', icon: '—' };
+}
+
+// ═══════════════════════════════════════════════════════
+// ДОЛГИ
+// Сколько денег зависло и у кого. Собирается из двух источников:
+// заказы CRM (цена минус аванс) и операции услугчиков (сумма минус оплачено).
+// ═══════════════════════════════════════════════════════
+let debtsFilter = 'all';   // all | overdue | crm | svc
+
+function setDebtsFilter(v) { debtsFilter = v; renderDebts(); }
+
+// Собирает все незакрытые долги в единый список
+function collectDebts() {
+    const rows = [];
+
+    // Долги по заказам CRM
+    crm_orders.forEach(c => {
+        const price = Number(c.price) || 0;
+        const paid = Number(c.advance) || 0;
+        const debt = price - paid;
+        if (price <= 0 || debt <= 0) return;
+
+        const due = c.due_date ? new Date(c.due_date) : null;
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const overdueDays = due ? Math.floor((today - due) / 86400000) : 0;
+
+        rows.push({
+            source: 'crm', client: c.client || 'Без клиента', ref: c.oid,
+            item: c.item || '', total: price, paid, debt,
+            date: c.date, overdueDays: overdueDays > 0 ? overdueDays : 0
+        });
+    });
+
+    // Долги услугчиков
+    svc_transactions.forEach(t => {
+        const total = Number(t.total_amount) || 0;
+        const paid = Number(t.paid_amount) || 0;
+        const debt = total - paid;
+        if (total <= 0 || debt <= 0) return;
+
+        const created = t.created_at ? new Date(t.created_at) : null;
+        const days = created ? Math.floor((Date.now() - created) / 86400000) : 0;
+
+        rows.push({
+            source: 'svc', client: t.client_name || 'Без клиента', ref: t.crm_order_id || '',
+            item: t.service_type || 'Услуга', total, paid, debt,
+            date: (t.created_at || '').slice(0, 10),
+            overdueDays: days > 30 ? days : 0   // услуги считаем просроченными через месяц
+        });
+    });
+
+    return rows;
+}
+
+function renderDebts() {
+    const listEl = document.getElementById('debts-list');
+    if (!listEl) return;
+
+    const all = collectDebts();
+    const q = (document.getElementById('debts-search')?.value || '').toLowerCase();
+
+    // Сводка сверху
+    const kpiEl = document.getElementById('debts-kpi');
+    if (kpiEl) {
+        const totalDebt = all.reduce((s, r) => s + r.debt, 0);
+        const overdue = all.filter(r => r.overdueDays > 0);
+        const overdueSum = overdue.reduce((s, r) => s + r.debt, 0);
+        const clients = new Set(all.map(r => r.client)).size;
+        kpiEl.innerHTML = `
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:12px 16px; text-align:center; min-width:110px;">
+                <div style="font-size:20px; font-weight:900;">${formatMoney(totalDebt)}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">всего долгов</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:12px 16px; text-align:center; min-width:96px;">
+                <div style="font-size:20px; font-weight:900;">${clients}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">клиентов</div>
+            </div>
+            ${overdue.length ? `
+            <div style="background:rgba(239,68,68,0.35); border-radius:12px; padding:12px 16px; text-align:center; min-width:110px;">
+                <div style="font-size:20px; font-weight:900;">${formatMoney(overdueSum)}</div>
+                <div style="font-size:10px; opacity:0.95; text-transform:uppercase;">⚠ просрочено (${overdue.length})</div>
+            </div>` : ''}
+        `;
+    }
+
+    // Фильтры
+    const bar = document.getElementById('debts-filter-bar');
+    if (bar) {
+        const cnt = {
+            all: all.length,
+            overdue: all.filter(r => r.overdueDays > 0).length,
+            crm: all.filter(r => r.source === 'crm').length,
+            svc: all.filter(r => r.source === 'svc').length
+        };
+        const mk = (k, label) => `<button onclick="setDebtsFilter('${k}')" class="u-chip-btn ${debtsFilter === k ? 'active' : ''}">${label} <span class="u-chip-count">${cnt[k]}</span></button>`;
+        bar.innerHTML = mk('all', 'Все') + mk('overdue', '⚠ Просрочено') + mk('crm', 'Заказы') + mk('svc', 'Услуги');
+    }
+
+    let list = all.filter(r => {
+        if (debtsFilter === 'overdue' && !r.overdueDays) return false;
+        if (debtsFilter === 'crm' && r.source !== 'crm') return false;
+        if (debtsFilter === 'svc' && r.source !== 'svc') return false;
+        if (q && !(r.client.toLowerCase().includes(q) || String(r.ref).toLowerCase().includes(q))) return false;
+        return true;
+    });
+
+    if (!list.length) {
+        listEl.innerHTML = '<div class="u-empty">Долгов нет — все оплачено 👍</div>';
+        return;
+    }
+
+    // Группируем по клиенту: важно видеть, кто должен в сумме
+    const byClient = {};
+    list.forEach(r => { (byClient[r.client] = byClient[r.client] || []).push(r); });
+    const sorted = Object.entries(byClient)
+        .map(([name, rows]) => ({ name, rows, total: rows.reduce((s, r) => s + r.debt, 0),
+                                  hasOverdue: rows.some(r => r.overdueDays > 0) }))
+        .sort((a, b) => b.total - a.total);
+
+    listEl.innerHTML = sorted.map(c => `
+        <div style="margin-bottom:12px; border:1px solid ${c.hasOverdue ? '#fecaca' : 'var(--border)'}; border-radius:14px; overflow:hidden;">
+            <div style="background:${c.hasOverdue ? '#fef2f2' : 'var(--surface)'}; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div>
+                    <b style="font-size:15px;">${c.hasOverdue ? '⚠️ ' : '👤 '}${c.name}</b>
+                    <span style="margin-left:8px; font-size:12px; color:var(--text-secondary);">${c.rows.length} поз.</span>
+                </div>
+                <b style="font-size:17px; color:${c.hasOverdue ? '#ef4444' : 'var(--primary)'};">${formatMoney(c.total)}</b>
+            </div>
+            <div style="padding:8px 12px;">
+                ${c.rows.sort((a, b) => b.debt - a.debt).map(r => `
+                    <div class="u-kv" style="${r.overdueDays ? 'border-left:3px solid #ef4444;' : ''}">
+                        <div style="flex:1; min-width:170px;">
+                            <div style="font-weight:700; font-size:13px;">
+                                ${r.source === 'crm' ? `<span class="wt-code-chip">#${r.ref}</span>` : '<span class="u-tag u-tag-violet">услуга</span>'}
+                                <span style="margin-left:6px;">${r.item}</span>
+                            </div>
+                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">
+                                Сумма ${formatMoney(r.total)} · внесено ${formatMoney(r.paid)}
+                                ${r.date ? ' · ' + new Date(r.date).toLocaleDateString('ru-RU') : ''}
+                                ${r.overdueDays ? ` · <b style="color:#ef4444;">просрочка ${r.overdueDays} дн.</b>` : ''}
+                            </div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:900; font-size:15px; color:#ef4444;">${formatMoney(r.debt)}</div>
+                        </div>
+                        ${r.source === 'crm'
+                            ? `<button class="btn-green" style="padding:4px 10px; font-size:11px;" onclick="addCrmPayment('${esc(r.ref)}')">💰 Оплата</button>`
+                            : `<button class="btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="showServicesPage()">→ Услуги</button>`}
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// ЧТО МЕШАЕТ ПРОИЗВОДСТВУ
+// Один экран вместо поисков по Мониторингу и Kanban: заказы, которые встали.
+// ═══════════════════════════════════════════════════════
+function renderBlockers() {
+    const el = document.getElementById('blockers-list');
+    if (!el) return;
+    const idleLimit = parseInt(document.getElementById('blockers-idle-days')?.value) || 2;
+    const now = Date.now();
+    const problems = [];
+
+    orders.forEach(o => {
+        if (!o.path || !o.path.length) return;
+        if (isOrderFinished(o)) return;                      // завершённые не мешают
+
+        const crm = crm_orders.find(c => c.oid === o.id);
+        const client = crm?.client || '';
+        const reasons = [];
+        let severity = 0;   // чем выше, тем важнее
+
+        // 1) Просрочен по сроку сдачи
+        const due = getOrderDueStatus(o.id);
+        if (due.state === 'overdue') { reasons.push({ icon: '⏰', text: due.label, color: '#ef4444' }); severity += 100 + due.days; }
+        else if (due.state === 'soon') { reasons.push({ icon: '⏳', text: due.label, color: '#f59e0b' }); severity += 20; }
+
+        // 2) Простой: последний этап закрыт давно, следующий не начат
+        const doneSteps = o.path.filter(p => o.history?.[p]?.end);
+        const lastEnd = doneSteps.map(p => new Date(o.history[p].end)).sort((a, b) => b - a)[0];
+        const nextProc = o.path.find(p => !o.history?.[p]?.end);
+        if (lastEnd && nextProc && !o.history?.[nextProc]?.start) {
+            const idleDays = Math.floor((now - lastEnd) / 86400000);
+            if (idleDays >= idleLimit) {
+                reasons.push({ icon: '🕐', text: `Стоит ${idleDays} дн. — ждёт «${nextProc}»`, color: '#ef4444' });
+                severity += 50 + idleDays;
+            }
+        }
+
+        // 3) Вообще не начат
+        if (!doneSteps.length && !o.path.some(p => o.history?.[p]?.start)) {
+            const created = crm?.date ? new Date(crm.date) : null;
+            const waitDays = created ? Math.floor((now - created) / 86400000) : 0;
+            if (waitDays >= idleLimit) {
+                reasons.push({ icon: '🚫', text: `Не начат ${waitDays} дн.`, color: '#ef4444' });
+                severity += 40 + waitDays;
+            }
+        }
+
+        // 4) Процесс начат, но давно не сдвигается
+        o.path.forEach(p => {
+            const h = o.history?.[p];
+            if (!h || !h.start || h.end) return;
+            const days = Math.floor((now - new Date(h.start)) / 86400000);
+            if (days >= idleLimit) {
+                const done = getProcDoneQty(h), plan = getProcPlannedQty(h);
+                reasons.push({ icon: '⚙️', text: `«${p}» в работе ${days} дн.${plan ? ` — сдано ${done}/${plan}` : ''}`, color: '#f59e0b' });
+                severity += 30 + days;
+            }
+        });
+
+        // 5) Не хватает материала под заказ
+        const mats = (all_order_materials || []).filter(m => m.order_id === o.id && !m.deducted_at);
+        const lacking = mats.filter(m => {
+            const w = m.warehouse_item_id
+                ? warehouse_items.find(i => i.id === m.warehouse_item_id)
+                : warehouse_items.find(i => (i.name || '').toLowerCase() === (m.name || '').toLowerCase());
+            return w && (Number(w.qty_in_stock) || 0) < (Number(m.qty) || 0);
+        });
+        if (lacking.length) {
+            reasons.push({ icon: '📦', text: `Не хватает материала: ${lacking.map(m => m.name).slice(0, 3).join(', ')}`, color: '#ef4444' });
+            severity += 60;
+        }
+
+        if (reasons.length) problems.push({ order: o, client, reasons, severity, due });
+    });
+
+    problems.sort((a, b) => b.severity - a.severity);
+
+    // Сводка
+    const kpi = document.getElementById('blockers-kpi');
+    if (kpi) {
+        const overdue = problems.filter(p => p.due.state === 'overdue').length;
+        const idle = problems.filter(p => p.reasons.some(r => r.icon === '🕐' || r.icon === '🚫')).length;
+        const noMat = problems.filter(p => p.reasons.some(r => r.icon === '📦')).length;
+        kpi.innerHTML = `
+            <div style="background:rgba(255,255,255,0.2); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+                <div style="font-size:22px; font-weight:900;">${problems.length}</div>
+                <div style="font-size:10px; opacity:0.95; text-transform:uppercase;">проблемных</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.2); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+                <div style="font-size:22px; font-weight:900;">${overdue}</div>
+                <div style="font-size:10px; opacity:0.95; text-transform:uppercase;">просрочено</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.2); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+                <div style="font-size:22px; font-weight:900;">${idle}</div>
+                <div style="font-size:10px; opacity:0.95; text-transform:uppercase;">стоят</div>
+            </div>
+            ${noMat ? `<div style="background:rgba(255,255,255,0.2); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+                <div style="font-size:22px; font-weight:900;">${noMat}</div>
+                <div style="font-size:10px; opacity:0.95; text-transform:uppercase;">нет материала</div>
+            </div>` : ''}
+        `;
+    }
+
+    if (!problems.length) {
+        el.innerHTML = '<div class="u-empty">✅ Всё идёт по плану — заказов с проблемами нет</div>';
+        return;
+    }
+
+    el.innerHTML = problems.map(p => {
+        const progress = calculateOrderProgress(p.order);
+        const isRed = p.reasons.some(r => r.color === '#ef4444');
+        return `<div style="border:1px solid ${isRed ? '#fecaca' : '#fde68a'}; background:${isRed ? '#fef2f2' : '#fffbeb'}; border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer;"
+                     onclick="openMonitorOrderModal('${esc(p.order.id)}')">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                <div>
+                    <b style="font-size:15px;">Заказ №${p.order.id}</b>
+                    ${p.client ? `<span style="margin-left:8px; color:var(--text-secondary); font-size:13px;">${p.client}</span>` : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-secondary);">${progress}%</span>
+                    <div style="width:70px; height:6px; background:var(--border-light); border-radius:3px; overflow:hidden;">
+                        <div style="width:${progress}%; height:100%; background:${isRed ? '#ef4444' : '#f59e0b'};"></div>
+                    </div>
+                </div>
+            </div>
+            ${p.reasons.map(r => `<div style="font-size:12px; font-weight:700; color:${r.color}; padding:3px 0;">${r.icon} ${r.text}</div>`).join('')}
+        </div>`;
+    }).join('');
 }
 
 // ── РЕДАКТИРОВАНИЕ ЗАКАЗА CRM ──────────────────────────────

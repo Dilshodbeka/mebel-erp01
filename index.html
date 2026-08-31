@@ -973,6 +973,30 @@
         .wh-stock-alert { font-size:10.5px; font-weight:700; color:#b91c1c; background:#fee2e2;
                           border-radius:7px; padding:4px 7px; margin-top:6px; line-height:1.3; }
 
+        /* Карточка мониторинга: видно этап, исполнителя и цепочку процессов */
+        .mon-card-v2 { background:var(--card); border:1px solid var(--border); border-radius:14px;
+                       padding:12px 14px; margin-bottom:8px; cursor:pointer; transition:all .15s; }
+        .mon-card-v2:hover { border-color:var(--primary); box-shadow:var(--shadow); }
+        .mon-row-top { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:9px; }
+        .mon-oid { font-family:var(--font-mono); font-weight:800; font-size:15px; color:var(--primary); margin-right:8px; }
+        .mon-client { font-weight:700; font-size:14px; }
+        .mon-item { font-size:12px; color:var(--text-secondary); margin-left:8px; }
+        .mon-state { padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; white-space:nowrap; }
+
+        /* Цепочка процессов */
+        .mon-chain { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:9px; }
+        .mon-step { font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px;
+                    background:var(--surface-container); color:var(--text-muted); white-space:nowrap; }
+        .mon-step.done   { background:#dcfce7; color:#15803d; }
+        .mon-step.active { background:#0891b2; color:#fff; box-shadow:0 0 0 2px rgba(8,145,178,.2); }
+
+        .mon-row-bottom { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+        .mon-bar { flex:1; min-width:110px; height:7px; background:var(--border-light); border-radius:4px; overflow:hidden; }
+        .mon-bar > div { height:100%; transition:width .3s; }
+        .mon-pct { font-size:13px; font-weight:900; min-width:38px; }
+        .mon-steps { font-size:11px; color:var(--text-muted); }
+        .mon-worker { font-size:11px; font-weight:700; color:var(--text-secondary); margin-left:auto; }
+
         /* ============ WAREHOUSE MODULE ============ */
         /* Складские классы теперь наследуют единую систему — одинаковые
            радиусы, отступы и цвета во всех разделах */
@@ -1352,8 +1376,8 @@
                         <span id="task-count-badge">0</span>
                         <span>задач</span>
                     </div>
-                    <div id="paint-access-btn" class="hidden">
-                        <button onclick="showPaintWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🎨 Краска</button>
+                    <div id="sanding-access-btn" class="hidden">
+                        <button onclick="showSandingWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🪵 Шлиповка</button>
                     </div>
                     <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
                 </div>
@@ -1639,6 +1663,22 @@
             <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Сколько времени занимает каждый этап и где заказы простаивают между этапами</p>
             <div id="proc-speed-summary" class="u-stat-row"></div>
             <div id="proc-speed-list"></div>
+        </div>
+
+        <!-- Прибыль по клиентам -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">💼 Прибыль по клиентам</h3>
+                <select id="client-profit-period" onchange="renderClientProfit()" style="margin:0; padding:7px 10px; font-size:12px; width:auto;">
+                    <option value="month">Текущий месяц</option>
+                    <option value="quarter">Квартал</option>
+                    <option value="year" selected>Год</option>
+                    <option value="all">Всё время</option>
+                </select>
+            </div>
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Кто приносит деньги: выручка минус материалы и работа по каждому клиенту</p>
+            <div id="client-profit-summary" class="u-stat-row"></div>
+            <div id="client-profit-list"></div>
         </div>
     </div>
 </div><!-- end page-workers -->
@@ -1985,6 +2025,7 @@
                 <input type="date" id="monitor-date-filter" style="width:auto;" onchange="renderMonitor()" title="Фильтр по дате создания заказа">
                 <button class="btn-ghost" onclick="document.getElementById('monitor-search').value='';document.getElementById('monitor-date-filter').value='';renderMonitor()">Сбросить</button>
             </div>
+            <div id="mon-summary" class="u-stat-row"></div>
             <div id="m-table"></div>
         </div>
     </div>
@@ -2187,6 +2228,58 @@ alter table paint_records disable row level security;</pre>
         </div>
     </div>
 
+</div>
+
+<!-- ======== WORKER: ШЛИПОВКА (постоянный рабочий стол) ======== -->
+<div id="page-sanding-worker" class="hidden">
+    <div class="wt-header" style="background:linear-gradient(135deg,#0e7fa8,#0891b2);">
+        <div class="wt-header-row">
+            <button class="wt-back-btn" onclick="backFromSandingTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff;">← Назад</button>
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:11px; opacity:0.85; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Рабочий стол</div>
+                <div style="font-size:20px; font-weight:900;">🪵 Шлиповка</div>
+            </div>
+            <div style="width:80px;"></div>
+        </div>
+        <div id="sdw-today-stats" style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;"></div>
+    </div>
+
+    <div style="padding:0 16px 24px;">
+        <div class="card">
+            <div style="font-size:13px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">
+                Что вы отшлифовали?
+            </div>
+            <input type="text" id="sdw-search" placeholder="🔍 Поиск детали..." style="margin-bottom:10px;" oninput="renderSdwItems()">
+            <div id="sdw-cat-bar" style="margin-bottom:10px;"></div>
+            <div id="sdw-items"></div>
+        </div>
+
+        <div id="sdw-qty-card" class="card hidden">
+            <div style="text-align:center;">
+                <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Выбрано</div>
+                <div id="sdw-selected-name" style="font-size:18px; font-weight:900; margin:4px 0 14px;">—</div>
+            </div>
+            <div class="paint-qty-controls">
+                <button class="paint-qty-btn" onclick="adjustSdwQty(-1)">−</button>
+                <div class="paint-qty-display" id="sdw-qty">1</div>
+                <button class="paint-qty-btn" onclick="adjustSdwQty(1)">+</button>
+            </div>
+            <div style="display:flex; gap:6px; justify-content:center; margin:10px 0 14px; flex-wrap:wrap;">
+                <button class="btn-ghost" style="padding:6px 14px; font-size:13px;" onclick="setSdwQty(5)">5</button>
+                <button class="btn-ghost" style="padding:6px 14px; font-size:13px;" onclick="setSdwQty(10)">10</button>
+                <button class="btn-ghost" style="padding:6px 14px; font-size:13px;" onclick="setSdwQty(20)">20</button>
+                <button class="btn-ghost" style="padding:6px 14px; font-size:13px;" onclick="setSdwQty(50)">50</button>
+            </div>
+            <button class="btn-green wt-big-btn" onclick="submitSdw()">✔ ОТПРАВИТЬ НА СКЛАД</button>
+        </div>
+
+        <div class="card">
+            <div style="font-size:13px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.4px; margin-bottom:10px;">
+                📋 Что я сдал сегодня
+            </div>
+            <div id="sdw-today-list"></div>
+        </div>
+    </div>
 </div>
 
 <!-- ======== ADMIN: SANDING / ШЛИПОВКА ======== -->
@@ -3001,6 +3094,7 @@ alter table sanding_records disable row level security;</pre>
                 <button class="oc-back" id="oc-launch-btn" onclick="toggleOcLaunchPanel()">🚀 В производство</button>
                 <button class="oc-back" onclick="printMaterialsWorkshop()">🖨 Для цеха</button>
                 <button class="oc-back" onclick="printClientInvoice()">🧾 Счёт клиенту</button>
+                <button class="oc-back" onclick="exportCalcToExcel()">📊 Excel</button>
             </div>
         </div>
 
@@ -4007,7 +4101,7 @@ function getWorkerPaintStageKeys(user) {
 }
 
 function showPaintWorkerTerminal() {
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker')
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker')
         .forEach(p => p.classList.add('hidden'));
     document.getElementById('page-paint-worker').classList.remove('hidden');
     pwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
@@ -4341,6 +4435,163 @@ function isPaintProc(procName) {
 // Даёт работнику с доступом к процессу "Сборка" урезанный интерфейс: выбрать изделие из
 // рецепта, указать количество и нажать "Собрать". Всё остальное (создание рецептов, отгрузка,
 // удаление) доступно только администратору на странице Склад.
+// ═══════════════════════════════════════════════════════
+// ШЛИПОВКА — постоянный рабочий стол работника
+// Не привязана к заказам: работник заходит, выбирает деталь из справочника,
+// указывает сколько отшлифовал и отправляет на склад. Задача никуда не «висит»
+// и не может потеряться — это просто журнал выработки.
+// ═══════════════════════════════════════════════════════
+let sdw = { itemId: null, qty: 1, category: '' };
+
+function workerHasSandingAccess(user) {
+    if (!user || !user.procs) return false;
+    let procs = user.procs;
+    if (typeof procs === 'string') { try { procs = JSON.parse(procs); } catch(e) { procs = []; } }
+    return Array.isArray(procs) && procs.some(p => isSandingProc(p));
+}
+
+async function showSandingWorkerTerminal() {
+    document.getElementById('page-worker-terminal')?.classList.add('hidden');
+    document.getElementById('page-sanding-worker')?.classList.remove('hidden');
+    sdw = { itemId: null, qty: 1, category: '' };
+    if (!sanding_items.length) await loadSandingData();
+    renderSdwCatBar();
+    renderSdwItems();
+    renderSdwToday();
+}
+
+function backFromSandingTerminal() {
+    document.getElementById('page-sanding-worker')?.classList.add('hidden');
+    document.getElementById('page-worker-terminal')?.classList.remove('hidden');
+    renderWorkerTasks();
+}
+
+function renderSdwCatBar() {
+    const bar = document.getElementById('sdw-cat-bar');
+    if (!bar) return;
+    const cats = [...new Set(sanding_items.map(i => i.category || 'Без категории'))];
+    if (cats.length < 2) { bar.innerHTML = ''; return; }
+    bar.innerHTML = `<button onclick="setSdwCat('')" class="u-chip-btn ${!sdw.category?'active':''}">Все</button>` +
+        cats.map(c => `<button onclick="setSdwCat('${esc(c)}')" class="u-chip-btn ${sdw.category===c?'active':''}">${c}</button>`).join('');
+}
+
+function setSdwCat(c) { sdw.category = c; renderSdwCatBar(); renderSdwItems(); }
+
+function renderSdwItems() {
+    const el = document.getElementById('sdw-items');
+    if (!el) return;
+    const q = (document.getElementById('sdw-search')?.value || '').toLowerCase();
+
+    let list = sanding_items.filter(i => {
+        if (sdw.category && (i.category || 'Без категории') !== sdw.category) return false;
+        if (q && !i.name.toLowerCase().includes(q)) return false;
+        return true;
+    });
+
+    if (!list.length) {
+        el.innerHTML = '<div class="u-empty">Справочник пуст. Администратор добавляет детали в разделе «Шлиповка».</div>';
+        return;
+    }
+
+    el.innerHTML = list.map(i => {
+        const sel = sdw.itemId === i.id;
+        return `<div onclick="selectSdwItem(${i.id})" style="display:flex; justify-content:space-between; align-items:center; gap:10px;
+                    padding:13px 14px; margin-bottom:7px; border-radius:12px; cursor:pointer; transition:all .15s;
+                    border:2px solid ${sel?'var(--primary)':'var(--border)'}; background:${sel?'var(--primary-container)':'var(--card)'};">
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:800; font-size:15px;">${i.name}</div>
+                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${i.category || 'Без категории'}</div>
+            </div>
+            <div style="text-align:right; white-space:nowrap;">
+                <div style="font-size:18px; font-weight:900; color:var(--success);">${i.qty_in_stock}</div>
+                <div style="font-size:10px; color:var(--text-muted);">на складе</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectSdwItem(id) {
+    sdw.itemId = id;
+    sdw.qty = 1;
+    const item = sanding_items.find(i => i.id === id);
+    document.getElementById('sdw-selected-name').innerText = item ? item.name : '';
+    document.getElementById('sdw-qty').innerText = sdw.qty;
+    document.getElementById('sdw-qty-card')?.classList.remove('hidden');
+    renderSdwItems();
+    document.getElementById('sdw-qty-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function adjustSdwQty(d) { sdw.qty = Math.max(1, sdw.qty + d); document.getElementById('sdw-qty').innerText = sdw.qty; }
+function setSdwQty(v) { sdw.qty = v; document.getElementById('sdw-qty').innerText = v; }
+
+async function submitSdw() {
+    const item = sanding_items.find(i => i.id === sdw.itemId);
+    if (!item) return showToast('Выберите деталь', 'error');
+    if (sdw.qty < 1) return showToast('Укажите количество', 'error');
+
+    try {
+        const rec = {
+            item_id: item.id, item_name: item.name, category: item.category || '',
+            qty_done: sdw.qty, worker: curUser.name,
+            order_id: null, created_at: new Date().toISOString()
+        };
+        const { error } = await _supabase.from('sanding_records').insert(rec);
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+        sanding_records.unshift(rec);
+
+        // Приход на склад шлиповки
+        await _supabase.from('sanding_items')
+            .update({ qty_in_stock: (item.qty_in_stock || 0) + sdw.qty }).eq('id', item.id);
+        item.qty_in_stock = (item.qty_in_stock || 0) + sdw.qty;
+
+        await logActivity(curUser.name, 'Шлиповка', `${item.name} × ${sdw.qty}`, 'process');
+
+        showToast(`✅ ${item.name} × ${sdw.qty} → склад`);
+        sdw.itemId = null; sdw.qty = 1;
+        document.getElementById('sdw-qty-card')?.classList.add('hidden');
+        renderSdwItems();
+        renderSdwToday();
+    } catch (e) { showToast('Ошибка сети', 'error'); }
+}
+
+function renderSdwToday() {
+    const el = document.getElementById('sdw-today-list');
+    const statsEl = document.getElementById('sdw-today-stats');
+    const today = new Date().toDateString();
+    const mine = sanding_records.filter(r =>
+        r.worker === curUser?.name && new Date(r.created_at).toDateString() === today);
+    const total = mine.reduce((s, r) => s + (Number(r.qty_done) || 0), 0);
+
+    if (statsEl) {
+        statsEl.innerHTML = `
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:10px 18px; text-align:center; min-width:96px;">
+                <div style="font-size:24px; font-weight:900;">${total}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">деталей сегодня</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:10px 18px; text-align:center; min-width:96px;">
+                <div style="font-size:24px; font-weight:900;">${mine.length}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">записей</div>
+            </div>`;
+    }
+
+    if (!el) return;
+    if (!mine.length) {
+        el.innerHTML = '<div class="u-empty">Сегодня ещё ничего не сдано</div>';
+        return;
+    }
+    el.innerHTML = mine.map(r => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px;
+                    background:#f0fdf4; border:1px solid #86efac; border-radius:10px; margin-bottom:6px;">
+            <div>
+                <div style="font-weight:700; font-size:13px; color:#166534;">${r.item_name}</div>
+                <div style="font-size:11px; color:#15803d; opacity:.8;">${new Date(r.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}</div>
+            </div>
+            <div style="font-size:17px; font-weight:900; color:#15803d;">+${r.qty_done}</div>
+        </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+
 function isSandingProc(procName) {
     return (procName || '').trim().toLowerCase() === 'шлиповка';
 }
@@ -4591,6 +4842,17 @@ function renderInlinePaintStages(orderId) {
 
     if (!myStages.length) {
         el.innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Нет этапов для вашего типа работы</div>';
+        return;
+    }
+
+    // Изделия к заказу ещё не добавлены — работать не с чем, но задачу маляр видит
+    if (!items.length) {
+        el.innerHTML = `<div style="background:#fef3c7; border:1px solid #fcd34d; border-radius:12px; padding:14px; text-align:center;">
+            <div style="font-size:15px; font-weight:800; color:#92400e; margin-bottom:5px;">⚠️ Изделия ещё не заведены</div>
+            <div style="font-size:13px; color:#92400e;">Администратор не добавил, что именно красить по этому заказу.<br>Обратитесь к нему — после этого этапы появятся здесь.</div>
+        </div>`;
+        document.getElementById('paint-stage-selected')?.classList.add('hidden');
+        document.getElementById('paint-inline-qty-wrap')?.classList.add('hidden');
         return;
     }
 
@@ -7193,6 +7455,88 @@ function printMaterialsWorkshop() {
         ${oc_meta.notes ? `<p style="margin-top:16px; font-size:13px; color:var(--text-secondary);"><b>Примечание:</b> ${oc_meta.notes}</p>` : ''}
     `;
     openPrintWindow(`Калькуляция #${oc_orderId}`, body);
+}
+
+// Экспорт калькуляции в Excel.
+// Формируем CSV с разделителем «;» и BOM — так Excel сразу открывает
+// кириллицу правильно и раскладывает по столбцам без «Мастера импорта».
+function exportCalcToExcel() {
+    if (!oc_orderId) return showToast('Откройте заказ', 'error');
+    const crm = crm_orders.find(c => c.oid === oc_orderId) || {};
+
+    const esc2 = v => {
+        const t = String(v ?? '').replace(/"/g, '""');
+        return /[";\n]/.test(t) ? `"${t}"` : t;
+    };
+    const row = arr => arr.map(esc2).join(';');
+    const num = v => String(Number(v) || 0).replace('.', ',');   // Excel ждёт запятую
+
+    const lines = [];
+    lines.push(row([`Калькуляция заказа №${oc_orderId}`]));
+    lines.push(row([]));
+    lines.push(row(['Клиент', crm.client || '—']));
+    if (crm.phone) lines.push(row(['Телефон', crm.phone]));
+    lines.push(row(['Изделие', crm.item || '—']));
+    if (crm.qty) lines.push(row(['Количество', crm.qty]));
+    lines.push(row(['Дата заказа', crm.date || '—']));
+    if (crm.due_date) lines.push(row(['Дата сдачи', crm.due_date]));
+    lines.push(row([]));
+
+    // Материалы
+    lines.push(row(['МАТЕРИАЛЫ']));
+    lines.push(row(['Наименование', 'Цвет', 'Формат', 'Кол-во', 'Ед.', 'Цена за ед.', 'Сумма']));
+    let matTotal = 0;
+    oc_materials.forEach(m => {
+        const sum = (Number(m.qty) || 0) * (Number(m.unit_price) || 0);
+        matTotal += sum;
+        lines.push(row([m.name || '', m.color || '', m.package || '', num(m.qty), m.unit || '', num(m.unit_price), num(sum)]));
+    });
+    lines.push(row(['', '', '', '', '', 'Итого материалы:', num(matTotal)]));
+    lines.push(row([]));
+
+    // Работа
+    lines.push(row(['РАБОТА И МОНТАЖ']));
+    lines.push(row(['Описание', 'Исполнитель', 'Кол-во', 'Цена за ед.', 'Сумма']));
+    let labTotal = 0;
+    oc_labor.forEach(l => {
+        const sum = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
+        labTotal += sum;
+        lines.push(row([l.description || '', l.worker || '', num(l.qty), num(l.unit_price), num(sum)]));
+    });
+    lines.push(row(['', '', '', 'Итого работа:', num(labTotal)]));
+    lines.push(row([]));
+
+    // Итог
+    const delivery = Number(oc_meta?.delivery_cost) || 0;
+    const cost = matTotal + labTotal + delivery;
+    const sale = Number(oc_meta?.sale_price) || Number(crm.price) || 0;
+    const advance = Number(crm.advance) || 0;
+
+    lines.push(row(['ИТОГО']));
+    lines.push(row(['Материалы', num(matTotal)]));
+    lines.push(row(['Работа', num(labTotal)]));
+    if (delivery) lines.push(row(['Доставка', num(delivery)]));
+    lines.push(row(['Себестоимость', num(cost)]));
+    lines.push(row(['Цена продажи', num(sale)]));
+    lines.push(row(['Прибыль', num(sale - cost)]));
+    if (advance) {
+        lines.push(row(['Аванс получен', num(advance)]));
+        lines.push(row(['Остаток к оплате', num(sale - advance)]));
+    }
+
+    const csv = '\uFEFF' + lines.join('\r\n');   // BOM — чтобы Excel понял кириллицу
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Калькуляция_${oc_orderId}_${(crm.client || '').replace(/[^\wа-яА-ЯёЁ]/g, '_')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    logActivity(curUser.name, 'Выгрузил калькуляцию', `Заказ #${oc_orderId} в Excel`, 'order');
+    showToast('📊 Файл выгружен — откроется в Excel');
 }
 
 // Счёт клиенту — только цена продажи, без себестоимости
@@ -10289,10 +10633,11 @@ async function handleLogin(forceLogin = false) {
             showNavUserBox(); startLiveSync();
             document.getElementById('worker-title').innerText = worker.name;
             
-            // Показываем кнопку Краска если у работника есть доступ
-            if (workerHasPaintAccess(worker)) {
-                document.getElementById('paint-access-btn').classList.remove('hidden');
-                loadPaintData();
+            // Показываем кнопки Краска / Шлиповка, если у работника есть доступ
+            if (workerHasPaintAccess(worker)) loadPaintData();
+            if (workerHasSandingAccess(worker)) {
+                document.getElementById('sanding-access-btn').classList.remove('hidden');
+                loadSandingData();
             }
             
             localStorage.setItem('erp_user', worker.name);
@@ -10470,25 +10815,8 @@ function renderWorkerTasks() {
         // поэтому задача показывается всегда, когда процесс есть в маршруте.
         // Раньше шлиповка шла по покрасочной ветке и отсеивалась, если админ не добавил
         // к заказу изделия покраски — работник вообще не видел задачу.
-        if (isSandingProc(proc)) {
-            orders.forEach(o => {
-                if (!o.path) return;
-                const procInPath = o.path.some(p => p.toLowerCase() === proc.toLowerCase());
-                if (!procInPath) return;
-                const h = o.history && o.history[proc];
-                if (h && h.end) return; // процесс уже закрыт
-                const exists = myTasks.some(t => t.order.id === o.id && t.proc === proc);
-                if (!exists) {
-                    myTasks.push({
-                        order: o, proc,
-                        status: (h && h.start) ? 'active' : 'pending',
-                        isPaint: false, isSanding: true
-                    });
-                }
-            });
-            return;
-        }
-
+        // Шлиповка не создаёт задач по заказам — у неё свой постоянный рабочий стол
+        if (isSandingProc(proc)) return;
         if (isPaintProc(proc)) {
             const stageKeys = PAINT_WORKER_TYPES[proc] || [];
             if (!stageKeys.length) return;
@@ -10503,8 +10831,22 @@ function renderWorkerTasks() {
 
                 // anyPaintInPath проверка не нужна — procInPath уже подтверждает наличие процесса в маршруте
 
+                // Если изделия покраски ещё не заведены, задача всё равно должна быть видна —
+                // иначе маляр не узнает, что заказ до него дошёл. Внутри он увидит подсказку.
                 const items = paint_order_items.filter(i => i.order_id === o.id);
-                if (!items.length) return;
+                if (!items.length) {
+                    const hAlready = o.history?.[proc];
+                    if (hAlready?.end) return;
+                    const exists = myTasks.some(t => t.order.id === o.id && t.proc === proc);
+                    if (!exists) {
+                        myTasks.push({
+                            order: o, proc,
+                            status: hAlready?.start ? 'active' : 'pending',
+                            isPaint: true, noItems: true
+                        });
+                    }
+                    return;
+                }
 
                 const totalPerStage = items.reduce((s, i) => s + i.qty, 0);
                 const cfg = paint_order_layers[o.id] || { layers: 2, coats: 2 };
@@ -12157,6 +12499,114 @@ function renderProcessSpeed() {
 // СКОРОСТЬ ПРОЦЕССОВ — конец
 // ═══════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════
+// ПРИБЫЛЬ ПО КЛИЕНТАМ
+// Кто приносит деньги, а кто отнимает время: выручка минус
+// материалы и работа, накопительно за период.
+// ═══════════════════════════════════════════════════════
+async function renderClientProfit() {
+    const listEl = document.getElementById('client-profit-list');
+    const sumEl = document.getElementById('client-profit-summary');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="u-empty">Считаем...</div>';
+
+    const period = document.getElementById('client-profit-period')?.value || 'year';
+    const now = new Date();
+    const inPeriod = (d) => {
+        if (!d) return false;
+        if (period === 'all') return true;
+        const dt = new Date(d);
+        if (period === 'month') return dt.getFullYear() === now.getFullYear() && dt.getMonth() === now.getMonth();
+        if (period === 'quarter') { const q = new Date(now); q.setMonth(now.getMonth() - 3); return dt >= q; }
+        if (period === 'year') return dt.getFullYear() === now.getFullYear();
+        return true;
+    };
+
+    try {
+        // Материалы и работа по всем заказам — из них считается себестоимость
+        const [matRes, labRes] = await Promise.all([
+            _supabase.from('order_materials').select('*'),
+            _supabase.from('order_labor').select('*')
+        ]);
+        const mats = matRes.data || [];
+        const labs = labRes.data || [];
+
+        const byClient = {};
+        crm_orders.filter(c => inPeriod(c.date || c.created_at)).forEach(c => {
+            const name = c.client || 'Без клиента';
+            if (!byClient[name]) byClient[name] = { revenue: 0, cost: 0, orders: 0, paid: 0, items: [] };
+
+            const revenue = Number(c.price) || 0;
+            const matCost = mats.filter(m => m.order_id === c.oid)
+                .reduce((s, m) => s + (Number(m.qty) || 0) * (Number(m.unit_price) || 0), 0);
+            const labCost = labs.filter(l => l.order_id === c.oid)
+                .reduce((s, l) => s + (Number(l.qty) || 0) * (Number(l.unit_price) || 0), 0);
+
+            byClient[name].revenue += revenue;
+            byClient[name].cost += matCost + labCost;
+            byClient[name].paid += Number(c.advance) || 0;
+            byClient[name].orders++;
+            byClient[name].items.push(c.item || '');
+        });
+
+        const rows = Object.entries(byClient)
+            .map(([name, d]) => ({ name, ...d, profit: d.revenue - d.cost, debt: d.revenue - d.paid }))
+            .sort((a, b) => b.profit - a.profit);
+
+        if (!rows.length) {
+            if (sumEl) sumEl.innerHTML = '';
+            listEl.innerHTML = '<div class="u-empty">Нет заказов за выбранный период</div>';
+            return;
+        }
+
+        const totalRev = rows.reduce((s, r) => s + r.revenue, 0);
+        const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
+        const totalDebt = rows.reduce((s, r) => s + Math.max(0, r.debt), 0);
+        const margin = totalRev ? Math.round(totalProfit / totalRev * 100) : 0;
+
+        if (sumEl) {
+            sumEl.innerHTML = `
+                <div class="u-stat"><div class="u-stat-val">${rows.length}</div><div class="u-stat-label">Клиентов</div></div>
+                <div class="u-stat"><div class="u-stat-val" style="color:#0891b2;">${formatMoney(Math.round(totalRev))}</div><div class="u-stat-label">Выручка</div></div>
+                <div class="u-stat"><div class="u-stat-val" style="color:${totalProfit>=0?'#16a34a':'#ef4444'};">${formatMoney(Math.round(totalProfit))}</div><div class="u-stat-label">Прибыль · ${margin}%</div></div>
+                ${totalDebt > 0 ? `<div class="u-stat"><div class="u-stat-val" style="color:#ef4444;">${formatMoney(Math.round(totalDebt))}</div><div class="u-stat-label">Долг клиентов</div></div>` : ''}
+            `;
+        }
+
+        const maxProfit = Math.max(...rows.map(r => Math.abs(r.profit)), 1);
+
+        listEl.innerHTML = rows.map((r, i) => {
+            const marg = r.revenue ? Math.round(r.profit / r.revenue * 100) : 0;
+            const bad = r.profit < 0;
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            return `<div style="background:var(--surface); border-radius:12px; padding:12px 14px; margin-bottom:8px; ${bad ? 'border-left:3px solid #ef4444;' : ''}">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
+                    <div>
+                        <b style="font-size:14px;">${medal} ${r.name}</b>
+                        <span style="font-size:11px; color:var(--text-muted); margin-left:8px;">${r.orders} заказ${r.orders===1?'':'ов'}</span>
+                        ${r.debt > 0 ? `<span class="u-tag u-tag-red" style="margin-left:6px;">долг ${formatMoney(Math.round(r.debt))}</span>` : ''}
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:16px; font-weight:900; color:${bad ? '#ef4444' : '#16a34a'};">${bad ? '' : '+'}${formatMoney(Math.round(r.profit))}</div>
+                        <div style="font-size:10px; color:var(--text-muted);">маржа ${marg}%</div>
+                    </div>
+                </div>
+                <div style="height:6px; background:var(--border-light); border-radius:3px; overflow:hidden;">
+                    <div style="width:${Math.round(Math.abs(r.profit)/maxProfit*100)}%; height:100%; background:${bad ? '#ef4444' : '#16a34a'};"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-secondary); margin-top:5px;">
+                    <span>выручка ${formatMoney(Math.round(r.revenue))}</span>
+                    <span>затраты ${formatMoney(Math.round(r.cost))}</span>
+                </div>
+            </div>`;
+        }).join('');
+
+    } catch (e) {
+        console.error(e);
+        listEl.innerHTML = '<div class="u-empty">Не удалось посчитать</div>';
+    }
+}
+
 function showPersonnelSection(name) {
     // Hide all sections
     var sections = document.querySelectorAll('#page-workers .wh-section');
@@ -12186,6 +12636,7 @@ function showPersonnelSection(name) {
     if (name === 'analytics') {
         renderDetailedActivity();
         renderProcessSpeed();
+        renderClientProfit();
     } else {
         renderPersonnelStats();
     }
@@ -12955,6 +13406,29 @@ function showMonSection(name) {
     if (name === 'blockers') renderBlockers();
 }
 
+// Что происходит с заказом прямо сейчас: какой этап идёт и кто на нём
+function getMonOrderState(o) {
+    const path = o.path || [];
+    if (!path.length) return { state:'none', label:'Маршрут не задан', icon:'—', color:'#94a3b8', bg:'var(--surface-container)', worker:'' };
+
+    const allDone = path.every(p => o.history?.[p]?.end);
+    if (allDone) return { state:'done', label:'Готов', icon:'✔', color:'#16a34a', bg:'#dcfce7', worker:'' };
+
+    // Ищем процесс в работе
+    const active = path.find(p => o.history?.[p]?.start && !o.history?.[p]?.end);
+    if (active) {
+        const h = o.history[active];
+        const planned = getProcPlannedQty(h);
+        const done = getProcDoneQty(h);
+        const qtyTxt = planned ? ` ${done}/${planned}` : '';
+        return { state:'active', label:active + qtyTxt, icon:'🔨', color:'#0369a1', bg:'#e0f5fb', worker: h.worker || '' };
+    }
+
+    // Никто не начал — показываем, чего ждём
+    const next = path.find(p => !o.history?.[p]?.end);
+    return { state:'waiting', label:'Ждёт: ' + (next || '—'), icon:'⏳', color:'#64748b', bg:'var(--surface-container)', worker:'' };
+}
+
 function renderMonitor() {
     const container = document.getElementById('m-table');
     if (!container) return;
@@ -12998,33 +13472,68 @@ function renderMonitor() {
         return;
     }
 
+    // Сводка сверху: сколько заказов в работе, сколько стоит, сколько просрочено
+    const sumEl = document.getElementById('mon-summary');
+    if (sumEl) {
+        let inWork = 0, waiting = 0, overdue = 0, done = 0;
+        orders.forEach(o => {
+            const st = getMonOrderState(o);
+            if (st.state === 'done') done++;
+            else if (getOrderDueStatus(o.id).state === 'overdue') overdue++;
+            else if (st.state === 'active') inWork++;
+            else waiting++;
+        });
+        sumEl.innerHTML = `
+            <div class="u-stat"><div class="u-stat-val" style="color:#0891b2;">${inWork}</div><div class="u-stat-label">🔨 В работе</div></div>
+            <div class="u-stat"><div class="u-stat-val" style="color:#94a3b8;">${waiting}</div><div class="u-stat-label">⏳ Ждут начала</div></div>
+            <div class="u-stat"><div class="u-stat-val" style="color:${overdue?'#ef4444':'#16a34a'};">${overdue}</div><div class="u-stat-label">⚠️ Просрочено</div></div>
+            <div class="u-stat"><div class="u-stat-val" style="color:#16a34a;">${done}</div><div class="u-stat-label">✔ Завершено</div></div>`;
+    }
+
     let html = filtered.map(o => {
         const crmData = crm_orders.find(c => c.oid === o.id) || {};
         const totalSteps = (o.path || []).length;
         const finishedSteps = totalSteps > 0 ? (o.path || []).filter(p => o.history && o.history[p] && o.history[p].end).length : 0;
         const progress = totalSteps > 0 ? Math.round((finishedSteps / totalSteps) * 100) : 0;
-        const barColor = progress >= 100 ? 'var(--success)' : 'var(--primary)';
 
+        const st = getMonOrderState(o);
         const due = getOrderDueStatus(o.id);
-        const dueBadge = due.state === 'overdue'
-            ? `<span style="background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800; margin-left:6px;">⚠️ ${due.label}</span>`
-            : due.state === 'soon'
-            ? `<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:800; margin-left:6px;">⏰ ${due.label}</span>`
-            : '';
+        const barColor = progress >= 100 ? '#16a34a' : due.state === 'overdue' ? '#ef4444' : '#0891b2';
+
         const cardStyle = due.state === 'overdue' ? 'border-left:4px solid #ef4444;'
             : due.state === 'soon' ? 'border-left:4px solid #f59e0b;' : '';
 
-        return `<div class="mon-card" style="${cardStyle}" onclick="openMonitorOrderModal('${esc(o.id)}')">
-            <div>
-                <div class="mon-card-id">#${o.id}${dueBadge}</div>
-                <div class="mon-card-client">${crmData.client || 'Без клиента'}${crmData.due_date ? ' · ' + renderDueDateCell(crmData) : ''}</div>
+        // Цепочка процессов: сразу видно, что сделано, что идёт и что впереди
+        const chain = (o.path || []).map(p => {
+            const h = o.history?.[p];
+            const isDone = !!h?.end;
+            const isActive = !!h?.start && !h?.end;
+            const cls = isDone ? 'mon-step done' : isActive ? 'mon-step active' : 'mon-step';
+            return `<span class="${cls}" title="${p}${isActive && h.worker ? ' · ' + h.worker : ''}">${p}</span>`;
+        }).join('');
+
+        return `<div class="mon-card-v2" style="${cardStyle}" onclick="openMonitorOrderModal('${esc(o.id)}')">
+            <div class="mon-row-top">
+                <div>
+                    <span class="mon-oid">№${o.id}</span>
+                    <span class="mon-client">${crmData.client || 'Без клиента'}</span>
+                    ${crmData.item ? `<span class="mon-item">${crmData.item}</span>` : ''}
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    ${due.state === 'overdue' ? `<span class="u-tag u-tag-red">⚠️ ${due.label}</span>`
+                      : due.state === 'soon' ? `<span class="u-tag u-tag-amber">⏰ ${due.label}</span>`
+                      : crmData.due_date ? `<span class="u-tag">до ${new Date(crmData.due_date).toLocaleDateString('ru-RU')}</span>` : ''}
+                    <span class="mon-state" style="background:${st.bg}; color:${st.color};">${st.icon} ${st.label}</span>
+                </div>
             </div>
-            <div class="mon-card-progress">
-                <div class="mon-card-bar"><div style="width:${progress}%; height:100%; background:${barColor};"></div></div>
-                <div class="mon-card-pct">${progress}% · ${finishedSteps}/${totalSteps} процессов</div>
-            </div>
-            <div class="mon-card-actions">
-                <button class="btn-blue" style="padding:8px 12px; font-size:14px;" onclick="event.stopPropagation(); openMonitorOrderModal('${esc(o.id)}')">👁</button>
+
+            <div class="mon-chain">${chain}</div>
+
+            <div class="mon-row-bottom">
+                <div class="mon-bar"><div style="width:${progress}%; background:${barColor};"></div></div>
+                <span class="mon-pct">${progress}%</span>
+                <span class="mon-steps">${finishedSteps} из ${totalSteps}</span>
+                ${st.worker ? `<span class="mon-worker">👤 ${st.worker}</span>` : ''}
             </div>
         </div>`;
     }).join('');
@@ -14539,7 +15048,7 @@ let _currentPageId = null;   // нужен для точечного обнов�
 
 function showPage(id) {
     _currentPageId = id;
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-services').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker, #page-services').forEach(p => p.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     const target = document.getElementById(id);
     if(target) target.classList.remove('hidden');
@@ -15400,9 +15909,10 @@ function init() {
                         showNavUserBox(); startLiveSync();
                         document.getElementById('worker-title').innerText = w.name;
                         // При восстановлении сессии тоже показываем доступ к покраске
-                        if (workerHasPaintAccess(w)) {
-                            document.getElementById('paint-access-btn')?.classList.remove('hidden');
-                            loadPaintData();
+                        if (workerHasPaintAccess(w)) loadPaintData();
+                        if (workerHasSandingAccess(w)) {
+                            document.getElementById('sanding-access-btn')?.classList.remove('hidden');
+                            loadSandingData();
                         }
                         renderWorkerTasks();
                         updateNotifyButton();

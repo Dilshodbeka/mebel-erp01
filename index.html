@@ -957,6 +957,22 @@
         /* Пустое состояние списка */
         .u-empty { text-align:center; padding:28px 16px; color:var(--text-muted); font-size:13px; }
 
+        /* Блок остатка: подписанные строки вместо столбика цифр —
+           раньше «28 / 2 / на складе» читалось как два числа подряд */
+        .wh-stock-box { min-width:190px; background:var(--surface); border:1px solid var(--border-light);
+                        border-radius:12px; padding:10px 12px; }
+        .wh-stock-line { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:3px 0; }
+        .wh-stock-label { font-size:11px; color:var(--text-secondary); font-weight:600; white-space:nowrap; }
+        .wh-stock-val { font-size:17px; font-weight:900; white-space:nowrap; }
+        .wh-stock-val small { font-size:11px; font-weight:700; opacity:.7; }
+        .wh-stock-val.is-ok { color:var(--success); }
+        .wh-stock-val.is-low { color:#ef4444; }
+        .wh-stock-val.is-reserved { color:#f59e0b; }
+        .wh-stock-total { border-top:1px solid var(--border); margin-top:4px; padding-top:6px; }
+        .wh-stock-total .wh-stock-label { font-weight:800; color:var(--text-primary); }
+        .wh-stock-alert { font-size:10.5px; font-weight:700; color:#b91c1c; background:#fee2e2;
+                          border-radius:7px; padding:4px 7px; margin-top:6px; line-height:1.3; }
+
         /* ============ WAREHOUSE MODULE ============ */
         /* Складские классы теперь наследуют единую систему — одинаковые
            радиусы, отступы и цвета во всех разделах */
@@ -1767,6 +1783,10 @@
                     <label class="field-label">Количество (шт)</label>
                     <input type="number" id="crm-qty" placeholder="1" min="1" step="1" value="1">
                 </div>
+                <div>
+                    <label class="field-label">💰 Аванс (предоплата)</label>
+                    <input type="number" id="crm-advance" placeholder="0" min="0" step="0.01" value="">
+                </div>
             </div>
             <button class="btn-blue" style="width:100%; margin-top: 8px;" onclick="saveCRM()">Создать заказ</button>
         </div>
@@ -1774,7 +1794,7 @@
             <input type="text" id="crm-search" placeholder="🔍 Поиск: клиент, телефон, № заказа, изделие" oninput="renderCRM()">
             <div class="table-wrapper">
                 <table class="modern-table mobile-cards">
-                    <thead><tr><th>№</th><th>Клиент</th><th>Изделие</th><th>Сумма</th><th>Дата</th><th>Сдача</th><th>Статус</th><th>📱</th><th>Действия</th></tr></thead>
+                    <thead><tr><th>№</th><th>Клиент</th><th>Изделие</th><th>Сумма</th><th>Дата</th><th>Сдача</th><th>Производство</th><th>Отгрузка</th><th>📱</th><th>Действия</th></tr></thead>
                     <tbody id="crm-table-body"></tbody>
                 </table>
             </div>
@@ -2422,6 +2442,35 @@ alter table sanding_records disable row level security;</pre>
     </div>
 </div>
 <!-- ── МОДАЛЬ: КАРТОЧКА КЛИЕНТА ── -->
+<!-- ── МОДАЛЬ: ИНВЕНТАРИЗАЦИЯ ── -->
+<div id="inventory-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; overflow-y:auto; padding:20px;">
+    <div style="max-width:780px; margin:auto; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
+        <div style="background:linear-gradient(135deg,#0e7fa8,#0891b2); color:#fff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+                <div style="font-size:11px; text-transform:uppercase; opacity:0.85; font-weight:700;">📋 Инвентаризация</div>
+                <div style="font-size:19px; font-weight:900; margin-top:3px;">Сверка фактических остатков</div>
+            </div>
+            <button onclick="closeInventory()" style="background:rgba(255,255,255,0.2); border:none; color:#fff; border-radius:10px; padding:8px 14px; font-weight:700; cursor:pointer;">✕ Закрыть</button>
+        </div>
+        <div style="padding:20px 24px;">
+            <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">
+                Впишите фактическое количество. Расхождения подсветятся, корректировка проведётся движениями склада с пометкой «Инвентаризация».
+            </p>
+            <div id="inventory-summary" class="u-stat-row"></div>
+            <div style="max-height:50vh; overflow-y:auto; margin-bottom:14px;">
+                <table class="modern-table" style="width:100%;">
+                    <thead><tr><th>Материал</th><th style="text-align:center;">Учёт</th><th style="text-align:center;">Факт</th><th style="text-align:center;">Расхождение</th></tr></thead>
+                    <tbody id="inventory-rows"></tbody>
+                </table>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-ghost" style="flex:1;" onclick="closeInventory()">Отмена</button>
+                <button class="btn-green" style="flex:2;" onclick="applyInventory()">✔ Применить корректировки</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── МОДАЛЬ: СБОРКА ГОТОВОГО ИЗДЕЛИЯ ── -->
 <div id="assemble-modal" class="hidden" style="position:fixed; inset:0; background:rgba(15,23,42,0.55); z-index:9500; display:flex; align-items:center; justify-content:center; padding:20px;">
     <div style="max-width:440px; width:100%; background:#fff; border-radius:18px; overflow:hidden; box-shadow:0 25px 60px rgba(0,0,0,0.25);">
@@ -2472,10 +2521,11 @@ alter table sanding_records disable row level security;</pre>
                 <div><label class="field-label">Дата заказа</label><input type="date" id="crm-edit-date" style="margin:0;"></div>
                 <div><label class="field-label">📅 Дата сдачи</label><input type="date" id="crm-edit-due" style="margin:0;"></div>
             </div>
-            <div>
-                <label class="field-label">Количество (шт)</label>
-                <input type="number" id="crm-edit-qty" min="1" step="1" style="margin:0;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div><label class="field-label">Количество (шт)</label><input type="number" id="crm-edit-qty" min="1" step="1" style="margin:0;"></div>
+                <div><label class="field-label">💰 Аванс</label><input type="number" id="crm-edit-advance" min="0" step="0.01" style="margin:0;" oninput="updateCrmEditDebt()"></div>
             </div>
+            <div id="crm-edit-debt" style="background:var(--surface); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; font-weight:700;"></div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button class="btn-ghost" style="flex:1;" onclick="closeCrmEditModal()">Отмена</button>
                 <button class="btn-blue" style="flex:1;" onclick="saveCrmEdit()">Сохранить</button>
@@ -2839,6 +2889,7 @@ alter table sanding_records disable row level security;</pre>
             <div id="item-edit-cost-wrap">
                 <label class="field-label">Цена за единицу</label>
                 <input type="number" id="item-edit-cost" step="0.01" style="margin:0;">
+                <div id="item-edit-price-history" style="margin-top:8px;"></div>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
                 <button class="btn-ghost" style="flex:1;" onclick="closeItemEditModal()">Отмена</button>
@@ -2985,7 +3036,10 @@ alter table sanding_records disable row level security;</pre>
                     <tbody id="oc-materials-rows"></tbody>
                 </table>
             </div>
-            <button class="btn-blue" style="margin-top:10px;" onclick="addOcMaterialRow()">+ Добавить материал вручную</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                <button class="btn-blue" onclick="addOcMaterialRow()">+ Добавить материал вручную</button>
+                <button class="btn-green" onclick="deductAllMaterials()" title="Списать все материалы заказа со склада">📦 Списать всё со склада</button>
+            </div>
             <div class="oc-total-row"><span>Итого материалы:</span><span id="oc-materials-total">0</span></div>
         </div>
     </div>
@@ -3050,6 +3104,8 @@ alter table sanding_records disable row level security;</pre>
                     <tr><td style="padding:6px 0; color:var(--text-secondary);">Доставка:</td><td style="text-align:right; font-weight:700;" id="oc-sum2-delivery">0</td></tr>
                     <tr style="border-top:1px solid #e2e8f0;"><td style="padding:10px 0; font-weight:800;">Себестоимость (цеху):</td><td style="text-align:right; font-weight:900; color:var(--primary);" id="oc-sum2-cost">0</td></tr>
                     <tr><td style="padding:6px 0; font-weight:800;">Цена продажи (клиенту):</td><td style="text-align:right; font-weight:900;" id="oc-sum2-sale">0</td></tr>
+                    <tr><td style="padding:6px 0; color:#16a34a;">💰 Аванс получен:</td><td style="text-align:right; font-weight:700; color:#16a34a;" id="oc-sum2-advance">0</td></tr>
+                    <tr><td style="padding:6px 0; color:#ef4444;">Остаток к оплате:</td><td style="text-align:right; font-weight:800; color:#ef4444;" id="oc-sum2-debt">0</td></tr>
                     <tr style="border-top:2px solid #e2e8f0;"><td style="padding:10px 0; font-weight:900; font-size:16px;">Прибыль:</td><td style="text-align:right; font-weight:900; font-size:18px;" id="oc-sum2-profit">0</td></tr>
                     <tr><td style="padding:0; color:var(--text-muted); font-size:12px;">Маржа:</td><td style="text-align:right; color:var(--text-muted); font-size:12px;" id="oc-sum2-margin">0%</td></tr>
                 </table>
@@ -3128,6 +3184,7 @@ alter table sanding_records disable row level security;</pre>
         <button class="wh-subnav-btn active" data-section="materials" onclick="showWhSection('materials')">🔧 Материалы</button>
         <button class="wh-subnav-btn" data-section="labor" onclick="showWhSection('labor')">👷 Работа / Монтаж</button>
         <button class="wh-subnav-btn" data-section="blanks" onclick="showWhSection('blanks')">🧱 Заготовки</button>
+        <button class="wh-subnav-btn" data-section="ready" onclick="showWhSection('ready')">📦 Готово по заказам</button>
         <button class="wh-subnav-btn" data-section="finished" onclick="showWhSection('finished')">📦 Готовые изделия</button>
         <button class="wh-subnav-btn" data-section="analytics" onclick="showWhSection('analytics')">📊 Аналитика</button>
     </div>
@@ -3178,6 +3235,7 @@ alter table sanding_records disable row level security;</pre>
                 <input type="text" id="wh-search" placeholder="🔍 Поиск материала..." style="margin:0; padding:8px 12px; font-size:13px; width:220px;" oninput="renderWarehouseItems()">
             </div>
 
+            <div id="wh-summary" class="u-stat-row"></div>
             <div id="wh-cat-bar" style="margin-bottom:10px;"></div>
 
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
@@ -3194,6 +3252,7 @@ alter table sanding_records disable row level security;</pre>
                     <input type="checkbox" id="wh-only-low" onchange="renderWarehouseItems()" style="width:16px;height:16px;accent-color:#ef4444;">
                     Только заканчивающиеся
                 </label>
+                <button class="btn-ghost" onclick="openInventory()" style="padding:6px 12px; font-size:12px;">📋 Инвентаризация</button>
                 <button class="btn-ghost" onclick="toggleAllWhGroups()" style="padding:6px 12px; font-size:12px; margin-left:auto;" id="wh-toggle-all-btn">⊟ Свернуть всё</button>
             </div>
 
@@ -3242,6 +3301,39 @@ alter table sanding_records disable row level security;</pre>
     </div>
 
     <!-- ══════════ ЗАГОТОВКИ ══════════ -->
+    <!-- ── ГОТОВО ПО ЗАКАЗАМ ──
+         Заготовки, изготовленные под конкретный заказ клиента и прошедшие свой процесс.
+         Отсюда их либо выдают клиенту (производство продаёт заготовки),
+         либо пускают дальше — в сборку или упаковку. -->
+    <div id="wh-sec-ready" class="wh-section">
+        <div class="card" style="background:linear-gradient(135deg,#0e7fa8,#0891b2); color:#fff; border:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                    <h2 style="margin:0; font-size:22px; font-weight:900;">📦 Готово по заказам</h2>
+                    <p style="margin:4px 0 0 0; font-size:13px; opacity:0.9;">Изготовлено под заказ — выдать клиенту, собрать или упаковать</p>
+                </div>
+                <div id="ready-kpi" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">Ожидают выдачи</h3>
+                <input type="text" id="ready-search" placeholder="🔍 Заказ, клиент или деталь..." style="margin:0; padding:8px 12px; font-size:13px; width:240px;" oninput="renderReadyItems()">
+            </div>
+            <div id="ready-filter-bar" style="margin-bottom:12px;"></div>
+            <div id="ready-items-list"></div>
+        </div>
+
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0;">📋 История выдачи</h3>
+            </div>
+            <div class="u-period-bar" id="ready-period-bar"></div>
+            <div id="ready-history-list"></div>
+        </div>
+    </div>
+
     <div id="wh-sec-blanks" class="wh-section">
         <div class="card">
             <h3>🧱 Добавить заготовку</h3>
@@ -4755,10 +4847,12 @@ function renderSandingItems() {
                 </div>
                 ${i.min_qty>0 ? `<div><span class="wh-min-badge">⚠ Мин. остаток: ${i.min_qty} ${i.unit}</span></div>` : ''}
             </div>
-            <div class="wh-qty-block">
-                <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock}</div>
-                <div class="wh-qty-unit">${i.unit}</div>
-                <div class="wh-qty-caption">в наличии</div>
+            <div class="wh-stock-box" style="min-width:150px;">
+                <div class="wh-stock-line">
+                    <span class="wh-stock-label">Отшлифовано</span>
+                    <span class="wh-stock-val ${isLow?'is-low':'is-ok'}">${i.qty_in_stock} <small>${(/^\d+$/.test(String(i.unit||'').trim())||!i.unit)?'шт':i.unit}</small></span>
+                </div>
+                ${i.min_qty > 0 && i.qty_in_stock <= i.min_qty ? `<div class="wh-stock-alert">⚠️ Ниже минимума</div>` : ''}
             </div>
             <div style="display:flex; gap:6px;">
                 <button class="btn-green" style="padding:6px 12px; font-size:12px;" onclick="sandingStockAdjust(${i.id}, 'in')">+ Приход</button>
@@ -5181,6 +5275,26 @@ function renderOrderComponentsGridSafe() {
     try { renderOrderComponentsGrid(); } catch(e) { console.warn(e); }
 }
 
+// Список заготовок для выбора «что получается на выходе процесса»
+function buildBlankOptions(selectedId) {
+    let html = '<option value="">— заготовка не создаётся —</option>';
+    const byCat = {};
+    blank_items.forEach(b => {
+        const c = b.category || 'Без категории';
+        if (!byCat[c]) byCat[c] = [];
+        byCat[c].push(b);
+    });
+    Object.keys(byCat).sort().forEach(cat => {
+        html += `<optgroup label="${esc(cat)}">`;
+        byCat[cat].forEach(b => {
+            const sel = String(b.id) === String(selectedId) ? ' selected' : '';
+            html += `<option value="${b.id}"${sel}>${esc(blankDisplayName(b))}</option>`;
+        });
+        html += '</optgroup>';
+    });
+    return html;
+}
+
 function toggleProdProc(checkbox, idx) {
     var card = checkbox.closest('.item-card');
     if (!card) return;
@@ -5199,9 +5313,19 @@ function toggleProdProc(checkbox, idx) {
         var row = document.createElement('div');
         row.id = 'proc' + idx + '-row';
         row.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;';
-        row.innerHTML = '<span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">Объём</span>'
+        row.style.cssText = 'margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;';
+        row.innerHTML = '<div style="display:flex;align-items:center;gap:6px;">'
+            + '<span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;">Объём</span>'
             + '<input type="number" value="1" min="1" id="proc' + idx + '-qty" onclick="event.stopPropagation()" oninput="updateOrderCodePreview()" style="width:64px;padding:5px 4px;border:1px solid #e2e8f0;border-radius:8px;font-size:14px;font-weight:700;text-align:center;">'
-            + '<span style="font-size:11px;font-weight:600;color:#64748b;">шт</span>';
+            + '<span style="font-size:11px;font-weight:600;color:#64748b;">шт</span>'
+            + '</div>'
+            // Что получается на выходе процесса — попадёт на склад заготовок автоматически
+            + '<div style="margin-top:5px;">'
+            + '<select id="proc' + idx + '-blank" onclick="event.stopPropagation()" style="width:100%;padding:5px 6px;border:1px solid #e2e8f0;border-radius:8px;font-size:11px;">'
+            + buildBlankOptions()
+            + '</select>'
+            + '<div style="font-size:9px;color:#94a3b8;margin-top:3px;">на выходе → склад заготовок</div>'
+            + '</div>';
         card.appendChild(row);
     } else {
         if (existingRow) existingRow.style.display = 'none';
@@ -6585,8 +6709,9 @@ function renderOcMaterials() {
         updateOcSummary();
         return;
     }
-    tbody.innerHTML = oc_materials.map(m => `<tr>
-        <td><input type="text" value="${m.name||''}" onchange="updateOcMaterial(${m.id},'name',this.value)"></td>
+    tbody.innerHTML = oc_materials.map(m => `<tr style="${m.deducted_at ? 'background:#f0fdf4;' : ''}">
+        <td><input type="text" value="${m.name||''}" onchange="updateOcMaterial(${m.id},'name',this.value)">
+            ${m.deducted_at ? '<div style="font-size:10px; color:#15803d; font-weight:700; margin-top:2px;">✔ списано со склада</div>' : ''}</td>
         <td><input type="text" value="${m.color||''}" onchange="updateOcMaterial(${m.id},'color',this.value)" style="width:70px;"></td>
         <td><input type="text" value="${m.package||''}" onchange="updateOcMaterial(${m.id},'package',this.value)" style="width:80px;"></td>
         <td><input type="number" value="${m.qty||0}" step="0.01" onchange="updateOcMaterial(${m.id},'qty',this.value)" style="width:60px;"></td>
@@ -6594,7 +6719,9 @@ function renderOcMaterials() {
         <td><input type="number" value="${m.unit_price||0}" step="0.01" onchange="updateOcMaterial(${m.id},'unit_price',this.value)" style="width:80px;"></td>
         <td style="font-weight:700; white-space:nowrap;">${formatMoney((m.qty||0)*(m.unit_price||0))}</td>
         <td style="white-space:nowrap;">
-            <button class="btn-ghost" style="padding:3px 6px; font-size:10px;" title="Списать со склада" onclick="deductFromWarehouseByName('${esc(m.name||'')}', ${m.qty||0})">📦</button>
+            ${m.deducted_at
+                ? `<button class="btn-ghost" style="padding:3px 6px; font-size:10px;" title="Вернуть на склад" onclick="returnMaterialToWarehouse(${m.id})">↩️</button>`
+                : `<button class="btn-green" style="padding:3px 6px; font-size:10px;" title="Списать со склада" onclick="deductMaterialToOrder(${m.id})">📦</button>`}
             <button class="btn-red" style="padding:3px 8px; font-size:11px;" onclick="deleteOcMaterial(${m.id})">✖</button>
         </td>
     </tr>`).join('');
@@ -6787,7 +6914,8 @@ async function addOcMaterialFromWarehouse() {
     const { data, error } = await _supabase.from('order_materials').insert({
         order_id: oc_orderId, name: item.name,
         color: item.color || '', package: item.spec || '',
-        qty: 1, unit: item.unit || 'шт', unit_price: item.unit_cost || 0
+        qty: 1, unit: item.unit || 'шт', unit_price: item.unit_cost || 0,
+        warehouse_item_id: item.id      // привязка по id — надёжнее поиска по названию
     }).select();
     if (error) return showToast('Ошибка: ' + error.message, 'error');
     oc_materials.push(data[0]);
@@ -6924,6 +7052,18 @@ function updateOcSummary() {
     document.getElementById('oc-sum2-delivery').innerText = formatMoney(delivery);
     document.getElementById('oc-sum2-cost').innerText     = formatMoney(cost);
     document.getElementById('oc-sum2-sale').innerText     = formatMoney(sale);
+    // Аванс и остаток к оплате берём из карточки заказа CRM
+    const crmForCalc = crm_orders.find(c => c.oid === oc_orderId);
+    const advPaid = Number(crmForCalc?.advance) || 0;
+    const salePrice = sale || Number(crmForCalc?.price) || 0;
+    const advEl = document.getElementById('oc-sum2-advance');
+    const debtEl = document.getElementById('oc-sum2-debt');
+    if (advEl) advEl.innerText = formatMoney(advPaid);
+    if (debtEl) {
+        const d = salePrice - advPaid;
+        debtEl.innerText = d > 0 ? formatMoney(d) : (d < 0 ? 'переплата ' + formatMoney(-d) : 'оплачено');
+        debtEl.style.color = d > 0 ? '#ef4444' : '#16a34a';
+    }
     const profitEl = document.getElementById('oc-sum2-profit');
     profitEl.innerText = formatMoney(profit);
     profitEl.className = profit >= 0 ? 'oc-profit-positive' : 'oc-profit-negative';
@@ -7295,6 +7435,7 @@ function showWarehousePage() {
     loadWarehouseData();
     loadBlankData();
     loadFinishedData();
+    loadReadyItems();
 }
 
 function showWhSection(name) {
@@ -7309,9 +7450,18 @@ function showWhSection(name) {
     if (name === 'analytics') renderWhAnalytics();
     if (name === 'finished') populateFnRecipeBlankPicker();
     if (name === 'labor') renderLaborCatalog();
+    if (name === 'ready') loadReadyItems().then(() => { renderReadyItems(); renderReadyHistory(); });
 }
 
 async function loadWarehouseData() {
+    // Материалы заказов нужны для расчёта резерва (сколько уже расписано, но не списано).
+    // Раньше они грузились только при открытии Финансов, и на складе резерв был пустым.
+    if (!all_order_materials.length) {
+        try {
+            const { data } = await _supabase.from('order_materials').select('*');
+            all_order_materials = data || [];
+        } catch (e) { /* не критично */ }
+    }
     try {
         const [itRes, mvRes, lbRes] = await Promise.all([
             _supabase.from('warehouse_items').select('*').order('name'),
@@ -7458,9 +7608,37 @@ function updateStockMovePreview() {
     if (!item) return;
     const delta = _stockMoveState.type === 'in' ? qty : -qty;
     const result = (item.qty_in_stock || 0) + delta;
+    const min = Number(item.min_qty) || 0;
+
     const previewEl = document.getElementById('stock-move-preview');
     previewEl.innerText = qty > 0 ? `${result} ${item.unit || ''}` : '—';
-    previewEl.style.color = result < 0 ? '#ef4444' : 'var(--success)';
+    previewEl.style.color = result < 0 ? '#ef4444' : (min > 0 && result < min) ? '#f59e0b' : 'var(--success)';
+
+    // Подсказка сразу под полем — видно последствия до подтверждения
+    let hint = document.getElementById('stock-move-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'stock-move-hint';
+        hint.style.cssText = 'font-size:12px; font-weight:700; padding:8px 12px; border-radius:10px; margin-bottom:12px;';
+        const qtyInput = document.getElementById('stock-move-qty');
+        qtyInput?.parentNode?.insertBefore(hint, qtyInput.nextSibling);
+    }
+    if (qty <= 0) { hint.style.display = 'none'; return; }
+    hint.style.display = '';
+
+    if (result < 0) {
+        hint.style.cssText += 'background:#fee2e2; color:#b91c1c;';
+        hint.innerHTML = `⛔ Остаток уйдёт в минус: ${result} ${item.unit || ''}`;
+    } else if (min > 0 && result < min) {
+        hint.style.cssText += 'background:#fef3c7; color:#92400e;';
+        hint.innerHTML = `⚠️ Останется ${result}, минимум ${min} — попадёт в «заканчивается»`;
+    } else if (result === 0) {
+        hint.style.cssText += 'background:#fef3c7; color:#92400e;';
+        hint.innerHTML = `⚠️ Списываете весь остаток — станет 0`;
+    } else {
+        hint.style.cssText += 'background:#dcfce7; color:#15803d;';
+        hint.innerHTML = `✔ Останется ${result} ${item.unit || ''}${min > 0 ? ` (минимум ${min})` : ''}`;
+    }
 }
 
 // Заполняет datalist подсказками номеров заказов — из активных производственных заказов
@@ -7482,8 +7660,19 @@ async function confirmStockMove() {
     const orderId = document.getElementById('stock-move-order').value.trim() || null;
     const reason = document.getElementById('stock-move-reason').value.trim() || (type === 'in' ? 'Приход' : 'Расход');
 
-    if (type === 'out' && qty > (item.qty_in_stock || 0)) {
-        if (!confirm(`Списываемое количество (${qty}) больше остатка (${item.qty_in_stock}). Продолжить?`)) return;
+    // Предупреждаем ДО списания, а не после: что останется и не уйдём ли ниже минимума
+    if (type === 'out') {
+        const stock = Number(item.qty_in_stock) || 0;
+        const min = Number(item.min_qty) || 0;
+        const after = stock - qty;
+
+        if (qty > stock) {
+            if (!confirm(`⛔ На складе только ${stock} ${item.unit || ''}, списываете ${qty}.\n\nОстаток уйдёт в минус: ${after}\n\nВсё равно списать?`)) return;
+        } else if (min > 0 && after < min) {
+            if (!confirm(`⚠️ После списания останется ${after} ${item.unit || ''}, а минимальный запас ${min}.\n\nМатериал попадёт в «заканчивается». Продолжить?`)) return;
+        } else if (after === 0) {
+            if (!confirm(`⚠️ Списываете весь остаток — на складе станет 0.\n\nПродолжить?`)) return;
+        }
     }
 
     const displayName = (kind === 'warehouse' || kind === 'sanding') ? item.name : blankDisplayName(item);
@@ -7529,28 +7718,83 @@ function toggleAllWhGroups() {
 }
 
 // Карточка одного материала
+// Сколько материала уже расписано по незакрытым заказам, но ещё не списано.
+// Это «зарезервировано» — физически лежит, но фактически уже занято.
+function getReservedQty(itemId, itemName) {
+    if (!all_order_materials || !all_order_materials.length) return 0;
+    return all_order_materials
+        .filter(m => {
+            if (m.deducted_at) return false;                     // уже списано — не резерв
+            if (m.warehouse_item_id) return m.warehouse_item_id === itemId;
+            return (m.name || '').toLowerCase() === (itemName || '').toLowerCase();
+        })
+        .reduce((s, m) => s + (Number(m.qty) || 0), 0);
+}
+
+// Карточка одного материала
 function whItemCard(i) {
-    const isLow = i.min_qty > 0 && i.qty_in_stock <= i.min_qty;
+    const stock = Number(i.qty_in_stock) || 0;
+    const min = Number(i.min_qty) || 0;
+    const reserved = getReservedQty(i.id, i.name);
+    const available = stock - reserved;
+
+    const isLow = min > 0 && stock <= min;
+    // Если в единице измерения по ошибке оказалось число — не показываем её как единицу
+    const unitTxt = (/^\d+$/.test(String(i.unit || '').trim()) || !i.unit) ? 'шт' : i.unit;
     const photo = i.photo_url ? `<img src="${i.photo_url}" class="wh-photo-thumb" onerror="this.style.display='none'">` : '';
     const added = i.created_at ? new Date(i.created_at).toLocaleDateString('ru-RU') : '';
+
+    // Шкала: сколько осталось относительно минимального запаса
+    let barPct = 100, barColor = '#16a34a';
+    if (min > 0) {
+        barPct = Math.max(0, Math.min(100, Math.round(stock / (min * 2) * 100)));
+        barColor = stock <= min ? '#ef4444' : stock <= min * 1.5 ? '#f59e0b' : '#16a34a';
+    } else {
+        barPct = stock > 0 ? 100 : 0;
+        barColor = stock > 0 ? '#16a34a' : '#94a3b8';
+    }
+
     return `<div class="wh-item-row ${isLow?'low-stock':''}">
         ${photo}
-        <div style="flex:1; min-width:170px;">
+        <div style="flex:1; min-width:190px;">
             <div class="wh-item-name">${isLow?'⚠️ ':''}${i.name}</div>
             <div class="wh-item-meta">
-                <span class="wh-tag">${normalizeMaterialCategory(i.category)}</span>
-                ${i.color ? `<span class="wh-tag" style="background:#e0f5fb; color:#0e7490;">🎨 ${i.color}</span>` : ''}
-                ${i.spec ? `<span class="wh-tag" style="background:#e0f2fe; color:#0369a1;">📐 ${i.spec}</span>` : ''}
-                ${i.unit_cost ? `<span class="wh-tag">${formatMoney(i.unit_cost)} / ${i.unit}</span>` : ''}
-                ${added ? `<span class="wh-tag" style="background:#e0f5fb; color:#0891b2;">🕐 ${added}</span>` : ''}
+                <span class="u-tag" style="cursor:pointer;" onclick="event.stopPropagation(); quickChangeCategory(${i.id})" title="Сменить категорию">${normalizeMaterialCategory(i.category)} ⇄</span>
+                ${i.color ? `<span class="u-tag u-tag-violet">🎨 ${i.color}</span>` : ''}
+                ${i.spec ? `<span class="u-tag u-tag-blue">📐 ${i.spec}</span>` : ''}
+                ${i.unit_cost ? `<span class="u-tag">${formatMoney(i.unit_cost)} / ${i.unit}</span>` : ''}
+                ${added ? `<span class="u-tag">🕐 ${added}</span>` : ''}
             </div>
-            ${i.min_qty>0 ? `<div><span class="wh-min-badge">⚠ Мин. остаток: ${i.min_qty} ${i.unit}</span></div>` : ''}
+            <div style="margin-top:7px; max-width:320px;">
+                <div style="height:6px; background:var(--border-light); border-radius:3px; overflow:hidden;">
+                    <div style="width:${barPct}%; height:100%; background:${barColor}; transition:width .3s;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:10px; margin-top:3px; color:var(--text-muted);">
+                    <span>${min > 0 ? `мин. ${min} ${i.unit}` : 'минимум не задан'}</span>
+                    ${reserved > 0 ? `<span style="color:#f59e0b; font-weight:700;">зарезервировано ${reserved}</span>` : ''}
+                </div>
+            </div>
         </div>
-        <div class="wh-qty-block">
-            <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock}</div>
-            <div class="wh-qty-unit">${i.unit}</div>
-            <div class="wh-qty-caption">на складе</div>
+
+        <div class="wh-stock-box">
+            <div class="wh-stock-line">
+                <span class="wh-stock-label">Есть на складе</span>
+                <span class="wh-stock-val ${isLow ? 'is-low' : 'is-ok'}">${stock} <small>${unitTxt}</small></span>
+            </div>
+            ${reserved > 0 ? `
+                <div class="wh-stock-line">
+                    <span class="wh-stock-label">Занято под заказы</span>
+                    <span class="wh-stock-val is-reserved">−${reserved} <small>${unitTxt}</small></span>
+                </div>
+                <div class="wh-stock-line wh-stock-total">
+                    <span class="wh-stock-label">Можно взять</span>
+                    <span class="wh-stock-val ${available < 0 ? 'is-low' : 'is-ok'}">${available} <small>${unitTxt}</small></span>
+                </div>
+                ${available < 0 ? `<div class="wh-stock-alert">⚠️ Не хватает ${Math.abs(available)} ${unitTxt} — нужно докупить</div>` : ''}
+            ` : ''}
+            ${min > 0 && stock <= min ? `<div class="wh-stock-alert">⚠️ Ниже минимума (${min} ${unitTxt})</div>` : ''}
         </div>
+
         <div style="display:flex; gap:6px;">
             <button class="btn-green" style="padding:6px 12px; font-size:12px;" onclick="warehouseStockIn(${i.id})">+ Приход</button>
             <button class="btn-red" style="padding:6px 12px; font-size:12px;" onclick="warehouseStockOut(${i.id})">− Расход</button>
@@ -7560,12 +7804,50 @@ function whItemCard(i) {
     </div>`;
 }
 
+// Быстрая смена категории прямо из карточки
+async function quickChangeCategory(itemId) {
+    const item = warehouse_items.find(i => i.id === itemId);
+    if (!item) return;
+    const cur = normalizeMaterialCategory(item.category);
+    const list = MATERIAL_CATEGORIES.map((c, n) => `${n + 1}. ${c}${c === cur ? '  ← сейчас' : ''}`).join('\n');
+    const raw = prompt(`Переместить «${item.name}» в категорию:\n\n${list}\n\nВведите номер:`);
+    if (!raw) return;
+    const idx = parseInt(raw) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= MATERIAL_CATEGORIES.length) return showToast('Неверный номер', 'error');
+    const newCat = MATERIAL_CATEGORIES[idx];
+    if (newCat === cur) return;
+
+    try {
+        const { error } = await _supabase.from('warehouse_items').update({ category: newCat }).eq('id', itemId);
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+        item.category = newCat;
+        renderWarehouseItems();
+        showToast(`${item.name} → ${newCat}`);
+    } catch (e) { showToast('Ошибка сети', 'error'); }
+}
+
 function renderWarehouseItems() {
     const el = document.getElementById('warehouse-items-list');
     if (!el) return;
     const search = (document.getElementById('wh-search')?.value || '').toLowerCase();
     const sortBy = document.getElementById('wh-sort')?.value || 'category';
     const onlyLow = document.getElementById('wh-only-low')?.checked || false;
+
+    // Сводка: что происходит на складе в целом
+    const sumEl = document.getElementById('wh-summary');
+    if (sumEl) {
+        const totalValue = warehouse_items.reduce((s, i) => s + (Number(i.qty_in_stock) || 0) * (Number(i.unit_cost) || 0), 0);
+        const lowCount = warehouse_items.filter(i => i.min_qty > 0 && i.qty_in_stock <= i.min_qty).length;
+        const reservedTotal = warehouse_items.reduce((s, i) => s + getReservedQty(i.id, i.name), 0);
+        const noPrice = warehouse_items.filter(i => !i.unit_cost).length;
+        sumEl.innerHTML = `
+            <div class="u-stat"><div class="u-stat-val">${warehouse_items.length}</div><div class="u-stat-label">Позиций</div></div>
+            <div class="u-stat"><div class="u-stat-val" style="color:var(--primary);">${formatMoney(Math.round(totalValue))}</div><div class="u-stat-label">Стоимость склада</div></div>
+            <div class="u-stat"><div class="u-stat-val" style="color:${lowCount ? '#ef4444' : '#16a34a'};">${lowCount}</div><div class="u-stat-label">Заканчивается</div></div>
+            ${reservedTotal > 0 ? `<div class="u-stat"><div class="u-stat-val" style="color:#f59e0b;">${reservedTotal}</div><div class="u-stat-label">Зарезервировано</div></div>` : ''}
+            ${noPrice > 0 ? `<div class="u-stat" title="У этих позиций не указана цена — себестоимость заказов посчитается неверно"><div class="u-stat-val" style="color:#f59e0b;">${noPrice}</div><div class="u-stat-label">⚠ Без цены</div></div>` : ''}
+        `;
+    }
 
     // Панель категорий с количеством в каждой
     const bar = document.getElementById('wh-cat-bar');
@@ -7714,16 +7996,73 @@ function renderWarehouseMovements() {
 }
 
 // Списать материал заказа со склада (вызывается из Order Calculation)
-async function deductFromWarehouseByName(materialName, qty) {
+// Списание материала со склада в заказ.
+// Ищем сначала по привязке (warehouse_item_id), и только потом по названию —
+// раньше поиск шёл только по имени, и при малейшем расхождении списание не проходило.
+async function deductMaterialToOrder(matId) {
+    const mat = oc_materials.find(m => m.id === matId);
+    if (!mat) return;
+    if (mat.deducted_at) return showToast('Этот материал уже списан со склада', 'error');
+
     if (!warehouse_items.length) await loadWarehouseData();
-    const item = warehouse_items.find(i => i.name.toLowerCase() === (materialName||'').toLowerCase());
+    let item = mat.warehouse_item_id
+        ? warehouse_items.find(i => i.id === mat.warehouse_item_id)
+        : null;
     if (!item) {
-        showToast(`«${materialName}» не найден на складе — списание пропущено`, 'error');
-        return false;
+        item = warehouse_items.find(i => (i.name || '').toLowerCase() === (mat.name || '').toLowerCase());
     }
-    await logWarehouseMovement(item.id, item.name, 'out', qty, `Списано в заказ #${oc_orderId}`, oc_orderId);
-    showToast(`Списано со склада: ${qty} ${item.unit} — ${item.name}`);
-    return true;
+    if (!item) {
+        return showToast(`«${mat.name}» не найден на складе. Добавьте его в склад или выберите материал из списка`, 'error');
+    }
+
+    const qty = Number(mat.qty) || 0;
+    if (qty <= 0) return showToast('Укажите количество больше нуля', 'error');
+
+    if (qty > (item.qty_in_stock || 0)) {
+        if (!confirm(`На складе только ${item.qty_in_stock} ${item.unit}, нужно ${qty}.\nСписать всё равно (остаток уйдёт в минус)?`)) return;
+    }
+
+    try {
+        await logWarehouseMovement(item.id, item.name, 'out', qty, `Списано в заказ #${oc_orderId}`, oc_orderId);
+        // Отмечаем, что списание уже сделано — иначе можно было списать повторно
+        const stamp = new Date().toISOString();
+        await _supabase.from('order_materials')
+            .update({ deducted_at: stamp, warehouse_item_id: item.id }).eq('id', matId);
+        mat.deducted_at = stamp;
+        mat.warehouse_item_id = item.id;
+        renderOcMaterials();
+        showToast(`📦 Списано со склада: ${qty} ${item.unit} — ${item.name}`);
+    } catch (e) {
+        showToast('Ошибка списания', 'error');
+    }
+}
+
+// Возврат материала на склад — если списали по ошибке
+async function returnMaterialToWarehouse(matId) {
+    const mat = oc_materials.find(m => m.id === matId);
+    if (!mat || !mat.deducted_at) return;
+    const item = warehouse_items.find(i => i.id === mat.warehouse_item_id);
+    if (!item) return showToast('Материал на складе не найден', 'error');
+    if (!confirm(`Вернуть ${mat.qty} ${item.unit} «${item.name}» обратно на склад?`)) return;
+
+    try {
+        await logWarehouseMovement(item.id, item.name, 'in', Number(mat.qty) || 0,
+            `Возврат из заказа #${oc_orderId}`, oc_orderId);
+        await _supabase.from('order_materials').update({ deducted_at: null }).eq('id', matId);
+        mat.deducted_at = null;
+        renderOcMaterials();
+        showToast(`↩️ Возвращено на склад: ${mat.qty} ${item.unit}`);
+    } catch (e) {
+        showToast('Ошибка возврата', 'error');
+    }
+}
+
+// Списать все ещё не списанные материалы заказа разом
+async function deductAllMaterials() {
+    const pending = oc_materials.filter(m => !m.deducted_at && (Number(m.qty) || 0) > 0);
+    if (!pending.length) return showToast('Все материалы уже списаны');
+    if (!confirm(`Списать со склада все материалы заказа (${pending.length} поз.)?`)) return;
+    for (const m of pending) await deductMaterialToOrder(m.id);
 }
 
 
@@ -7812,6 +8151,7 @@ function openItemEditModal(kind, itemId) {
     if (kind === 'warehouse') {
         document.getElementById('item-edit-color').value = item.color || '';
         document.getElementById('item-edit-spec').value = item.spec || '';
+        loadPriceHistory(itemId);
     }
 
     if (kind === 'blank') {
@@ -7860,6 +8200,21 @@ async function confirmItemEdit() {
     }
 
     try {
+        // Если поменялась цена — сохраняем в историю, чтобы видеть динамику закупок
+        if (kind === 'warehouse') {
+            const oldCost = Number(itemsArr.find(i => i.id === itemId)?.unit_cost) || 0;
+            const newCost = Number(payload.unit_cost) || 0;
+            if (newCost !== oldCost) {
+                try {
+                    await _supabase.from('warehouse_price_history').insert({
+                        item_id: itemId, item_name: name,
+                        old_price: oldCost, new_price: newCost,
+                        user_name: curUser?.name || '', created_at: new Date().toISOString()
+                    });
+                } catch (e) { /* таблицы может не быть — не блокируем сохранение */ }
+            }
+        }
+
         let { error } = await _supabase.from(table).update(payload).eq('id', itemId);
         if (error && /color|spec/.test(error.message || '')) {
             delete payload.color; delete payload.spec;
@@ -7931,6 +8286,7 @@ function toggleAllBlGroups() {
 // Карточка одной заготовки
 function blItemCard(i) {
     const isLow = i.min_qty > 0 && i.qty_in_stock <= i.min_qty;
+    const blUnit = (/^\d+$/.test(String(i.unit || '').trim()) || !i.unit) ? 'шт' : i.unit;
     const photo = i.photo_url ? `<img src="${i.photo_url}" class="wh-photo-thumb" onerror="this.style.display='none'">` : '';
     return `<div class="wh-item-row ${isLow?'low-stock':''}">
         ${photo}
@@ -7942,10 +8298,12 @@ function blItemCard(i) {
             </div>
             ${i.min_qty>0 ? `<div><span class="wh-min-badge">⚠ Мин. остаток: ${i.min_qty} ${i.unit}</span></div>` : ''}
         </div>
-        <div class="wh-qty-block">
-            <div class="wh-qty-badge ${isLow?'wh-qty-low':'wh-qty-ok'}">${i.qty_in_stock}</div>
-            <div class="wh-qty-unit">${i.unit}</div>
-            <div class="wh-qty-caption">на складе</div>
+        <div class="wh-stock-box" style="min-width:160px;">
+            <div class="wh-stock-line">
+                <span class="wh-stock-label">Есть на складе</span>
+                <span class="wh-stock-val ${isLow?'is-low':'is-ok'}">${i.qty_in_stock} <small>${blUnit}</small></span>
+            </div>
+            ${i.min_qty > 0 && i.qty_in_stock <= i.min_qty ? `<div class="wh-stock-alert">⚠️ Ниже минимума (${i.min_qty} ${blUnit})</div>` : ''}
         </div>
         <div style="display:flex; gap:6px;">
             <button class="btn-green" style="padding:6px 12px; font-size:12px;" onclick="blankStockIn(${i.id})">+ Приход</button>
@@ -8482,10 +8840,11 @@ function renderFinishedItems() {
                     <span class="wh-recipe-chip">📋 ${recipeCount} компонент${recipeCount===1?'':'ов'} в рецепте</span>
                 </div>
             </div>
-            <div class="wh-qty-block">
-                <div class="wh-qty-badge wh-qty-ok">${i.qty_in_stock}</div>
-                <div class="wh-qty-unit">${i.unit}</div>
-                <div class="wh-qty-caption">на складе</div>
+            <div class="wh-stock-box" style="min-width:150px;">
+                <div class="wh-stock-line">
+                    <span class="wh-stock-label">Готово к отгрузке</span>
+                    <span class="wh-stock-val ${(i.qty_in_stock||0) > 0 ? 'is-ok' : 'is-low'}">${i.qty_in_stock} <small>${(/^\d+$/.test(String(i.unit||'').trim())||!i.unit)?'шт':i.unit}</small></span>
+                </div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:320px;">
                 <button class="btn-ghost" style="padding:6px 10px; font-size:12px;" onclick="openFnRecipeModal(${i.id})">📋 Рецепт</button>
@@ -9649,6 +10008,16 @@ async function loadAllData() {
             if (!ocRes.error) order_components = ocRes.data || [];
         } catch(e) { /* таблица может быть не создана */ }
 
+        // Отгрузки и выдачи — нужны, чтобы в CRM показывать статус по каждому заказу
+        try {
+            const [fmRes, riRes] = await Promise.all([
+                _supabase.from('finished_movements').select('*').order('created_at', { ascending: false }).limit(300),
+                _supabase.from('order_ready_items').select('*').order('created_at', { ascending: false })
+            ]);
+            if (!fmRes.error) finished_movements = fmRes.data || [];
+            if (!riRes.error) ready_items = riRes.data || [];
+        } catch(e) { /* таблиц может не быть */ }
+
         workers = (wRes.data || []).map(w => {
             let cleanProcs = [];
             try {
@@ -10515,6 +10884,254 @@ function getProcPlannedQty(h) {
     return Number(h?.planned_qty) || 0;
 }
 
+// ═══════════════════════════════════════════════════════
+// ГОТОВО ПО ЗАКАЗАМ
+// Промежуточный склад: сюда попадает всё, что изготовлено под конкретный
+// заказ клиента и прошло свой процесс. Дальше — три пути:
+//   выдать клиенту (производство продаёт заготовки),
+//   в сборку (станет готовым изделием),
+//   упаковать (готово к отгрузке).
+// ═══════════════════════════════════════════════════════
+let ready_items = [];
+let readyFilter = 'pending';   // pending | all
+let readyPeriod = 'week';
+
+async function loadReadyItems() {
+    try {
+        const { data, error } = await _supabase.from('order_ready_items')
+            .select('*').order('created_at', { ascending: false });
+        if (error) { console.warn('order_ready_items:', error.message); return; }
+        ready_items = data || [];
+    } catch (e) { console.warn(e); }
+}
+
+// Кладём изготовленное на промежуточный склад
+async function addToReady(orderId, procName, blankItem, qty, worker) {
+    try {
+        const crm = crm_orders.find(c => c.oid === orderId);
+        const rec = {
+            order_id: orderId,
+            client_name: crm?.client || '',
+            item_name: blankDisplayName(blankItem),
+            blank_item_id: blankItem.id,
+            proc_name: procName,
+            qty,
+            unit: blankItem.unit || 'шт',
+            status: 'pending',
+            worker: worker || curUser?.name || '',
+            created_at: new Date().toISOString()
+        };
+        const { data, error } = await _supabase.from('order_ready_items').insert(rec).select();
+        if (error) { console.warn('addToReady:', error.message); return; }
+        if (data?.[0]) ready_items.unshift(data[0]);
+    } catch (e) { console.warn(e); }
+}
+
+function setReadyFilter(v) { readyFilter = v; renderReadyItems(); }
+function setReadyPeriod(v) { readyPeriod = v; renderReadyHistory(); }
+
+function renderReadyKpi() {
+    const el = document.getElementById('ready-kpi');
+    if (!el) return;
+    const pending = ready_items.filter(r => r.status === 'pending');
+    const qty = pending.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+    const ordersCount = new Set(pending.map(r => r.order_id)).size;
+    el.innerHTML = `
+        <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+            <div style="font-size:22px; font-weight:900;">${qty}</div>
+            <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">ждут выдачи</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:12px 16px; text-align:center; min-width:92px;">
+            <div style="font-size:22px; font-weight:900;">${ordersCount}</div>
+            <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">заказов</div>
+        </div>`;
+}
+
+function renderReadyItems() {
+    const el = document.getElementById('ready-items-list');
+    if (!el) return;
+    renderReadyKpi();
+
+    const bar = document.getElementById('ready-filter-bar');
+    if (bar) {
+        const pend = ready_items.filter(r => r.status === 'pending').length;
+        bar.innerHTML =
+            `<button onclick="setReadyFilter('pending')" class="u-chip-btn ${readyFilter==='pending'?'active':''}">Ожидают <span class="u-chip-count">${pend}</span></button>` +
+            `<button onclick="setReadyFilter('all')" class="u-chip-btn ${readyFilter==='all'?'active':''}">Все <span class="u-chip-count">${ready_items.length}</span></button>`;
+    }
+
+    const q = (document.getElementById('ready-search')?.value || '').toLowerCase();
+    let list = ready_items.filter(r => {
+        if (readyFilter === 'pending' && r.status !== 'pending') return false;
+        if (q && !(String(r.order_id).toLowerCase().includes(q) ||
+                   (r.client_name || '').toLowerCase().includes(q) ||
+                   (r.item_name || '').toLowerCase().includes(q))) return false;
+        return true;
+    });
+
+    if (!list.length) {
+        el.innerHTML = '<div class="u-empty">Нет позиций. Сюда попадает всё, что изготовлено под заказ.</div>';
+        return;
+    }
+
+    // Группируем по заказу — так видно комплектность
+    const byOrder = {};
+    list.forEach(r => { (byOrder[r.order_id] = byOrder[r.order_id] || []).push(r); });
+
+    el.innerHTML = Object.entries(byOrder).map(([oid, items]) => {
+        const crm = crm_orders.find(c => c.oid === oid);
+        const totalQty = items.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+        const pendingCount = items.filter(r => r.status === 'pending').length;
+        const due = getOrderDueStatus(oid);
+
+        return `<div style="margin-bottom:14px; border:1px solid var(--border); border-radius:14px; overflow:hidden;">
+            <div style="background:var(--surface); padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; ${due.state==='overdue'?'border-left:4px solid #ef4444;':due.state==='soon'?'border-left:4px solid #f59e0b;':''}">
+                <div>
+                    <b style="font-size:15px;">Заказ №${oid}</b>
+                    ${crm?.client ? `<span style="margin-left:8px; color:var(--text-secondary); font-size:13px;">${crm.client}</span>` : ''}
+                    ${due.label && due.state !== 'ok' ? `<span class="u-tag ${due.state==='overdue'?'u-tag-red':'u-tag-amber'}" style="margin-left:6px;">${due.icon} ${due.label}</span>` : ''}
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span class="u-group-meta">${items.length} поз. · ${totalQty} ед.</span>
+                    ${pendingCount ? `<button class="btn-green" style="padding:5px 12px; font-size:12px;" onclick="issueWholeOrder('${esc(oid)}')">📤 Выдать всё клиенту</button>` : ''}
+                </div>
+            </div>
+            <div style="padding:10px 12px;">
+                ${items.map(r => {
+                    const done = r.status !== 'pending';
+                    const statusLabel = { issued: '📤 Выдано клиенту', assembled: '🔨 Ушло в сборку', packed: '📦 Упаковано' }[r.status] || '';
+                    return `<div class="u-kv" style="${done ? 'opacity:.65;' : ''}">
+                        <div style="flex:1; min-width:160px;">
+                            <div style="font-weight:700; font-size:13px;">${r.item_name}</div>
+                            <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">
+                                ${r.proc_name || ''} · ${new Date(r.created_at).toLocaleDateString('ru-RU')} · 👤 ${r.worker || '—'}
+                                ${done ? ` · <b style="color:#16a34a;">${statusLabel}</b>` : ''}
+                            </div>
+                        </div>
+                        <div style="font-weight:900; font-size:16px; color:var(--primary); white-space:nowrap;">${r.qty} ${r.unit}</div>
+                        ${!done ? `<div style="display:flex; gap:5px; flex-wrap:wrap;">
+                            <button class="btn-green" style="padding:4px 9px; font-size:11px;" onclick="issueReadyItem(${r.id},'issued')" title="Выдать клиенту">📤 Клиенту</button>
+                            <button class="btn-blue" style="padding:4px 9px; font-size:11px;" onclick="issueReadyItem(${r.id},'assembled')" title="Передать в сборку">🔨 В сборку</button>
+                            <button class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="issueReadyItem(${r.id},'packed')" title="Упаковать">📦 Упаковка</button>
+                        </div>` : `<button class="btn-ghost" style="padding:4px 9px; font-size:11px;" onclick="issueReadyItem(${r.id},'pending')" title="Вернуть в ожидание">↩️</button>`}
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Выдача позиции: клиенту / в сборку / упаковка
+async function issueReadyItem(id, status) {
+    const r = ready_items.find(x => x.id === id);
+    if (!r) return;
+
+    const labels = { issued: 'выдать клиенту', assembled: 'передать в сборку', packed: 'упаковать', pending: 'вернуть в ожидание' };
+    if (status !== 'pending' && !confirm(`${r.item_name} × ${r.qty} — ${labels[status]}?`)) return;
+
+    try {
+        const stamp = status === 'pending' ? null : new Date().toISOString();
+        const { error } = await _supabase.from('order_ready_items')
+            .update({ status, issued_at: stamp }).eq('id', id);
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+        r.status = status; r.issued_at = stamp;
+
+        // Выдача клиенту и упаковка списывают заготовку со склада — она физически ушла
+        if ((status === 'issued' || status === 'packed') && r.blank_item_id) {
+            const blank = blank_items.find(b => b.id === r.blank_item_id);
+            if (blank) {
+                await logBlankMovement(blank.id, blankDisplayName(blank), 'out', Number(r.qty) || 0,
+                    status === 'issued' ? `Выдано клиенту по заказу #${r.order_id}` : `Упаковано по заказу #${r.order_id}`,
+                    r.order_id);
+            }
+        }
+
+        await logActivity(curUser.name,
+            status === 'issued' ? 'Выдал клиенту' : status === 'assembled' ? 'Передал в сборку' : status === 'packed' ? 'Упаковал' : 'Вернул в ожидание',
+            `Заказ #${r.order_id}, ${r.item_name} × ${r.qty}`, 'order');
+
+        renderReadyItems(); renderReadyHistory(); renderBlankItems();
+        showToast(status === 'pending' ? '↩️ Возвращено в ожидание' : `✔ ${labels[status]}: ${r.item_name} × ${r.qty}`);
+    } catch (e) { showToast('Ошибка сети', 'error'); }
+}
+
+// Выдать клиенту весь заказ разом
+async function issueWholeOrder(oid) {
+    const items = ready_items.filter(r => r.order_id === oid && r.status === 'pending');
+    if (!items.length) return;
+    const total = items.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+    if (!confirm(`Выдать клиенту весь заказ №${oid}?\n${items.length} позиций, ${total} ед.`)) return;
+    for (const r of items) await issueReadyItem(r.id, 'issued');
+}
+
+function renderReadyHistory() {
+    const el = document.getElementById('ready-history-list');
+    if (!el) return;
+    renderMovePeriodBar('ready-period-bar', readyPeriod, 'setReadyPeriod');
+
+    const list = ready_items
+        .filter(r => r.status !== 'pending' && isInMovePeriod(r.issued_at || r.created_at, readyPeriod))
+        .sort((a, b) => new Date(b.issued_at || b.created_at) - new Date(a.issued_at || a.created_at));
+
+    if (!list.length) {
+        el.innerHTML = '<div class="u-empty">Нет выдач за выбранный период</div>';
+        return;
+    }
+
+    const labels = { issued: ['📤 Выдано клиенту', '#16a34a'], assembled: ['🔨 В сборку', '#0891b2'], packed: ['📦 Упаковано', '#f59e0b'] };
+    el.innerHTML = list.map(r => {
+        const [lbl, color] = labels[r.status] || ['—', 'var(--text-secondary)'];
+        const dt = r.issued_at ? new Date(r.issued_at).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+        return `<div class="u-kv">
+            <div style="flex:1; min-width:170px;">
+                <div style="font-weight:700; font-size:13px;">${r.item_name} <span class="wt-code-chip" style="margin-left:4px;">#${r.order_id}</span></div>
+                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${dt} · ${r.client_name || '—'}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-weight:900; font-size:15px;">${r.qty} ${r.unit}</div>
+                <div style="font-size:11px; font-weight:700; color:${color};">${lbl}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// Приходует на склад заготовку, полученную на завершённом процессе.
+// Заготовка указывается администратором при запуске заказа в цех.
+async function stockBlankFromProcess(orderId, procName, h, qtyDone) {
+    if (!h || !h.blank_item_id) return;        // на выходе процесса заготовки нет
+    if (h.blank_stocked_at) return;            // уже приходовали — не задваиваем
+
+    const blank = blank_items.find(b => b.id === h.blank_item_id);
+    if (!blank) {
+        console.warn('Заготовка не найдена:', h.blank_item_id);
+        return;
+    }
+
+    const qty = Number(qtyDone) || Number(h.qty_done) || 0;
+    if (qty <= 0) return;
+
+    try {
+        await logBlankMovement(blank.id, blankDisplayName(blank), 'in', qty,
+            `Готово: ${procName} по заказу #${orderId}`, orderId);
+
+        h.blank_stocked_at = new Date().toISOString();
+        const order = orders.find(o => o.id === orderId);
+        if (order) {
+            order.history[procName] = h;
+            await _supabase.from('orders').upsert(order);
+        }
+
+        // Одновременно кладём в «Готово по заказам» — это изготовлено под конкретного клиента
+        await addToReady(orderId, procName, blank, qty, curUser.name);
+
+        showToast(`📦 ${blankDisplayName(blank)} × ${qty} → склад заготовок`);
+        await logActivity(curUser.name, 'Заготовка на склад',
+            `Заказ #${orderId}, ${procName} → ${blankDisplayName(blank)} × ${qty}`, 'order');
+    } catch (e) {
+        console.warn('Приход заготовки не удался:', e);
+    }
+}
+
 async function processAction(type) {
     const oid = document.getElementById('worker-order-input').value.trim();
     const o = orders.find(x => x.id === oid);
@@ -10584,6 +11201,8 @@ async function processAction(type) {
                 }
                 // АВТОЗАПИСЬ В УСЛУГИ — если заказ привязан к услугчику
                 await autoSvcTransaction(oid, curProc, curUser.name);
+                // Заготовка, полученная на этом процессе, идёт на склад
+                await stockBlankFromProcess(oid, curProc, h, totalDone);
             }
 
             o.history[curProc] = h;
@@ -12656,7 +13275,7 @@ function renderCRM() {
     }
 
     if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:var(--text-muted);">
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">
             ${crm_orders.length === 0 ? 'Пока нет заказов' : `Ничего не найдено по запросу «${search}»`}
         </td></tr>`;
         return;
@@ -12690,13 +13309,35 @@ function renderCRM() {
                 ${c.phone ? `<div style="font-size:12px; color:var(--text-secondary);">${c.phone}</div>` : ''}
             </td>
             <td data-label="Изделие">${c.item || '-'}${(c.qty && c.qty > 1) ? ` <span class="wh-tag">× ${c.qty} шт</span>` : ''}</td>
-            <td data-label="Сумма">${formatMoney(c.price)}</td>
+            <td data-label="Сумма">
+                <div style="font-weight:700;">${formatMoney(c.price)}</div>
+                ${(() => {
+                    const price = Number(c.price) || 0;
+                    const adv = Number(c.advance) || 0;
+                    if (!price) return '';
+                    const debt = price - adv;
+                    if (adv <= 0) return `<div style="font-size:11px; color:#ef4444; font-weight:700;">не оплачен</div>`;
+                    if (debt <= 0) return `<div style="font-size:11px; color:#16a34a; font-weight:700;">✔ оплачен</div>`;
+                    return `<div style="font-size:11px; color:#f59e0b; font-weight:700;">аванс ${formatMoney(adv)} · долг ${formatMoney(debt)}</div>`;
+                })()}
+            </td>
             <td data-label="Дата" style="font-size:12px; white-space:nowrap;">${c.date || '-'}</td>
             <td data-label="Сдача" style="font-size:12px; white-space:nowrap;">${renderDueDateCell(c)}</td>
-            <td data-label="Статус производства">${statusCell}</td>
+            <td data-label="Производство">${statusCell}</td>
+            <td data-label="Отгрузка">${(() => {
+                const sh = getOrderShipmentStatus(c.oid);
+                const dateTxt = sh.date ? new Date(sh.date).toLocaleDateString('ru-RU') : '';
+                return `<div style="display:inline-block; background:${sh.bg}; color:${sh.color}; padding:4px 9px; border-radius:8px; font-size:11px; font-weight:800; white-space:nowrap;">
+                    ${sh.icon} ${sh.label}${sh.qty ? ` · ${sh.qty}` : ''}
+                </div>
+                ${dateTxt ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">${dateTxt}${sh.recipient ? ' · ' + sh.recipient : ''}</div>` : ''}
+                ${sh.pending ? `<div style="font-size:10px; color:#f59e0b; margin-top:2px;">осталось ${sh.pending}</div>` : ''}`;
+            })()}</td>
             <td data-label="Telegram">${hasTelegram ? '✅' : '—'}</td>
             <td data-label="Действия">
                 <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                    ${(Number(c.price) || 0) > (Number(c.advance) || 0)
+                        ? `<button class="btn-green" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); addCrmPayment('${esc(c.oid)}')" title="Принять оплату">💰</button>` : ''}
                     <button class="btn-ghost" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openCrmEditModal('${esc(c.oid)}')">✏️</button>
                     <button class="btn-green" style="padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); openOrderCalc('${esc(c.oid)}')">🧮</button>
                     <button class="btn-red" onclick="event.stopPropagation(); delCRM('${esc(c.oid)}')">✖</button>
@@ -12855,12 +13496,13 @@ async function saveCRM() {
             loc:         document.getElementById('crm-loc').value.trim(),
             date:        document.getElementById('crm-date').value || null,
             due_date:    document.getElementById('crm-due-date')?.value || null,
-            qty
+            qty,
+            advance: parseFloat(document.getElementById('crm-advance')?.value) || 0
         };
         let { error: crmSaveErr } = await _supabase.from('crm_orders').upsert(crmPayload);
-        if (crmSaveErr && /qty/.test(crmSaveErr.message || '')) {
-            // Колонки qty ещё нет в таблице — сохраняем без неё, чтобы не блокировать создание заказа
-            delete crmPayload.qty;
+        if (crmSaveErr && /qty|advance/.test(crmSaveErr.message || '')) {
+            // Колонок ещё нет в таблице — сохраняем без них, чтобы не блокировать создание заказа
+            delete crmPayload.qty; delete crmPayload.advance;
             await _supabase.from('crm_orders').upsert(crmPayload);
             showToast('Заказ сохранён. Чтобы работало количество, добавьте колонку qty в таблицу crm_orders', 'error');
         }
@@ -12871,6 +13513,7 @@ async function saveCRM() {
         ['crm-client','crm-phone','crm-item','crm-price','crm-loc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
         const csc=document.getElementById('crm-client-select'); if(csc) csc.value='';
         const cq=document.getElementById('crm-qty'); if(cq) cq.value='1';
+        const ca=document.getElementById('crm-advance'); if(ca) ca.value='';
         setCRMDateDefault();
         autoFillCRMOrderNumber();
         
@@ -12900,10 +13543,14 @@ async function saveOrder() {
             if (!path.includes(p)) return;
             if (isPaintProc(p) || isSandingProc(p)) return;
             const qtyEl = document.getElementById('proc' + idx + '-qty');
+            const blankEl = document.getElementById('proc' + idx + '-blank');
             const plannedQty = qtyEl ? (parseInt(qtyEl.value) || 0) : 0;
-            if (!plannedQty) return;
+            const blankId = blankEl ? blankEl.value : '';
+            if (!plannedQty && !blankId) return;
             if (!payload.history[p]) payload.history[p] = {};
-            payload.history[p].planned_qty = plannedQty;
+            if (plannedQty) payload.history[p].planned_qty = plannedQty;
+            // Что получается на выходе — приходуется на склад заготовок при завершении
+            if (blankId) payload.history[p].blank_item_id = parseInt(blankId);
         });
 
         await _supabase.from('orders').upsert(payload);
@@ -13248,6 +13895,232 @@ async function delO(id) {
     } 
 }
 
+// Показывает остаток к оплате в модалке редактирования заказа
+function updateCrmEditDebt() {
+    const el = document.getElementById('crm-edit-debt');
+    if (!el) return;
+    const price = parseFloat(document.getElementById('crm-edit-price')?.value) || 0;
+    const adv = parseFloat(document.getElementById('crm-edit-advance')?.value) || 0;
+    const debt = price - adv;
+    if (!price) { el.innerHTML = '<span style="color:var(--text-muted);">Сумма заказа не указана</span>'; return; }
+    el.innerHTML = debt > 0
+        ? `Оплачено: <b style="color:#16a34a;">${formatMoney(adv)}</b> · Остаток: <b style="color:#ef4444;">${formatMoney(debt)}</b>`
+        : debt < 0
+        ? `Переплата: <b style="color:#f59e0b;">${formatMoney(-debt)}</b>`
+        : `<b style="color:#16a34a;">✔ Оплачено полностью</b>`;
+}
+
+// Приём доплаты по заказу
+async function addCrmPayment(oid) {
+    const c = crm_orders.find(x => x.oid === oid);
+    if (!c) return;
+    const price = Number(c.price) || 0;
+    const adv = Number(c.advance) || 0;
+    const debt = price - adv;
+    if (debt <= 0) return showToast('Заказ уже оплачен полностью');
+
+    const raw = prompt(`Оплата по заказу №${oid}\nСумма заказа: ${formatMoney(price)}\nУже внесено: ${formatMoney(adv)}\nОстаток: ${formatMoney(debt)}\n\nСколько внёс клиент:`, String(debt));
+    const sum = parseFloat(raw);
+    if (!sum || sum <= 0) return;
+
+    try {
+        const newAdv = adv + sum;
+        const { error } = await _supabase.from('crm_orders').update({ advance: newAdv }).eq('oid', oid);
+        if (error) return showToast('Ошибка: ' + error.message, 'error');
+        c.advance = newAdv;
+        await logActivity(curUser.name, 'Принял оплату',
+            `Заказ #${oid}, сумма: ${formatMoney(sum)}, итого внесено: ${formatMoney(newAdv)}`, 'crm');
+        renderCRM();
+        showToast(`💰 Принято ${formatMoney(sum)}${newAdv >= price ? ' · заказ оплачен полностью' : ' · остаток ' + formatMoney(price - newAdv)}`);
+    } catch(e) { showToast('Ошибка сети', 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════
+// ИНВЕНТАРИЗАЦИЯ
+// Сверка учётных остатков с фактическими. Расхождения проводятся движениями
+// склада с пометкой «Инвентаризация» — учёт сходится с реальностью,
+// а история остаётся прозрачной.
+// ═══════════════════════════════════════════════════════
+let _inventoryFacts = {};
+
+function openInventory() {
+    _inventoryFacts = {};
+    renderInventoryRows();
+    document.getElementById('inventory-modal').classList.remove('hidden');
+}
+
+function closeInventory() {
+    document.getElementById('inventory-modal').classList.add('hidden');
+    _inventoryFacts = {};
+}
+
+function setInventoryFact(id, val) {
+    if (val === '' || val === null) delete _inventoryFacts[id];
+    else _inventoryFacts[id] = parseFloat(val);
+    renderInventorySummary();
+    // Подсветка строки с расхождением
+    const item = warehouse_items.find(i => i.id === id);
+    const cell = document.getElementById('inv-diff-' + id);
+    if (!cell || !item) return;
+    if (!(id in _inventoryFacts) || isNaN(_inventoryFacts[id])) { cell.innerHTML = '—'; cell.style.color = 'var(--text-muted)'; return; }
+    const diff = _inventoryFacts[id] - (Number(item.qty_in_stock) || 0);
+    cell.innerHTML = diff === 0 ? '✔ сходится' : `${diff > 0 ? '+' : ''}${diff}`;
+    cell.style.color = diff === 0 ? '#16a34a' : diff > 0 ? '#0891b2' : '#ef4444';
+    cell.style.fontWeight = '800';
+}
+
+function renderInventoryRows() {
+    const tbody = document.getElementById('inventory-rows');
+    if (!tbody) return;
+    const list = [...warehouse_items].sort((a, b) =>
+        normalizeMaterialCategory(a.category).localeCompare(normalizeMaterialCategory(b.category)) ||
+        a.name.localeCompare(b.name));
+
+    tbody.innerHTML = list.map(i => `<tr>
+        <td data-label="Материал">
+            <div style="font-weight:700; font-size:13px;">${i.name}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${normalizeMaterialCategory(i.category)}</div>
+        </td>
+        <td data-label="Учёт" style="text-align:center; font-weight:700;">${i.qty_in_stock} ${i.unit}</td>
+        <td data-label="Факт" style="text-align:center;">
+            <input type="number" step="0.01" placeholder="—" oninput="setInventoryFact(${i.id}, this.value)"
+                   style="width:88px; padding:5px; text-align:center; border:1px solid var(--border); border-radius:8px; font-weight:700;">
+        </td>
+        <td data-label="Расхождение" id="inv-diff-${i.id}" style="text-align:center; color:var(--text-muted);">—</td>
+    </tr>`).join('');
+    renderInventorySummary();
+}
+
+function renderInventorySummary() {
+    const el = document.getElementById('inventory-summary');
+    if (!el) return;
+    const entered = Object.keys(_inventoryFacts).filter(k => !isNaN(_inventoryFacts[k]));
+    let surplus = 0, shortage = 0, matched = 0, lossValue = 0;
+
+    entered.forEach(k => {
+        const item = warehouse_items.find(i => i.id === parseInt(k));
+        if (!item) return;
+        const diff = _inventoryFacts[k] - (Number(item.qty_in_stock) || 0);
+        if (diff > 0) surplus++;
+        else if (diff < 0) { shortage++; lossValue += Math.abs(diff) * (Number(item.unit_cost) || 0); }
+        else matched++;
+    });
+
+    el.innerHTML = `
+        <div class="u-stat"><div class="u-stat-val">${entered.length} / ${warehouse_items.length}</div><div class="u-stat-label">Проверено</div></div>
+        <div class="u-stat"><div class="u-stat-val" style="color:#16a34a;">${matched}</div><div class="u-stat-label">Сходится</div></div>
+        <div class="u-stat"><div class="u-stat-val" style="color:#ef4444;">${shortage}</div><div class="u-stat-label">Недостача</div></div>
+        <div class="u-stat"><div class="u-stat-val" style="color:#0891b2;">${surplus}</div><div class="u-stat-label">Излишек</div></div>
+        ${lossValue > 0 ? `<div class="u-stat"><div class="u-stat-val" style="color:#ef4444; font-size:15px;">${formatMoney(Math.round(lossValue))}</div><div class="u-stat-label">Сумма недостачи</div></div>` : ''}
+    `;
+}
+
+async function applyInventory() {
+    const changes = [];
+    Object.keys(_inventoryFacts).forEach(k => {
+        const fact = _inventoryFacts[k];
+        if (isNaN(fact)) return;
+        const item = warehouse_items.find(i => i.id === parseInt(k));
+        if (!item) return;
+        const diff = fact - (Number(item.qty_in_stock) || 0);
+        if (diff !== 0) changes.push({ item, diff, fact });
+    });
+
+    if (!changes.length) return showToast('Расхождений нет — корректировать нечего');
+
+    const summary = changes.slice(0, 8).map(c => `${c.item.name}: ${c.item.qty_in_stock} → ${c.fact} (${c.diff > 0 ? '+' : ''}${c.diff})`).join('\n');
+    if (!confirm(`Провести корректировку по ${changes.length} позициям?\n\n${summary}${changes.length > 8 ? `\n…и ещё ${changes.length - 8}` : ''}`)) return;
+
+    let done = 0;
+    for (const c of changes) {
+        try {
+            await logWarehouseMovement(c.item.id, c.item.name,
+                c.diff > 0 ? 'in' : 'out', Math.abs(c.diff),
+                `Инвентаризация: учёт ${c.item.qty_in_stock} → факт ${c.fact}`, null);
+            done++;
+        } catch (e) { console.warn('Корректировка не прошла:', c.item.name, e); }
+    }
+
+    await logActivity(curUser.name, 'Провёл инвентаризацию',
+        `Скорректировано позиций: ${done} из ${changes.length}`, 'warehouse');
+
+    closeInventory();
+    renderWarehouseItems();
+    showToast(`✔ Инвентаризация проведена: скорректировано ${done} позиций`);
+}
+
+// ═══════════════════════════════════════════════════════
+
+// История изменения цены материала — видно, как менялись закупочные цены
+async function loadPriceHistory(itemId) {
+    const el = document.getElementById('item-edit-price-history');
+    if (!el) return;
+    el.innerHTML = '';
+    try {
+        const { data, error } = await _supabase.from('warehouse_price_history')
+            .select('*').eq('item_id', itemId).order('created_at', { ascending: false }).limit(8);
+        if (error || !data || !data.length) return;
+
+        const first = data[data.length - 1];
+        const last = data[0];
+        const diff = (Number(last.new_price) || 0) - (Number(first.old_price) || 0);
+        const pct = first.old_price ? Math.round(diff / first.old_price * 100) : 0;
+
+        el.innerHTML = `
+            <details>
+                <summary style="cursor:pointer; font-size:11px; font-weight:700; color:var(--text-secondary); padding:4px 0;">
+                    📈 История цены (${data.length})
+                    ${diff !== 0 ? `<span style="color:${diff > 0 ? '#ef4444' : '#16a34a'};">${diff > 0 ? '+' : ''}${pct}%</span>` : ''}
+                </summary>
+                <div style="margin-top:6px; max-height:150px; overflow-y:auto;">
+                    ${data.map(h => {
+                        const up = (Number(h.new_price) || 0) > (Number(h.old_price) || 0);
+                        return `<div style="display:flex; justify-content:space-between; font-size:11px; padding:4px 0; border-bottom:1px solid var(--border-light);">
+                            <span style="color:var(--text-muted);">${new Date(h.created_at).toLocaleDateString('ru-RU')} · ${h.user_name || '—'}</span>
+                            <span>
+                                <span style="color:var(--text-muted); text-decoration:line-through;">${formatMoney(h.old_price)}</span>
+                                <b style="color:${up ? '#ef4444' : '#16a34a'}; margin-left:6px;">${up ? '↑' : '↓'} ${formatMoney(h.new_price)}</b>
+                            </span>
+                        </div>`;
+                    }).join('')}
+                </div>
+            </details>`;
+    } catch (e) { /* таблицы может не быть */ }
+}
+
+// Статус отгрузки по заказу.
+// Собирается из двух источников: отгрузки готовых изделий (finished_movements)
+// и выдачи клиенту из «Готово по заказам» (order_ready_items).
+function getOrderShipmentStatus(oid) {
+    const shipments = (finished_movements || [])
+        .filter(m => m.order_id === oid && m.type === 'out');
+    const issued = (ready_items || [])
+        .filter(r => r.order_id === oid && (r.status === 'issued' || r.status === 'packed'));
+    const pending = (ready_items || [])
+        .filter(r => r.order_id === oid && r.status === 'pending');
+
+    const shippedQty = shipments.reduce((s, m) => s + (Number(m.qty) || 0), 0)
+                     + issued.filter(r => r.status === 'issued').reduce((s, r) => s + (Number(r.qty) || 0), 0);
+    const packedQty  = issued.filter(r => r.status === 'packed').reduce((s, r) => s + (Number(r.qty) || 0), 0);
+    const pendingQty = pending.reduce((s, r) => s + (Number(r.qty) || 0), 0);
+
+    const dates = [...shipments.map(m => m.created_at), ...issued.map(r => r.issued_at)].filter(Boolean).sort();
+    const lastDate = dates[dates.length - 1];
+    const recipient = shipments.find(m => m.recipient)?.recipient || '';
+
+    if (shippedQty > 0 && pendingQty === 0 && packedQty === 0)
+        return { state: 'shipped', label: 'Отгружено', qty: shippedQty, date: lastDate, recipient,
+                 color: '#16a34a', bg: '#dcfce7', icon: '✔' };
+    if (shippedQty > 0 || packedQty > 0)
+        return { state: 'partial', label: packedQty && !shippedQty ? 'Упаковано' : 'Частично отгружено',
+                 qty: shippedQty + packedQty, pending: pendingQty, date: lastDate, recipient,
+                 color: '#f59e0b', bg: '#fef3c7', icon: '◐' };
+    if (pendingQty > 0)
+        return { state: 'ready', label: 'Готово к выдаче', qty: pendingQty,
+                 color: '#0891b2', bg: '#e0f5fb', icon: '📦' };
+    return { state: 'none', label: 'Не отгружено', qty: 0, color: '#94a3b8', bg: 'var(--surface-container)', icon: '—' };
+}
+
 // ── РЕДАКТИРОВАНИЕ ЗАКАЗА CRM ──────────────────────────────
 // Раньше исправить опечатку в заказе было нельзя — только удалить и завести заново,
 // теряя привязку к производству и услугам.
@@ -13268,6 +14141,8 @@ function openCrmEditModal(oid) {
     document.getElementById('crm-edit-due').value = c.due_date || '';
 
     document.getElementById('crm-edit-qty').value = c.qty || 1;
+    document.getElementById('crm-edit-advance').value = c.advance || 0;
+    updateCrmEditDebt();
 
     document.getElementById('crm-edit-modal').classList.remove('hidden');
 }
@@ -13290,14 +14165,15 @@ async function saveCrmEdit() {
         loc: document.getElementById('crm-edit-loc').value.trim(),
         date: document.getElementById('crm-edit-date').value || null,
         due_date: document.getElementById('crm-edit-due').value || null,
-        qty: parseInt(document.getElementById('crm-edit-qty').value) || 1
+        qty: parseInt(document.getElementById('crm-edit-qty').value) || 1,
+        advance: parseFloat(document.getElementById('crm-edit-advance').value) || 0
     };
 
     try {
         let { error } = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
-        if (error && /qty|due_date/.test(error.message || '')) {
+        if (error && /qty|due_date|advance/.test(error.message || '')) {
             // Каких-то колонок может не быть в таблице — сохраняем основное
-            delete payload.qty; delete payload.due_date;
+            delete payload.qty; delete payload.due_date; delete payload.advance;
             const retry = await _supabase.from('crm_orders').update(payload).eq('oid', _crmEditOid);
             error = retry.error;
         }

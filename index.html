@@ -1450,8 +1450,10 @@
                     </div>
 
                     <!-- Список изделий с прогрессом -->
-                    <div class="wt-section-label">Выберите изделие</div>
-                    <div id="paint-inline-items-all" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+                    <div id="paint-items-block">
+                        <div class="wt-section-label">Выберите изделие</div>
+                        <div id="paint-inline-items-all" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;"></div>
+                    </div>
                 </div>
 
                 <!-- Количество -->
@@ -3763,9 +3765,11 @@ function getComponentDef(key) {
 
 let order_components = []; // [{id, order_id, component_key, name, qty, painted, path, history, blank_item_id}]
 
-const PROCS = ["Раскрой NESTING", "2 пильный", "кромка", "Присадка", "ФАСАД NESTING", "Ровер", "Фигурный кромка", "Пленка PVC", "Шлиповка", "Грунтовка", "краска", "OTK", "Упаковка", "Сборка"];
+// Грунтовка убрана как отдельный процесс — она часть цикла покраски
+// (маляр сам делает грунт и краску, этапы внутри терминала покраски)
+const PROCS = ["Раскрой NESTING", "2 пильный", "кромка", "Присадка", "ФАСАД NESTING", "Ровер", "Фигурный кромка", "Пленка PVC", "Шлиповка", "краска", "OTK", "Упаковка", "Сборка"];
 // PAINT_PROCS — отображаются у работника как спец-тип (с покрасочным UI)
-const PAINT_PROCS = ["Шлиповка", "Грунтовка", "Краска"];
+const PAINT_PROCS = ["Шлиповка", "Краска"];
 // Список доступов сотрудника. Раньше здесь получались дубли: PROCS содержит "краска"
 // (строчная), а PAINT_PROCS — "Краска" (заглавная), и Set считал их разными процессами —
 // в форме появлялись два чекбокса с разными правами. Схлопываем по нижнему регистру.
@@ -3848,10 +3852,11 @@ const PAINT_STAGES_DEF = [
 // Работник видит только этапы своего типа.
 // Ключи в нижнем регистре — доступ определяется независимо от того, как записан процесс
 // ("краска" в маршруте заказа и "Краска" в правах сотрудника — это одно и то же).
+// Маляр ведёт грунтовку и покраску — это один человек и один процесс.
+// Шлиповщик делает шлифовку между слоями.
 const PAINT_WORKER_TYPES_RAW = {
     'шлиповка':  ['шлиф_1', 'шлиф_2', 'шлиф_3'],
-    'грунтовка': ['грунт_1', 'грунт_2'],
-    'краска':    ['краска_1'],
+    'краска':    ['грунт_1', 'грунт_2', 'краска_1'],
 };
 const PAINT_WORKER_TYPES = new Proxy(PAINT_WORKER_TYPES_RAW, {
     get(target, prop) {
@@ -4426,7 +4431,7 @@ async function checkPaintOrderComplete(orderId) {
 }
 
 
-const PAINT_PROC_NAMES = ['краска', 'шлиповка', 'грунтовка', 'Краска', 'Шлиповка', 'Грунтовка'];
+const PAINT_PROC_NAMES = ['краска', 'шлиповка', 'Краска', 'Шлиповка'];
 function isPaintProc(procName) {
     return PAINT_PROC_NAMES.some(p => p.toLowerCase() === (procName || '').toLowerCase());
 }
@@ -4895,13 +4900,35 @@ function renderInlinePaintStages(orderId) {
         if (next) selectInlineStage(next.key, next.label);
         else {
             const cur = document.getElementById('paint-inline-cur-stage');
-            if (cur) { cur.innerText = '✅ Все этапы завершены!'; }
+            // Различаем два разных случая: работа реально закончена
+            // или мои этапы просто ждут, пока другой работник сделает свои.
+            const myUnfinished = myStages.filter(s => stageDone(orderId, s.key) < totalPerStage);
+            if (cur) {
+                if (!myUnfinished.length) {
+                    cur.innerHTML = '<span style="color:#16a34a;">✅ Ваши этапы по этому заказу завершены</span>';
+                } else {
+                    // Кто-то должен сделать предыдущий этап
+                    const blocker = getCurrentPaintStage(orderId, cfg);
+                    const blockerName = blocker ? blocker.label : 'предыдущий этап';
+                    cur.innerHTML = `<div style="color:#92400e;">
+                        <div style="font-weight:800;">⏳ Ждёт очереди</div>
+                        <div style="font-size:12px; margin-top:4px; font-weight:600;">
+                            Сначала нужно завершить: <b>${blockerName}</b><br>
+                            Ваши этапы (${myUnfinished.map(s => s.label).join(', ')}) откроются после этого.
+                        </div>
+                    </div>`;
+                }
+            }
             document.getElementById('paint-stage-selected')?.classList.remove('hidden');
+            // Пока этап не открыт, выбирать изделие и вводить объём нельзя
+            document.getElementById('paint-items-block')?.classList.add('hidden');
+            document.getElementById('paint-inline-qty-wrap')?.classList.add('hidden');
         }
     }
 }
 
 function selectInlineStage(key, label) {
+    document.getElementById('paint-items-block')?.classList.remove('hidden');
     ipt.stageKey   = key;
     ipt.stageLabel = label;
     ipt.itemName   = null;
@@ -10811,12 +10838,27 @@ function renderWorkerTasks() {
 
     myProcs.forEach(proc => {
         // ── ШЛИПОВКА ──
-        // Отдельная ветка: детали берутся из своего справочника и не привязаны к заказу,
-        // поэтому задача показывается всегда, когда процесс есть в маршруте.
-        // Раньше шлиповка шла по покрасочной ветке и отсеивалась, если админ не добавил
-        // к заказу изделия покраски — работник вообще не видел задачу.
-        // Шлиповка не создаёт задач по заказам — у неё свой постоянный рабочий стол
-        if (isSandingProc(proc)) return;
+        // Задача по заказу создаётся так же, как у обычных процессов: если процесс
+        // есть в маршруте, работник его видит. Плюс у шлиповки остаётся свой
+        // постоянный рабочий стол (кнопка 🪵) — для работы «на склад», без заказа.
+        if (isSandingProc(proc)) {
+            orders.forEach(o => {
+                if (!o.path) return;
+                const inPath = o.path.some(p => p.toLowerCase() === proc.toLowerCase());
+                if (!inPath) return;
+                const h = o.history && o.history[proc];
+                if (h && h.end) return;
+                const exists = myTasks.some(t => t.order.id === o.id && t.proc === proc);
+                if (!exists) {
+                    myTasks.push({
+                        order: o, proc,
+                        status: (h && h.start) ? 'active' : 'pending',
+                        isPaint: false, isSanding: true
+                    });
+                }
+            });
+            return;
+        }
         if (isPaintProc(proc)) {
             const stageKeys = PAINT_WORKER_TYPES[proc] || [];
             if (!stageKeys.length) return;
@@ -11061,9 +11103,10 @@ function selectWorkerProc(p) {
 
             // ВАЖНО: шлиповку проверяем раньше покраски — isPaintProc() возвращает true
             // и для «Шлиповка», из-за чего она раньше открывалась в покрасочном терминале
-            if (isSandingProc(p)) {
-                showInlineSanding(o.id);
-            } else if (isPaintProc(p)) {
+            // Шлиповка внутри заказа — часть цикла покраски (шлифовка между слоями),
+            // поэтому открываем терминал этапов, а не каталог деталей.
+            // Каталог остаётся на своём столе (кнопка 🪵) для работы без заказа.
+            if (isPaintProc(p)) {
                 showInlinePaint(o.id);
             } else if (isAssemblyProc(p)) {
                 showInlineAssembly(o.id);
@@ -11240,9 +11283,7 @@ function workerFindOrder() {
     var mb = document.getElementById('wt-manual-box');
     if (mb) mb.classList.add('hidden');
 
-    if (isSandingProc(curProc)) {
-        showInlineSanding(o.id);
-    } else if (isPaintProc(curProc)) {
+    if (isPaintProc(curProc)) {
         showInlinePaint(o.id);
     } else if (isAssemblyProc(curProc)) {
         showInlineAssembly(o.id);

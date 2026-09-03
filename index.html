@@ -1379,6 +1379,9 @@
                     <div id="sanding-access-btn" class="hidden">
                         <button onclick="showSandingWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🪵 Шлиповка</button>
                     </div>
+                    <div id="assembly-access-btn" class="hidden">
+                        <button onclick="showAssemblyWorkerTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">🔨 Сборка</button>
+                    </div>
                     <button onclick="openMyWorkerStats()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff; border-radius:10px; padding:7px 14px; font-size:13px; font-weight:700; cursor:pointer;">📊 Моя статистика</button>
                 </div>
             </div>
@@ -1807,7 +1810,7 @@
                 </div>
                 <div>
                     <label class="field-label">Сумма</label>
-                    <input type="number" id="crm-price" placeholder="0">
+                    <input type="number" min="0" id="crm-price" placeholder="0">
                 </div>
                 <div>
                     <label class="field-label">Адрес / Локация</label>
@@ -1936,7 +1939,7 @@
                         </div>
                         <div>
                             <label class="field-label">М²/шт</label>
-                            <input type="number" id="prod-pc-area" placeholder="0.0" step="0.01" style="margin:0;">
+                            <input type="number" min="0" id="prod-pc-area" placeholder="0.0" step="0.01" style="margin:0;">
                         </div>
                         <button onclick="addProdCatalogItem()" style="height:46px; background:var(--primary); border:none; color:#fff; border-radius:10px; font-weight:700; cursor:pointer; padding:0 12px; white-space:nowrap;">Добавить</button>
                     </div>
@@ -2179,7 +2182,7 @@ alter table paint_records disable row level security;</pre>
                 </div>
                 <div>
                     <label class="field-label">М² за 1 штуку</label>
-                    <input type="number" id="pc-area" placeholder="0.00" step="0.01" style="margin:0;">
+                    <input type="number" min="0" id="pc-area" placeholder="0.00" step="0.01" style="margin:0;">
                 </div>
                 <button class="btn-blue" onclick="savePaintCatalogItem()" style="height:46px; white-space:nowrap;">+ Добавить</button>
             </div>
@@ -2284,6 +2287,86 @@ alter table paint_records disable row level security;</pre>
     </div>
 </div>
 
+<!-- ======== WORKER: СБОРКА (постоянный рабочий стол) ======== -->
+<div id="page-assembly-worker" class="hidden">
+    <div class="wt-header" style="background:linear-gradient(135deg,#0e7fa8,#0891b2);">
+        <div class="wt-header-row">
+            <button class="wt-back-btn" onclick="backFromAssemblyTerminal()" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.4); color:#fff;">← Назад</button>
+            <div style="flex:1; text-align:center;">
+                <div style="font-size:11px; opacity:0.85; text-transform:uppercase; font-weight:700; letter-spacing:0.5px;">Рабочий стол</div>
+                <div style="font-size:20px; font-weight:900;">🔨 Сборка и отгрузка</div>
+            </div>
+            <div style="width:80px;"></div>
+        </div>
+        <div id="asw-today-stats" style="display:flex; gap:10px; justify-content:center; margin-top:12px; flex-wrap:wrap;"></div>
+    </div>
+
+    <div style="padding:0 16px 24px;">
+        <div style="display:flex; gap:6px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:4px; margin-bottom:14px;">
+            <button id="asw-tab-build" class="u-period-btn active" onclick="setAswTab('build')">🔨 Собрать</button>
+            <button id="asw-tab-ship" class="u-period-btn" onclick="setAswTab('ship')">📤 Отгрузить</button>
+        </div>
+
+        <!-- СБОРКА -->
+        <div id="asw-build">
+            <div class="card">
+                <div style="font-size:13px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:10px;">Что собираем</div>
+                <input type="text" id="asw-search" placeholder="🔍 Поиск изделия..." style="margin-bottom:10px;" oninput="renderAswItems()">
+                <div id="asw-items"></div>
+            </div>
+
+            <div id="asw-qty-card" class="card hidden">
+                <div style="text-align:center;">
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Собираем</div>
+                    <div id="asw-selected-name" style="font-size:18px; font-weight:900; margin:4px 0 10px;">—</div>
+                </div>
+                <div style="font-size:11px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:6px;">Спишется со склада заготовок</div>
+                <div id="asw-recipe" style="margin-bottom:10px;"></div>
+                <div id="asw-warning" class="hidden" style="background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 12px; font-size:12px; margin-bottom:12px;"></div>
+                <div class="paint-qty-controls">
+                    <button class="paint-qty-btn" onclick="adjustAswQty(-1)">−</button>
+                    <div class="paint-qty-display" id="asw-qty">1</div>
+                    <button class="paint-qty-btn" onclick="adjustAswQty(1)">+</button>
+                </div>
+                <button class="btn-green wt-big-btn" id="asw-build-btn" onclick="submitAsw()">✔ СОБРАТЬ И НА СКЛАД</button>
+            </div>
+        </div>
+
+        <!-- ОТГРУЗКА -->
+        <div id="asw-ship" class="hidden">
+            <div class="card">
+                <div style="font-size:13px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:10px;">Готово к отгрузке</div>
+                <div id="asw-ship-items"></div>
+            </div>
+
+            <div id="asw-ship-card" class="card hidden">
+                <div style="text-align:center;">
+                    <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Отгружаем</div>
+                    <div id="asw-ship-name" style="font-size:18px; font-weight:900; margin:4px 0 10px;">—</div>
+                </div>
+                <div class="paint-qty-controls">
+                    <button class="paint-qty-btn" onclick="adjustShipQty(-1)">−</button>
+                    <div class="paint-qty-display" id="asw-ship-qty">1</div>
+                    <button class="paint-qty-btn" onclick="adjustShipQty(1)">+</button>
+                </div>
+                <label class="field-label">Кому отгружаем</label>
+                <input type="text" id="asw-ship-to" list="asw-clients" placeholder="Имя клиента" style="margin-bottom:10px;">
+                <datalist id="asw-clients"></datalist>
+                <label class="field-label">№ заказа (если по заказу)</label>
+                <input type="text" id="asw-ship-order" list="asw-orders" placeholder="Оставьте пустым, если без заказа" style="margin-bottom:6px;" oninput="updateAswOrderHint()">
+                <datalist id="asw-orders"></datalist>
+                <div id="asw-order-hint" style="font-size:11px; color:var(--text-muted); margin-bottom:12px;"></div>
+                <button class="btn-green wt-big-btn" onclick="submitAswShip()">📤 ОТГРУЗИТЬ</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div style="font-size:13px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:10px;">📋 Что я сделал сегодня</div>
+            <div id="asw-today-list"></div>
+        </div>
+    </div>
+</div>
+
 <!-- ======== ADMIN: SANDING / ШЛИПОВКА ======== -->
 <div id="page-sanding" class="page hidden">
 
@@ -2346,7 +2429,7 @@ alter table sanding_records disable row level security;</pre>
                         <option value="компл.">компл.</option>
                     </select>
                 </div>
-                <div><label class="field-label">Мин. остаток</label><input type="number" id="sd-min" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Мин. остаток</label><input type="number" min="0" id="sd-min" placeholder="0" step="0.01" style="margin:0;"></div>
                 <button class="btn-blue" onclick="addSandingItem()" style="height:46px;">+ Добавить</button>
             </div>
         </div>
@@ -2496,7 +2579,7 @@ alter table sanding_records disable row level security;</pre>
             <button class="btn-ghost" style="margin-top:8px;" onclick="addSvcRowLine()">+ Добавить строку</button>
 
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin:16px 0 10px;">
-                <div><label class="field-label">Оплата сейчас</label><input type="number" id="svc-op-payment-now" placeholder="0" step="0.01" style="margin:0;" oninput="renderSvcOrderSummary()"></div>
+                <div><label class="field-label">Оплата сейчас</label><input type="number" min="0" id="svc-op-payment-now" placeholder="0" step="0.01" style="margin:0;" oninput="renderSvcOrderSummary()"></div>
                 <div><label class="field-label">Дата</label><input type="date" id="svc-op-date" style="margin:0;"></div>
                 <div><label class="field-label">Примечание</label><input type="text" id="svc-op-notes" placeholder="Доп. информация..." style="margin:0;"></div>
             </div>
@@ -2542,8 +2625,8 @@ alter table sanding_records disable row level security;</pre>
             <p style="font-size:13px; color:var(--text-secondary); margin-top:0;">Цены подставляются автоматически. Два варианта: наш материал / материал клиента.</p>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px;">
                 <div><label class="field-label">Название услуги / процесса</label><input type="text" id="svc-pr-service" placeholder="Раскрой NESTING" style="margin:0;"></div>
-                <div><label class="field-label">Цена — наш материал</label><input type="number" id="svc-pr-price-ours" placeholder="0" step="0.01" style="margin:0;"></div>
-                <div><label class="field-label">Цена — материал клиента</label><input type="number" id="svc-pr-price-client" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена — наш материал</label><input type="number" min="0" id="svc-pr-price-ours" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена — материал клиента</label><input type="number" min="0" id="svc-pr-price-client" placeholder="0" step="0.01" style="margin:0;"></div>
                 <button class="btn-blue" onclick="saveSvcPrice()" style="height:46px;">+ Добавить</button>
             </div>
             <div id="svc-prices-list"></div>
@@ -2640,7 +2723,7 @@ alter table sanding_records disable row level security;</pre>
             <label class="field-label">Изделие</label>
             <input type="text" id="crm-edit-item" style="margin:0 0 12px;">
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div><label class="field-label">Сумма</label><input type="number" id="crm-edit-price" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Сумма</label><input type="number" min="0" id="crm-edit-price" step="0.01" style="margin:0;"></div>
                 <div><label class="field-label">Адрес / локация</label><input type="text" id="crm-edit-loc" style="margin:0;"></div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -2897,7 +2980,7 @@ alter table sanding_records disable row level security;</pre>
                 </div>
                 <div style="width:100px;">
                     <label class="field-label">Кол-во на 1 шт</label>
-                    <input type="number" id="fn-recipe-qty" placeholder="1" step="0.01" style="margin:0;">
+                    <input type="number" min="0" id="fn-recipe-qty" placeholder="1" step="0.01" style="margin:0;">
                 </div>
                 <button class="btn-blue" onclick="addFnRecipeComponent()" style="height:46px;">+ Добавить</button>
             </div>
@@ -3010,11 +3093,11 @@ alter table sanding_records disable row level security;</pre>
                         <option value="пара">пара</option>
                     </select>
                 </div>
-                <div id="item-edit-min-wrap"><label class="field-label">Мин. остаток</label><input type="number" id="item-edit-min" step="0.01" style="margin:0;"></div>
+                <div id="item-edit-min-wrap"><label class="field-label">Мин. остаток</label><input type="number" min="0" id="item-edit-min" step="0.01" style="margin:0;"></div>
             </div>
             <div id="item-edit-cost-wrap">
                 <label class="field-label">Цена за единицу</label>
-                <input type="number" id="item-edit-cost" step="0.01" style="margin:0;">
+                <input type="number" min="0" id="item-edit-cost" step="0.01" style="margin:0;">
                 <div id="item-edit-price-history" style="margin-top:8px;"></div>
             </div>
             <div style="display:flex; gap:10px; margin-top:8px;">
@@ -3213,11 +3296,11 @@ alter table sanding_records disable row level security;</pre>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px;">
                 <div>
                     <label class="field-label">🚚 Доставка (сумма)</label>
-                    <input type="number" id="oc-delivery-cost" placeholder="0" step="0.01" onchange="saveOcMeta()">
+                    <input type="number" min="0" id="oc-delivery-cost" placeholder="0" step="0.01" onchange="saveOcMeta()">
                 </div>
                 <div>
                     <label class="field-label">💵 Цена продажи (клиенту)</label>
-                    <input type="number" id="oc-sale-price" placeholder="0" step="0.01" onchange="saveOcMeta()">
+                    <input type="number" min="0" id="oc-sale-price" placeholder="0" step="0.01" onchange="saveOcMeta()">
                 </div>
             </div>
             <div>
@@ -3313,7 +3396,7 @@ alter table sanding_records disable row level security;</pre>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:10px; align-items:end;">
                 <div><label class="field-label">Категория</label><input type="text" id="exp-category" placeholder="Аренда, ЗП..." style="margin:0;"></div>
                 <div><label class="field-label">Описание</label><input type="text" id="exp-desc" placeholder="Детали..." style="margin:0;"></div>
-                <div><label class="field-label">Сумма</label><input type="number" id="exp-amount" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Сумма</label><input type="number" min="0" id="exp-amount" placeholder="0" step="0.01" style="margin:0;"></div>
                 <div><label class="field-label">Дата</label><input type="date" id="exp-date" style="margin:0;"></div>
                 <button class="btn-blue" onclick="addExpense()" style="height:46px;">+ Добавить</button>
             </div>
@@ -3368,9 +3451,9 @@ alter table sanding_records disable row level security;</pre>
                         <option value="упак.">упак.</option>
                     </select>
                 </div>
-                <div><label class="field-label">Начальный остаток</label><input type="number" id="wh-qty" placeholder="0" step="0.01" style="margin:0;"></div>
-                <div><label class="field-label">Цена за ед.</label><input type="number" id="wh-cost" placeholder="0" step="0.01" style="margin:0;"></div>
-                <div><label class="field-label">Мин. остаток (сигнал)</label><input type="number" id="wh-min" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Начальный остаток</label><input type="number" min="0" id="wh-qty" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена за ед.</label><input type="number" min="0" id="wh-cost" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Мин. остаток (сигнал)</label><input type="number" min="0" id="wh-min" placeholder="0" step="0.01" style="margin:0;"></div>
                 <button class="btn-blue" onclick="addWarehouseItem()" style="height:46px;">+ Добавить</button>
             </div>
             <div style="margin-top:10px;">
@@ -3434,8 +3517,8 @@ alter table sanding_records disable row level security;</pre>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:10px; align-items:end; margin-bottom:12px;">
                 <div><label class="field-label">Название работы</label><input type="text" id="lb-name" placeholder="Сборка, Монтаж, Доставка..." style="margin:0;"></div>
                 <div><label class="field-label">Категория</label><input type="text" id="lb-category" placeholder="Сборка, Монтаж, Доставка..." style="margin:0;"></div>
-                <div><label class="field-label">Цена — наш материал</label><input type="number" id="lb-price-ours" placeholder="0" step="0.01" style="margin:0;"></div>
-                <div><label class="field-label">Цена — материал клиента</label><input type="number" id="lb-price-client" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена — наш материал</label><input type="number" min="0" id="lb-price-ours" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Цена — материал клиента</label><input type="number" min="0" id="lb-price-client" placeholder="0" step="0.01" style="margin:0;"></div>
                 <button class="btn-blue" onclick="addLaborCatalogItem()" style="height:46px;">+ Добавить</button>
             </div>
         </div>
@@ -3506,8 +3589,8 @@ alter table sanding_records disable row level security;</pre>
                 </div>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:10px; align-items:end;">
-                <div><label class="field-label">Начальный остаток</label><input type="number" id="bl-qty" placeholder="0" step="0.01" style="margin:0;"></div>
-                <div><label class="field-label">Мин. остаток</label><input type="number" id="bl-min" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Начальный остаток</label><input type="number" min="0" id="bl-qty" placeholder="0" step="0.01" style="margin:0;"></div>
+                <div><label class="field-label">Мин. остаток</label><input type="number" min="0" id="bl-min" placeholder="0" step="0.01" style="margin:0;"></div>
                 <div><label class="field-label">Фото (ссылка)</label><input type="text" id="bl-photo" placeholder="https://..." style="margin:0;"></div>
                 <button class="btn-blue" onclick="addBlankItem()" style="height:46px;">+ Добавить</button>
             </div>
@@ -4106,7 +4189,7 @@ function getWorkerPaintStageKeys(user) {
 }
 
 function showPaintWorkerTerminal() {
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker')
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker, #page-assembly-worker')
         .forEach(p => p.classList.add('hidden'));
     document.getElementById('page-paint-worker').classList.remove('hidden');
     pwt = { orderId: null, stageKey: null, category: null, itemName: null, qty: 0 };
@@ -4600,6 +4683,355 @@ function renderSdwToday() {
 function isSandingProc(procName) {
     return (procName || '').trim().toLowerCase() === 'шлиповка';
 }
+
+// ═══════════════════════════════════════════════════════
+// СБОРКА И ОТГРУЗКА — постоянный рабочий стол
+// Работник собирает изделия по рецепту (заготовки списываются,
+// готовое приходуется) и отгружает клиенту. Если указан заказ —
+// отгрузка привязывается к нему и заказ закрывается.
+// ═══════════════════════════════════════════════════════
+let asw = { tab: 'build', itemId: null, qty: 1, shipId: null, shipQty: 1 };
+
+function workerHasAssemblyAccess(user) {
+    if (!user || !user.procs) return false;
+    let procs = user.procs;
+    if (typeof procs === 'string') { try { procs = JSON.parse(procs); } catch(e) { procs = []; } }
+    return Array.isArray(procs) && procs.some(p => isAssemblyProc(p));
+}
+
+async function showAssemblyWorkerTerminal() {
+    document.getElementById('page-worker-terminal')?.classList.add('hidden');
+    document.getElementById('page-assembly-worker')?.classList.remove('hidden');
+    asw = { tab: 'build', itemId: null, qty: 1, shipId: null, shipQty: 1 };
+    if (!finished_items.length || !finished_recipe.length) await loadFinishedData();
+    if (!blank_items.length) await loadBlankData();
+    setAswTab('build');
+    renderAswToday();
+}
+
+function backFromAssemblyTerminal() {
+    document.getElementById('page-assembly-worker')?.classList.add('hidden');
+    document.getElementById('page-worker-terminal')?.classList.remove('hidden');
+    renderWorkerTasks();
+}
+
+function setAswTab(tab) {
+    asw.tab = tab;
+    document.getElementById('asw-build')?.classList.toggle('hidden', tab !== 'build');
+    document.getElementById('asw-ship')?.classList.toggle('hidden', tab !== 'ship');
+    document.getElementById('asw-tab-build')?.classList.toggle('active', tab === 'build');
+    document.getElementById('asw-tab-ship')?.classList.toggle('active', tab === 'ship');
+    if (tab === 'build') renderAswItems(); else renderAswShipItems();
+}
+
+// ── СБОРКА ──
+function renderAswItems() {
+    const el = document.getElementById('asw-items');
+    if (!el) return;
+    const q = (document.getElementById('asw-search')?.value || '').toLowerCase();
+    // Только изделия с настроенным рецептом — иначе собирать не из чего
+    const list = finished_items.filter(i =>
+        finished_recipe.some(r => r.finished_item_id === i.id) &&
+        (!q || i.name.toLowerCase().includes(q)));
+
+    if (!list.length) {
+        el.innerHTML = '<div class="u-empty">Нет изделий с рецептом. Администратор настраивает рецепты в разделе Склад.</div>';
+        return;
+    }
+
+    el.innerHTML = list.map(i => {
+        const sel = asw.itemId === i.id;
+        const rc = finished_recipe.filter(r => r.finished_item_id === i.id).length;
+        // Сколько можно собрать из того, что есть на складе
+        const maxBuild = Math.min(...finished_recipe.filter(r => r.finished_item_id === i.id)
+            .map(r => Math.floor((blank_items.find(b => b.id === r.blank_item_id)?.qty_in_stock || 0) / (r.qty_per_unit || 1))));
+        const canBuild = isFinite(maxBuild) ? maxBuild : 0;
+
+        return `<div onclick="selectAswItem(${i.id})" style="display:flex; justify-content:space-between; align-items:center; gap:10px;
+                    padding:13px 14px; margin-bottom:7px; border-radius:12px; cursor:pointer;
+                    border:2px solid ${sel?'var(--primary)':'var(--border)'}; background:${sel?'var(--primary-container)':'var(--card)'};">
+            <div style="flex:1; min-width:0;">
+                <div style="font-weight:800; font-size:15px;">${i.name}</div>
+                <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">
+                    ${rc} компонент${rc===1?'':'ов'} ·
+                    <span style="color:${canBuild>0?'#16a34a':'#ef4444'}; font-weight:700;">можно собрать: ${canBuild}</span>
+                </div>
+            </div>
+            <div style="text-align:right; white-space:nowrap;">
+                <div style="font-size:18px; font-weight:900; color:var(--success);">${i.qty_in_stock || 0}</div>
+                <div style="font-size:10px; color:var(--text-muted);">на складе</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectAswItem(id) {
+    asw.itemId = id; asw.qty = 1;
+    const item = finished_items.find(i => i.id === id);
+    document.getElementById('asw-selected-name').innerText = item ? item.name : '';
+    document.getElementById('asw-qty-card')?.classList.remove('hidden');
+    renderAswItems();
+    renderAswRecipe();
+    document.getElementById('asw-qty-card')?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+function adjustAswQty(d) { asw.qty = Math.max(1, asw.qty + d); document.getElementById('asw-qty').innerText = asw.qty; renderAswRecipe(); }
+
+function renderAswRecipe() {
+    const el = document.getElementById('asw-recipe');
+    const warn = document.getElementById('asw-warning');
+    const btn = document.getElementById('asw-build-btn');
+    if (!el) return;
+    const recipe = finished_recipe.filter(r => r.finished_item_id === asw.itemId);
+    const lack = [];
+
+    el.innerHTML = recipe.map(r => {
+        const b = blank_items.find(x => x.id === r.blank_item_id);
+        const need = (r.qty_per_unit || 0) * asw.qty;
+        const have = b?.qty_in_stock || 0;
+        const bad = have < need;
+        if (bad) lack.push(`${r.blank_item_name}: нужно ${need}, есть ${have}`);
+        return `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border-light); font-size:12px;">
+            <span style="${bad?'color:#b91c1c; font-weight:700;':''}">${bad?'⚠ ':''}${r.blank_item_name}</span>
+            <span><b style="color:${bad?'#ef4444':'var(--text)'};">−${need}</b> <span style="color:var(--text-muted); font-size:11px;">из ${have}</span></span>
+        </div>`;
+    }).join('');
+
+    if (warn) {
+        if (lack.length) { warn.innerHTML = '<b>⛔ Не хватает заготовок:</b><br>' + lack.join('<br>'); warn.classList.remove('hidden'); }
+        else warn.classList.add('hidden');
+    }
+    if (btn) {
+        btn.disabled = lack.length > 0;
+        btn.style.opacity = lack.length ? '.45' : '1';
+        btn.innerText = lack.length ? '⛔ НЕ ХВАТАЕТ ЗАГОТОВОК' : '✔ СОБРАТЬ И НА СКЛАД';
+    }
+}
+
+async function submitAsw() {
+    const item = finished_items.find(i => i.id === asw.itemId);
+    if (!item || asw.qty < 1) return showToast('Выберите изделие', 'error');
+    if (!lockOp('asw-build')) return;
+    const btn = document.getElementById('asw-build-btn');
+    if (btn) { btn.disabled = true; btn.innerText = 'Собираем...'; }
+
+    try {
+        const recipe = finished_recipe.filter(r => r.finished_item_id === item.id);
+        const lack = recipe.filter(r => (blank_items.find(b => b.id === r.blank_item_id)?.qty_in_stock || 0) < (r.qty_per_unit || 0) * asw.qty);
+        if (lack.length) return showToast('Не хватает заготовок', 'error');
+
+        for (const r of recipe) {
+            const b = blank_items.find(x => x.id === r.blank_item_id);
+            if (b) await logBlankMovement(b.id, blankDisplayName(b), 'out', (r.qty_per_unit || 0) * asw.qty, `Сборка: ${item.name} × ${asw.qty}`);
+        }
+        const composition = recipe.map(r => `${r.blank_item_name}×${(r.qty_per_unit||0)*asw.qty}`).join(', ');
+        await logFinishedMovement(item.id, item.name, 'in', asw.qty, `Собрано из: ${composition}`, null, null);
+
+        await logActivity(curUser.name, 'Собрал изделие', `${item.name} × ${asw.qty}`, 'process');
+        showToast(`✅ Собрано: ${item.name} × ${asw.qty}`);
+
+        asw.itemId = null; asw.qty = 1;
+        document.getElementById('asw-qty-card')?.classList.add('hidden');
+        renderAswItems(); renderAswToday();
+    } catch (e) {
+        showToast('Ошибка сборки', 'error');
+    } finally {
+        unlockOp('asw-build');
+        if (btn) { btn.disabled = false; btn.innerText = '✔ СОБРАТЬ И НА СКЛАД'; }
+    }
+}
+
+// ── ОТГРУЗКА ──
+function renderAswShipItems() {
+    const el = document.getElementById('asw-ship-items');
+    if (!el) return;
+    const list = finished_items.filter(i => (i.qty_in_stock || 0) > 0);
+
+    // Подсказки клиентов и заказов
+    const cl = document.getElementById('asw-clients');
+    if (cl) cl.innerHTML = [...new Set(crm_orders.map(c => c.client).filter(Boolean))].map(n => `<option value="${esc(n)}">`).join('');
+    const or = document.getElementById('asw-orders');
+    if (or) or.innerHTML = crm_orders.map(c => `<option value="${esc(c.oid)}">`).join('');
+
+    if (!list.length) {
+        el.innerHTML = '<div class="u-empty">На складе нет готовых изделий. Сначала соберите.</div>';
+        return;
+    }
+
+    el.innerHTML = list.map(i => {
+        const sel = asw.shipId === i.id;
+        return `<div onclick="selectAswShip(${i.id})" style="display:flex; justify-content:space-between; align-items:center; gap:10px;
+                    padding:13px 14px; margin-bottom:7px; border-radius:12px; cursor:pointer;
+                    border:2px solid ${sel?'var(--primary)':'var(--border)'}; background:${sel?'var(--primary-container)':'var(--card)'};">
+            <div style="font-weight:800; font-size:15px;">${i.name}</div>
+            <div style="text-align:right;">
+                <div style="font-size:18px; font-weight:900; color:var(--success);">${i.qty_in_stock}</div>
+                <div style="font-size:10px; color:var(--text-muted);">готово</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function selectAswShip(id) {
+    asw.shipId = id; asw.shipQty = 1;
+    const item = finished_items.find(i => i.id === id);
+    document.getElementById('asw-ship-name').innerText = item ? item.name : '';
+    document.getElementById('asw-ship-qty').innerText = 1;
+    document.getElementById('asw-ship-card')?.classList.remove('hidden');
+    renderAswShipItems();
+    updateAswOrderHint();
+    document.getElementById('asw-ship-card')?.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+// Показывает по выбранному заказу: сколько заказано, отгружено и осталось
+function updateAswOrderHint() {
+    const el = document.getElementById('asw-order-hint');
+    if (!el) return;
+    const oid = document.getElementById('asw-ship-order')?.value.trim();
+    if (!oid) {
+        el.innerHTML = '<span style="color:var(--text-muted);">Без заказа — просто отгрузка со склада</span>';
+        return;
+    }
+    const crm = crm_orders.find(c => c.oid === oid);
+    if (!crm) {
+        el.innerHTML = '<span style="color:#f59e0b;">⚠️ Заказ не найден в CRM</span>';
+        return;
+    }
+    const shipped = (finished_movements || [])
+        .filter(m => m.order_id === oid && m.type === 'out')
+        .reduce((s, m) => s + (Number(m.qty) || 0), 0);
+    const total = Number(crm.qty) || 0;
+
+    if (!total) {
+        el.innerHTML = `<span style="color:var(--text-secondary);">${crm.client || ''} · количество в заказе не указано, заказ закроется этой отгрузкой</span>`;
+        return;
+    }
+    const left = Math.max(0, total - shipped);
+    const willShip = asw.shipQty;
+    const afterLeft = Math.max(0, left - willShip);
+
+    el.innerHTML = `<b>${crm.client || ''}</b> · заказано ${total}, отгружено ${shipped}, осталось ${left}` +
+        (afterLeft === 0
+            ? ` <span style="color:#16a34a; font-weight:800;">→ заказ закроется ✔</span>`
+            : ` <span style="color:#f59e0b; font-weight:700;">→ останется ${afterLeft}</span>`);
+}
+
+function adjustShipQty(d) {
+    const item = finished_items.find(i => i.id === asw.shipId);
+    const max = item?.qty_in_stock || 1;
+    asw.shipQty = Math.max(1, Math.min(max, asw.shipQty + d));
+    document.getElementById('asw-ship-qty').innerText = asw.shipQty;
+    updateAswOrderHint();
+}
+
+async function submitAswShip() {
+    const item = finished_items.find(i => i.id === asw.shipId);
+    if (!item) return showToast('Выберите изделие', 'error');
+    const to = document.getElementById('asw-ship-to')?.value.trim() || '';
+    const oid = document.getElementById('asw-ship-order')?.value.trim() || null;
+    if (!to && !oid) return showToast('Укажите, кому отгружаем', 'error');
+    if (asw.shipQty > (item.qty_in_stock || 0)) return showToast('На складе меньше, чем отгружаете', 'error');
+    if (!lockOp('asw-ship')) return;
+
+    try {
+        const crm = oid ? crm_orders.find(c => c.oid === oid) : null;
+        const recipient = to || crm?.client || '';
+
+        await logFinishedMovement(item.id, item.name, 'out', asw.shipQty, 'Отгружено', recipient, null, oid);
+
+        // Заказ закрываем только когда отгружено ВСЁ количество из CRM.
+        // При частичной отгрузке заказ остаётся открытым — иначе он закрылся бы
+        // на первой же партии, хотя клиент получил не всё.
+        if (oid) {
+            await loadFinishedData();   // подтягиваем свежие движения, включая только что созданное
+            const shippedTotal = (finished_movements || [])
+                .filter(m => m.order_id === oid && m.type === 'out')
+                .reduce((sum, m) => sum + (Number(m.qty) || 0), 0);
+            const orderQty = Number(crm?.qty) || 0;   // сколько всего заказано
+
+            const isFullyShipped = orderQty > 0 ? shippedTotal >= orderQty : true;
+            const order = orders.find(o => o.id === oid);
+
+            if (isFullyShipped && order) {
+                const now = new Date().toISOString();
+                await safeUpdateOrder(oid, fresh => {
+                    (fresh.path || []).forEach(p => {
+                        if (!fresh.history[p]) fresh.history[p] = {};
+                        if (!fresh.history[p].end) {
+                            if (!fresh.history[p].start) { fresh.history[p].start = now; fresh.history[p].worker = curUser.name; }
+                            fresh.history[p].end = now;
+                            fresh.history[p].completed_by = curUser.name;
+                        }
+                    });
+                });
+                await logActivity(curUser.name, 'Заказ завершён',
+                    `Заказ #${oid} отгружен полностью (${shippedTotal} из ${orderQty || shippedTotal})`, 'order');
+                showToast(`✅ Заказ №${oid} отгружен полностью и завершён`);
+            } else if (orderQty > 0) {
+                const left = orderQty - shippedTotal;
+                showToast(`📤 Отгружено ${shippedTotal} из ${orderQty} · осталось ${left}`);
+            } else {
+                showToast(`📤 Отгружено по заказу №${oid}`);
+            }
+        } else {
+            showToast(`📤 Отгружено: ${item.name} × ${asw.shipQty} → ${recipient}`);
+        }
+
+        await logActivity(curUser.name, 'Отгрузил',
+            `${item.name} × ${asw.shipQty}${recipient ? ' → ' + recipient : ''}${oid ? `, заказ #${oid}` : ' (без заказа)'}`, 'order');
+
+        asw.shipId = null; asw.shipQty = 1;
+        document.getElementById('asw-ship-card')?.classList.add('hidden');
+        document.getElementById('asw-ship-to').value = '';
+        document.getElementById('asw-ship-order').value = '';
+        await loadAllData();
+        renderAswShipItems(); renderAswToday();
+    } catch (e) {
+        showToast('Ошибка отгрузки', 'error');
+    } finally {
+        unlockOp('asw-ship');
+    }
+}
+
+function renderAswToday() {
+    const el = document.getElementById('asw-today-list');
+    const statsEl = document.getElementById('asw-today-stats');
+    const today = new Date().toDateString();
+    const mine = (finished_movements || []).filter(m =>
+        m.user_name === curUser?.name && new Date(m.created_at).toDateString() === today);
+    const built = mine.filter(m => m.type === 'in').reduce((s,m) => s + (Number(m.qty)||0), 0);
+    const shipped = mine.filter(m => m.type === 'out').reduce((s,m) => s + (Number(m.qty)||0), 0);
+
+    if (statsEl) {
+        statsEl.innerHTML = `
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:10px 18px; text-align:center; min-width:96px;">
+                <div style="font-size:24px; font-weight:900;">${built}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">собрано</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.18); border-radius:12px; padding:10px 18px; text-align:center; min-width:96px;">
+                <div style="font-size:24px; font-weight:900;">${shipped}</div>
+                <div style="font-size:10px; opacity:0.9; text-transform:uppercase;">отгружено</div>
+            </div>`;
+    }
+
+    if (!el) return;
+    if (!mine.length) { el.innerHTML = '<div class="u-empty">Сегодня ещё ничего не сделано</div>'; return; }
+    el.innerHTML = mine.map(m => {
+        const isIn = m.type === 'in';
+        return `<div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px;
+                    background:${isIn?'#f0fdf4':'#fffbeb'}; border:1px solid ${isIn?'#86efac':'#fcd34d'}; border-radius:10px; margin-bottom:6px;">
+            <div>
+                <div style="font-weight:700; font-size:13px; color:${isIn?'#166534':'#92400e'};">${isIn?'🔨':'📤'} ${m.item_name}</div>
+                <div style="font-size:11px; color:${isIn?'#15803d':'#92400e'}; opacity:.85;">
+                    ${new Date(m.created_at).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'})}${m.recipient ? ' · ' + m.recipient : ''}${m.order_id ? ' · заказ #' + m.order_id : ''}
+                </div>
+            </div>
+            <div style="font-size:17px; font-weight:900; color:${isIn?'#15803d':'#92400e'};">${isIn?'+':'−'}${m.qty}</div>
+        </div>`;
+    }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
 
 function isAssemblyProc(procName) {
     return (procName || '').trim().toLowerCase() === 'сборка';
@@ -7057,9 +7489,9 @@ function renderOcMaterials() {
             ${m.deducted_at ? '<div style="font-size:10px; color:#15803d; font-weight:700; margin-top:2px;">✔ списано со склада</div>' : ''}</td>
         <td><input type="text" value="${m.color||''}" onchange="updateOcMaterial(${m.id},'color',this.value)" style="width:70px;"></td>
         <td><input type="text" value="${m.package||''}" onchange="updateOcMaterial(${m.id},'package',this.value)" style="width:80px;"></td>
-        <td><input type="number" value="${m.qty||0}" step="0.01" onchange="updateOcMaterial(${m.id},'qty',this.value)" style="width:60px;"></td>
+        <td><input type="number" min="0" value="${m.qty||0}" step="0.01" onchange="updateOcMaterial(${m.id},'qty',this.value)" style="width:60px;"></td>
         <td><input type="text" value="${m.unit||'шт'}" onchange="updateOcMaterial(${m.id},'unit',this.value)" style="width:50px;"></td>
-        <td><input type="number" value="${m.unit_price||0}" step="0.01" onchange="updateOcMaterial(${m.id},'unit_price',this.value)" style="width:80px;"></td>
+        <td><input type="number" min="0" value="${m.unit_price||0}" step="0.01" onchange="updateOcMaterial(${m.id},'unit_price',this.value)" style="width:80px;"></td>
         <td style="font-weight:700; white-space:nowrap;">${formatMoney((m.qty||0)*(m.unit_price||0))}</td>
         <td style="white-space:nowrap;">
             ${m.deducted_at
@@ -7308,8 +7740,8 @@ function renderOcLabor() {
         return '<tr>'
             + '<td>' + descCell + '</td>'
             + '<td><select onchange="updateOcLabor(' + l.id + ',\'worker\',this.value)" style="min-width:110px;font-size:12px;">' + wOpts + '</select></td>'
-            + '<td><input type="number" value="' + (l.qty||1) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'qty\',this.value)" style="width:60px;font-size:12px;"></td>'
-            + '<td><input type="number" value="' + (l.unit_price||0) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'unit_price\',this.value)" style="width:80px;font-size:12px;"></td>'
+            + '<td><input type="number" min="0" value="' + (l.qty||1) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'qty\',this.value)" style="width:60px;font-size:12px;"></td>'
+            + '<td><input type="number" min="0" value="' + (l.unit_price||0) + '" step="0.01" onchange="updateOcLabor(' + l.id + ',\'unit_price\',this.value)" style="width:80px;font-size:12px;"></td>'
             + '<td style="font-weight:700; white-space:nowrap;">' + formatMoney((l.qty||1)*(l.unit_price||0)) + '</td>'
             + '<td><button class="btn-red" style="padding:3px 8px; font-size:11px;" onclick="deleteOcLabor(' + l.id + ')">✖</button></td>'
             + '</tr>';
@@ -9118,6 +9550,10 @@ async function confirmAssemble() {
     const qty = _asmModal.qty;
     const item = finished_items.find(i => i.id === itemId);
     if (!item || qty <= 0) return;
+    if (!lockOp('assemble')) return;
+    const btn = document.getElementById('asm-modal-confirm-btn');
+    if (btn) { btn.disabled = true; btn.innerText = 'Собираем...'; }
+    try {
     const recipe = finished_recipe.filter(r => r.finished_item_id === itemId);
 
     // Страховка: не собираем, если заготовок не хватает
@@ -9139,10 +9575,14 @@ async function confirmAssemble() {
     const composition = recipe.map(r => `${r.blank_item_name}×${r.qty_per_unit * qty}`).join(', ');
     await logFinishedMovement(itemId, item.name, 'in', qty, `Собрано из: ${composition}`, null, null);
 
-    renderBlankItems();
-    renderFinishedItems();
-    closeAssembleModal();
-    showToast(`✔ Собрано: ${item.name} × ${qty}`);
+        renderBlankItems();
+        renderFinishedItems();
+        closeAssembleModal();
+        showToast(`✔ Собрано: ${item.name} × ${qty}`);
+    } finally {
+        unlockOp('assemble');
+        if (btn) { btn.disabled = false; btn.innerText = '🔨 Собрать'; }
+    }
 }
 
 // ── ОТГРУЗКА / ПРОДАЖА ──
@@ -10666,6 +11106,10 @@ async function handleLogin(forceLogin = false) {
                 document.getElementById('sanding-access-btn').classList.remove('hidden');
                 loadSandingData();
             }
+            if (workerHasAssemblyAccess(worker)) {
+                document.getElementById('assembly-access-btn').classList.remove('hidden');
+                loadFinishedData();
+            }
             
             localStorage.setItem('erp_user', worker.name);
             localStorage.setItem('erp_user_type', 'worker');
@@ -11649,8 +12093,11 @@ async function processAction(type) {
                 : `Сдано ${addQty} ${h.unit}. Всего ${totalDone} из ${planned} — процесс продолжается`;
             window._lastFinishMsg = _finishMsg;
         }
-        const { error } = await _supabase.from('orders').upsert(o);
-        if(error) throw error;
+        // Сохраняем через перечитывание: если параллельно другой работник
+        // сдал объём по этому же заказу, его данные не потеряются
+        const myProcData = o.history[curProc];
+        await safeUpdateOrder(oid, fresh => { fresh.history[curProc] = myProcData; });
+
         await loadAllData();
         workerFindOrder();
         showToast(type === 'start' ? "Работа начата" : (window._lastFinishMsg || "Объём записан"));
@@ -12836,6 +13283,31 @@ function _psCollectRecords() {
             source: 'sanding'
         });
     }
+    // 3.5) Сборка и отгрузка готовых изделий — раньше работа сборщика
+    // вообще не попадала в статистику персонала
+    for (var fmi = 0; fmi < (finished_movements || []).length; fmi++) {
+        var fm = finished_movements[fmi];
+        if (!fm.user_name || !fm.created_at || !isInPsPeriod(fm.created_at)) continue;
+        var fmAt = new Date(fm.created_at);
+        var crmF = null;
+        for (var cfi = 0; cfi < crm_orders.length; cfi++) {
+            if (crm_orders[cfi].oid === fm.order_id) { crmF = crm_orders[cfi]; break; }
+        }
+        records.push({
+            date: (fm.created_at || '').slice(0,10),
+            worker: fm.user_name,
+            orderId: fm.order_id || '—',
+            proc: (fm.type === 'in' ? 'Сборка — ' : 'Отгрузка — ') + (fm.item_name || ''),
+            qty: Number(fm.qty) || 0,
+            unit: 'шт',
+            startTime: fmAt, endTime: fmAt, duration: 0,
+            item: fm.item_name || '',
+            client: fm.recipient || (crmF ? crmF.client : ''),
+            sum: 0,
+            source: fm.type === 'in' ? 'assembly' : 'shipment'
+        });
+    }
+
     // 4) Работа/монтаж из калькуляции заказа (order_labor) — раньше эти строки нигде не
     // засчитывались работнику, даже если админ явно указал кол-во, цену и исполнителя
     for (var lai = 0; lai < all_order_labor.length; lai++) {
@@ -14588,7 +15060,7 @@ function renderInventoryRows() {
         </td>
         <td data-label="Учёт" style="text-align:center; font-weight:700;">${i.qty_in_stock} ${i.unit}</td>
         <td data-label="Факт" style="text-align:center;">
-            <input type="number" step="0.01" placeholder="—" oninput="setInventoryFact(${i.id}, this.value)"
+            <input type="number" min="0" step="0.01" placeholder="—" oninput="setInventoryFact(${i.id}, this.value)"
                    style="width:88px; padding:5px; text-align:center; border:1px solid var(--border); border-radius:8px; font-weight:700;">
         </td>
         <td data-label="Расхождение" id="inv-diff-${i.id}" style="text-align:center; color:var(--text-muted);">—</td>
@@ -14636,6 +15108,7 @@ async function applyInventory() {
     const summary = changes.slice(0, 8).map(c => `${c.item.name}: ${c.item.qty_in_stock} → ${c.fact} (${c.diff > 0 ? '+' : ''}${c.diff})`).join('\n');
     if (!confirm(`Провести корректировку по ${changes.length} позициям?\n\n${summary}${changes.length > 8 ? `\n…и ещё ${changes.length - 8}` : ''}`)) return;
 
+    if (!lockOp('inventory')) return;
     let done = 0;
     for (const c of changes) {
         try {
@@ -14649,6 +15122,7 @@ async function applyInventory() {
     await logActivity(curUser.name, 'Провёл инвентаризацию',
         `Скорректировано позиций: ${done} из ${changes.length}`, 'warehouse');
 
+    unlockOp('inventory');
     closeInventory();
     renderWarehouseItems();
     showToast(`✔ Инвентаризация проведена: скорректировано ${done} позиций`);
@@ -15089,7 +15563,7 @@ let _currentPageId = null;   // нужен для точечного обнов�
 
 function showPage(id) {
     _currentPageId = id;
-    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker, #page-services').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('.page, #page-worker-terminal, #page-login, #page-kanban, #page-paint-worker, #page-sanding-worker, #page-assembly-worker, #page-services').forEach(p => p.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     const target = document.getElementById(id);
     if(target) target.classList.remove('hidden');
@@ -15955,6 +16429,10 @@ function init() {
                             document.getElementById('sanding-access-btn')?.classList.remove('hidden');
                             loadSandingData();
                         }
+                        if (workerHasAssemblyAccess(w)) {
+                            document.getElementById('assembly-access-btn')?.classList.remove('hidden');
+                            loadFinishedData();
+                        }
                         renderWorkerTasks();
                         updateNotifyButton();
                     };
@@ -16026,6 +16504,45 @@ document.addEventListener('DOMContentLoaded', () => {
         filterSelect.addEventListener('change', refreshKanban);
     }
 });
+
+// ═══════════════════════════════════════════════════════
+// ЗАМОК ОТ ДВОЙНОГО НАЖАТИЯ
+// Долгие операции (сборка, инвентаризация) идут в несколько запросов.
+// Пока они выполняются, повторное нажатие списало бы всё дважды.
+// ═══════════════════════════════════════════════════════
+const _busyOps = new Set();
+
+// Безопасное сохранение заказа: перечитываем свежую версию из базы,
+// применяем изменение к ней и только потом пишем. Иначе, если двое
+// работают с одним заказом (например маляр и шлиповщик), второй
+// сохранил бы устаревшую копию и затёр работу первого.
+async function safeUpdateOrder(orderId, mutate) {
+    try {
+        const { data, error } = await _supabase.from('orders').select('*').eq('id', orderId).maybeSingle();
+        if (error) throw error;
+        const fresh = data || orders.find(o => o.id === orderId) || { id: orderId, path: [], history: {} };
+        if (!fresh.history) fresh.history = {};
+
+        mutate(fresh);   // изменение применяется к актуальным данным
+
+        const { error: upErr } = await _supabase.from('orders').upsert(fresh);
+        if (upErr) throw upErr;
+
+        const idx = orders.findIndex(o => o.id === orderId);
+        if (idx !== -1) orders[idx] = fresh; else orders.push(fresh);
+        return fresh;
+    } catch (e) {
+        console.error('safeUpdateOrder:', e);
+        throw e;
+    }
+}
+
+function lockOp(name) {
+    if (_busyOps.has(name)) { showToast('Операция уже выполняется, подождите', 'error'); return false; }
+    _busyOps.add(name);
+    return true;
+}
+function unlockOp(name) { _busyOps.delete(name); }
 
 // ═══════════════════════════════════════════════════════
 // СТРАХОВКА ОТ МОЛЧАЛИВЫХ СБОЕВ
